@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Marker, Popup, useMap } from "react-leaflet";
+import { Marker, Pane, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { isPublishedVendorEvent } from "@/lib/vendorEvents";
 import { getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
@@ -12,7 +12,8 @@ export const YARDITS_ON_SPOTLIGHTS_ENABLED = true;
 export const YARDIT_EXCLUSIVE_EVENT_IDS = ["6adf911b4e77d965a479e3e1"];
 
 const styles = [
-  ".yardits-on-marker{background:transparent;border:0}",
+  ".leaflet-marker-icon.yardits-on-marker{background:transparent;border:0;pointer-events:none}",
+  ".yardits-on-sign,.yardits-on-mini-sign,.yardits-on-dot,.yardits-on-dot-tail{pointer-events:auto}",
   ".yardits-on-scene{position:relative;width:164px;height:152px}",
   ".yardits-on-beam{position:absolute;bottom:57px;left:75px;width:16px;height:83px;transform-origin:50% 100%;opacity:.78;background:linear-gradient(to top,rgba(255,213,105,.9),rgba(255,239,183,.18) 80%,transparent);clip-path:polygon(38% 100%,62% 100%,100% 0,0 0);filter:drop-shadow(0 0 8px #ffd58a);pointer-events:none}",
   ".yardits-on-beam.left{animation:yardits-on-left 3.6s ease-in-out infinite alternate}",
@@ -115,7 +116,8 @@ export default function YarditsOnSpotlightLayer({
       frame = window.requestAnimationFrame(() => { frame = 0; refresh(); });
     };
 
-    const pane = map.getPanes().markerPane;
+    // The decoration has its own pane; observe changes across all marker panes.
+    const pane = map.getPanes().mapPane;
     const observer = typeof MutationObserver !== "undefined" ? new MutationObserver(schedule) : null;
     if (pane) observer?.observe(pane, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
     map.on("moveend zoomend resize layeradd layerremove", schedule);
@@ -130,15 +132,15 @@ export default function YarditsOnSpotlightLayer({
 
   if (!enabled || !eligible.length) return null;
   return (
-    <>
+    <Pane name="yardit-spotlight-marquees" style={{ zIndex: 350, pointerEvents: "none" }}>
       <style>{styles}</style>
       {eligible.map((event) => {
         const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
         const lng = validCoordinate(event.longitude ?? event.lng ?? event.location?.lng, 180);
-        const mode = modes[String(event.id)] || "marker";
+        const mode = modes[String(event.id)] || "hidden";
         if (mode === "hidden") return null;
         return (
-          <Marker key={event.id} position={[lat, lng]} icon={iconForMode(mode, event)} zIndexOffset={-1200}
+          <Marker key={event.id} position={[lat, lng]} icon={iconForMode(mode, event)}
             eventHandlers={{ popupopen: (e) => {
               window.requestAnimationFrame(() => {
                 const marker = e.target.getElement()?.getBoundingClientRect();
@@ -151,12 +153,12 @@ export default function YarditsOnSpotlightLayer({
                 ], { animate: true, duration: 0.35 });
               });
             } }}>
-            <Popup maxWidth={195} minWidth={165} autoPan={false} className="yardit-exclusive-event-popup">
+            <Popup pane="popupPane" maxWidth={195} minWidth={165} autoPan={false} className="yardit-exclusive-event-popup">
               <ExclusiveEventPopupCard event={event} />
             </Popup>
           </Marker>
         );
       })}
-    </>
+    </Pane>
   );
 }

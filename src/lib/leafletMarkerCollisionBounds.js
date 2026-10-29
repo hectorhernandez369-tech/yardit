@@ -1,15 +1,16 @@
-// Read the markers Leaflet actually displays, including markers inside LayerGroups.
-// map.eachLayer() does not visit the children of the separate Halloween/regular
-// clustering layers, which is why the earlier marquee collision check missed them.
+// Measure rendered pins and clusters across every pane, including decorative panes.
 export function getRenderedLeafletMarkerBounds(map, { excludeClasses = [] } = {}) {
-  const pane = map?.getPanes?.()?.markerPane;
   const mapElement = map?.getContainer?.();
-  if (!pane || !mapElement) return [];
+  if (!mapElement) return [];
 
   const mapRect = mapElement.getBoundingClientRect();
+  const scaleX = mapRect.width / mapElement.offsetWidth || 1;
+  const scaleY = mapRect.height / mapElement.offsetHeight || 1;
+  const borderX = mapElement.clientLeft || 0;
+  const borderY = mapElement.clientTop || 0;
   const result = [];
 
-  pane.querySelectorAll(".leaflet-marker-icon").forEach((markerElement) => {
+  mapElement.querySelectorAll(".leaflet-marker-icon").forEach((markerElement) => {
     if (excludeClasses.some((name) => markerElement.classList.contains(name))) return;
     const computed = window.getComputedStyle(markerElement);
     if (computed.display === "none" || computed.visibility === "hidden" ||
@@ -17,7 +18,7 @@ export function getRenderedLeafletMarkerBounds(map, { excludeClasses = [] } = {}
 
     // Include nested artwork such as Halloween badges and cluster decorations
     // that may be rendered outside the Leaflet icon's nominal width/height.
-    const elements = [markerElement, ...Array.from(markerElement.querySelectorAll("*")).slice(0, 25)];
+    const elements = [markerElement, ...Array.from(markerElement.querySelectorAll("*"))];
     elements.forEach((element) => {
       if (element !== markerElement) {
         const style = window.getComputedStyle(element);
@@ -28,10 +29,10 @@ export function getRenderedLeafletMarkerBounds(map, { excludeClasses = [] } = {}
       if (!Number.isFinite(rect.width) || rect.width < 1 ||
           !Number.isFinite(rect.height) || rect.height < 1) return;
       result.push({
-        left: rect.left - mapRect.left,
-        top: rect.top - mapRect.top,
-        right: rect.right - mapRect.left,
-        bottom: rect.bottom - mapRect.top,
+        left: (rect.left - mapRect.left) / scaleX - borderX,
+        top: (rect.top - mapRect.top) / scaleY - borderY,
+        right: (rect.right - mapRect.left) / scaleX - borderX,
+        bottom: (rect.bottom - mapRect.top) / scaleY - borderY,
       });
     });
   });

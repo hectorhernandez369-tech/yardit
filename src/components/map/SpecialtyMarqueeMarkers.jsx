@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Marker, Popup, useMap } from "react-leaflet";
+import { Marker, Pane, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { SPECIALTY_COLORS, SPECIALTY_FONTS, specialtyStyle, escapeSpecialtyText } from "@/lib/specialtyMarquee";
 import { SPECIALTY_MARQUEE_SIZES, chooseSpecialtyMarqueeMode } from "@/lib/specialtyMarqueeCollision";
@@ -9,7 +9,8 @@ import { getRenderedLeafletMarkerBounds } from "@/lib/leafletMarkerCollisionBoun
 export const SPECIALTY_MARQUEES_ENABLED = true;
 
 const css = [
-  ".yardit-specialty-marker{background:transparent;border:0}",
+  ".leaflet-marker-icon.yardit-specialty-marker{background:transparent;border:0;pointer-events:none}",
+  ".yardit-specialty-sign,.yardit-specialty-small-sign,.yardit-specialty-mini-circle,.yardit-specialty-mini-tail{pointer-events:auto}",
   ".yardit-specialty-scene{position:relative;width:164px;height:152px}",
   ".yardit-specialty-beam{position:absolute;bottom:57px;left:75px;width:16px;height:83px;transform-origin:50% 100%;opacity:.78;background:linear-gradient(to top,rgba(255,213,105,.9),rgba(255,239,183,.18) 80%,transparent);clip-path:polygon(38% 100%,62% 100%,100% 0,0 0);filter:drop-shadow(0 0 8px #ffd58a);pointer-events:none}",
   ".yardit-specialty-beam.left{animation:yardit-specialty-left 3.6s ease-in-out infinite alternate}",
@@ -132,11 +133,10 @@ export default function SpecialtyMarqueeMarkers({
       });
     };
 
-    // Leaflet creates cluster markers outside React. Observe those additions and removals
-    // without measuring every frame of a drag or causing an observer feedback loop.
-    const pane = map.getPanes().markerPane;
+    // Watch all panes, including pin visibility and size changes after clustering.
+    const pane = map.getPanes().mapPane;
     const observer = typeof MutationObserver !== "undefined" ? new MutationObserver(schedule) : null;
-    if (pane) observer?.observe(pane, { childList: true, subtree: true });
+    if (pane) observer?.observe(pane, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
     map.on("moveend zoom zoomend resize layeradd layerremove", schedule);
     schedule();
 
@@ -151,10 +151,10 @@ export default function SpecialtyMarqueeMarkers({
   if (!enabled) return null;
 
   return (
-    <>
+    <Pane name="yardit-specialty-marquees" style={{ zIndex: 350, pointerEvents: "none" }}>
       <style>{css}</style>
       {visible.map((listing) => {
-        const mode = modes[String(listing.id)] || "marker";
+        const mode = modes[String(listing.id)] || "hidden";
         if (mode === "hidden") return null;
         return (
           <Marker
@@ -162,7 +162,6 @@ export default function SpecialtyMarqueeMarkers({
             position={[Number(listing.lat), Number(listing.lng)]}
             icon={iconFor(listing, mode)}
             title={listing.title || "Specialty Event"}
-            zIndexOffset={-1200}
             eventHandlers={{
               popupopen: (event) => {
                 window.requestAnimationFrame(() => {
@@ -182,7 +181,7 @@ export default function SpecialtyMarqueeMarkers({
               },
             }}
           >
-            <Popup maxWidth={195} minWidth={165} autoPan={false}>
+            <Popup pane="popupPane" maxWidth={195} minWidth={165} autoPan={false}>
               <div style={{ maxWidth: 190, padding: 5 }}>
                 <strong>{listing.title}</strong>
                 <p>{listing.display_address || listing.addressText}</p>
@@ -192,6 +191,6 @@ export default function SpecialtyMarqueeMarkers({
           </Marker>
         );
       })}
-    </>
+    </Pane>
   );
 }
