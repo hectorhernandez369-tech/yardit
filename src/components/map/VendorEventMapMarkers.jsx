@@ -10,6 +10,16 @@ import { buildUnifiedSchedulePreview } from "@/lib/unifiedEventSchedule";
 import vendorEventMarqueeIcon from "@/lib/vendorEventMarqueeIcon";
 
 const markerCache = {};
+// Preserve the recognizable Yardit's On identity even when there is no
+// space for the decorative billboard. This is the actual clickable event pin.
+const YARDITS_ON_EVENT_ID = "6adf911b4e77d965a479e3e1";
+const yarditsOnPin = L.divIcon({
+  className: "yardits-on-event-pin",
+  html: '<div style="width:34px;height:34px;box-sizing:border-box;border:3px solid #f5cf79;border-radius:50%;background:#42172d;display:flex;align-items:center;justify-content:center;color:#ffe8aa;font-size:19px;font-weight:900;box-shadow:0 2px 7px rgba(0,0,0,.35)" aria-label="Yardit\'s On event">★</div>',
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
+  popupAnchor: [0, -20],
+});
 
 const timeLabel = (value) => {
   if (!value) return "";
@@ -132,7 +142,7 @@ export default function VendorEventMapMarkers({
             key={`ve-${primary.id}`}
             ref={(ref) => { if (ref) markerRefs.current[String(primary.id)] = ref; }}
             position={[primary.latitude, primary.longitude]}
-            icon={primary.icon === "lightbulb_marquee" && primary.id !== "6adf911b4e77d965a479e3e1" ? vendorEventMarqueeIcon(primary, isComingSoon || isScheduled, stackCount) : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo)}
+            icon={String(primary.id) === YARDITS_ON_EVENT_ID ? yarditsOnPin : primary.icon === "lightbulb_marquee" ? vendorEventMarqueeIcon(primary, isComingSoon || isScheduled, stackCount) : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo)}
           >
             <Popup maxWidth={300} minWidth={220} autoPan>
               <div className="space-y-2 rounded-xl bg-white p-3 text-slate-900 shadow-sm">
