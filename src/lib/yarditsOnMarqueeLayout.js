@@ -1,4 +1,4 @@
-import { SPECIALTY_MARQUEE_SIZES, specialtyRectsOverlap } from "./specialtyMarqueeCollision";
+import { SPECIALTY_MARQUEE_SIZES, specialtyRectsOverlap } from "./specialtyMarqueeCollision.js";
 
 // The event remains at its true location. Each anchor only repositions decorative
 // artwork around that location, rather than moving the underlying event pin.
