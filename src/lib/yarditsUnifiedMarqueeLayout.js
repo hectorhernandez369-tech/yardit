@@ -44,6 +44,15 @@ export function chooseYarditsUnifiedMode(point, obstacles, viewport, zoom, previ
       return mode;
     }
   }
-  // If even the mini sign conflicts, preserve the other map pins and clusters.
+  // Preserve the recognizable miniature marquee even when a nearby Halloween
+  // cluster occupies its space. The marquee is rendered in a lower Leaflet pane,
+  // so the real pins/clusters remain fully visible and clickable above it.
+  // Never shift the event's geographic location to make the artwork fit.
+  const mini = yarditsUnifiedBounds(point, "mini");
+  if (mini && mini.left >= EDGE_MARGIN && mini.top >= EDGE_MARGIN &&
+      mini.right <= viewport.width - EDGE_MARGIN &&
+      mini.bottom <= viewport.height - EDGE_MARGIN) return "mini";
+
+  // Only hide when the event's artwork cannot fit inside the map viewport.
   return "hidden";
 }
