@@ -8,7 +8,9 @@ const SPECIAL_HALLOWEEN_LISTING_NUMBER = "CA3247-59de3";
 
 export function isSpecialHalloweenIcon(listing) {
   const listingNumber = listing?.halloween_listing_number || listing?.listingNumber || listing?.listing_number || listing?.id;
-  return String(listingNumber || "").toLowerCase() === SPECIAL_HALLOWEEN_LISTING_NUMBER.toLowerCase();
+  return String(listingNumber || "").toLowerCase() === SPECIAL_HALLOWEEN_LISTING_NUMBER.toLowerCase()
+    || String(listingNumber || "").toLowerCase() === "ca3247-7ada1"
+    || String(listing?.id || "") === "6adb91be6ce8b34434f7ada1";
 }
 
 export function isAshevilleDecorationSpot(listing) {
