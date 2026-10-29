@@ -11,6 +11,8 @@ import ExclusiveEventPopupCard from "@/components/map/ExclusiveEventPopupCard";
 // Independently disable the decorative layer without touching real event pins.
 export const YARDITS_ON_SPOTLIGHTS_ENABLED = true;
 export const YARDIT_EXCLUSIVE_EVENT_IDS = ["6adf911b4e77d965a479e3e1"];
+// Private marquee testing is restricted to this authenticated Yardit user.
+const PRIVATE_MARQUEE_VIEWER_ID = "690f554506edf795e5d84122";
 
 const styles = [
   ".leaflet-marker-icon.yardits-on-marker{background:transparent;border:0;pointer-events:none}",
@@ -67,13 +69,14 @@ function validCoordinate(value, limit) {
 export default function YarditsOnSpotlightLayer({
   events = [], enabled = YARDITS_ON_SPOTLIGHTS_ENABLED,
   exclusiveEventIds = YARDIT_EXCLUSIVE_EVENT_IDS,
+  viewerUserId = "",
 }) {
   const map = useMap();
   const [modes, setModes] = useState({});
   const modesRef = useRef({});
 
   const eligible = useMemo(() => {
-    if (!enabled) return [];
+    if (!enabled || viewerUserId !== PRIVATE_MARQUEE_VIEWER_ID) return [];
     const approved = new Set(exclusiveEventIds.map(String));
     const now = Date.now();
     return events.filter((event) => {
@@ -85,7 +88,7 @@ export default function YarditsOnSpotlightLayer({
       const expiry = event.endDateTime || event.end_date_time || event.end_date || event.ends_at;
       return !expiry || (Number.isFinite(Date.parse(expiry)) && Date.parse(expiry) >= now);
     }).slice(0, 3);
-  }, [events, enabled, exclusiveEventIds]);
+  }, [events, enabled, exclusiveEventIds, viewerUserId]);
 
   useEffect(() => {
     let frame = 0;
@@ -132,7 +135,7 @@ export default function YarditsOnSpotlightLayer({
     };
   }, [map, eligible]);
 
-  if (!enabled || !eligible.length) return null;
+  if (!enabled || viewerUserId !== PRIVATE_MARQUEE_VIEWER_ID || !eligible.length) return null;
   return (
     <Pane name="yardit-spotlight-marquees" style={{ zIndex: 350, pointerEvents: "none" }}>
       <style>{styles}</style>
