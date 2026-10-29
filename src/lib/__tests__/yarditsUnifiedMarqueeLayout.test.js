@@ -24,12 +24,12 @@ test("far zoom uses small marquee anchored at the exact event location", () => {
 });
 
 test("full sign shrinks when a cluster touches only its upper area", () => {
-  const cluster = { left: 320, top: 220, right: 475, bottom: 260 };
+  const cluster = { left: 320, top: 220, right: 475, bottom: 252 };
   assert.equal(chooseYarditsUnifiedMode(point, [cluster], viewport, 16), "compact");
 });
 
 test("compact sign shrinks to small marquee to protect real icons", () => {
-  const cluster = { left: 330, top: 270, right: 470, bottom: 296 };
+  const cluster = { left: 330, top: 270, right: 470, bottom: 285 };
   assert.equal(chooseYarditsUnifiedMode(point, [cluster], viewport, 15), "mini");
 });
 
