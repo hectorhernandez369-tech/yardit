@@ -8,19 +8,11 @@ import { isPublishedVendorEvent } from "@/lib/vendorEvents";
 import { groupVendorEventsByLocation, getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
 import { buildUnifiedSchedulePreview } from "@/lib/unifiedEventSchedule";
 import vendorEventMarqueeIcon from "@/lib/vendorEventMarqueeIcon";
-import ExclusiveEventPopupCard from "@/components/map/ExclusiveEventPopupCard";
+import YarditsOnUnifiedMarker from "@/components/map/YarditsOnUnifiedMarker";
 
 const markerCache = {};
-// Preserve the recognizable Yardit's On identity even when there is no
-// space for the decorative billboard. This is the actual clickable event pin.
+// One private interactive marquee replaces the formerly separate pin and billboard.
 const YARDITS_ON_EVENT_ID = "6adf911b4e77d965a479e3e1";
-const yarditsOnPin = L.divIcon({
-  className: "yardits-on-event-pin",
-  html: '<div style="width:44px;height:34px;box-sizing:border-box;border:3px dotted #f5cf79;border-radius:9px;background:linear-gradient(135deg,#5a1830,#230d2c);display:flex;align-items:center;justify-content:center;color:#ffe8aa;font-size:13px;font-weight:900;box-shadow:0 0 0 2px #a66a28,0 2px 7px rgba(0,0,0,.35)" aria-label="Yardit\'s On event">Y!</div>',
-  iconSize: [44, 34],
-  iconAnchor: [22, 17],
-  popupAnchor: [0, -21],
-});
 
 const timeLabel = (value) => {
   if (!value) return "";
@@ -139,21 +131,27 @@ export default function VendorEventMapMarkers({
         const eventEntries = eventScheduleEntries.filter((entry) => entry?.event_id === primary.id);
         const unifiedPreview = buildUnifiedSchedulePreview({ leagueEventLinks: eventLinks, leagueGames, scheduleEntries: eventEntries, limit: 4 });
 
-        return (
+        return showPrivateYarditsOnMarker && String(primary.id) === YARDITS_ON_EVENT_ID ? (
+          <YarditsOnUnifiedMarker
+            key={`ve-${primary.id}`}
+            event={primary}
+            registerMarker={(ref) => {
+              if (ref) markerRefs.current[String(primary.id)] = ref;
+              else delete markerRefs.current[String(primary.id)];
+            }}
+          />
+        ) : (
           <Marker
             key={`ve-${primary.id}`}
             ref={(ref) => { if (ref) markerRefs.current[String(primary.id)] = ref; }}
             position={[primary.latitude, primary.longitude]}
             icon={String(primary.id) === YARDITS_ON_EVENT_ID
-              ? (showPrivateYarditsOnMarker ? yarditsOnPin : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo))
+              ? getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo)
               : primary.icon === "lightbulb_marquee"
                 ? vendorEventMarqueeIcon(primary, isComingSoon || isScheduled, stackCount)
                 : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo)}
           >
-            <Popup maxWidth={300} minWidth={220} autoPan className={showPrivateYarditsOnMarker && String(primary.id) === YARDITS_ON_EVENT_ID ? "yardit-exclusive-event-popup" : ""}>
-              {showPrivateYarditsOnMarker && String(primary.id) === YARDITS_ON_EVENT_ID ? (
-                <ExclusiveEventPopupCard event={primary} />
-              ) : (
+            <Popup maxWidth={300} minWidth={220} autoPan>
               <div className="space-y-2 rounded-xl bg-white p-3 text-slate-900 shadow-sm">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Badge className={isComingSoon || isScheduled ? "bg-amber-500 text-white text-[9px] px-1 py-0" : "bg-emerald-600 text-white text-[9px] px-1 py-0"}>
@@ -213,7 +211,6 @@ export default function VendorEventMapMarkers({
                   </Button>
                 </div>
               </div>
-              )}
             </Popup>
           </Marker>
         );
