@@ -11,7 +11,7 @@ import vendorEventMarqueeIcon from "@/lib/vendorEventMarqueeIcon";
 import YarditsOnUnifiedMarker from "@/components/map/YarditsOnUnifiedMarker";
 
 const markerCache = {};
-// One private interactive marquee replaces the formerly separate pin and billboard.
+// One public interactive marquee replaces the formerly separate pin and billboard.
 const YARDITS_ON_EVENT_ID = "6adf911b4e77d965a479e3e1";
 
 const timeLabel = (value) => {
@@ -56,7 +56,6 @@ function getVendorEventIcon(isComingSoon, stackCount, logoUrl) {
 export default function VendorEventMapMarkers({
   vendorEvents,
   showVendorEvents = true,
-  showPrivateYarditsOnMarker = false,
   eventScheduleEntries = [],
   leagueEventLinks = [],
   leagueGames = [],
@@ -131,7 +130,7 @@ export default function VendorEventMapMarkers({
         const eventEntries = eventScheduleEntries.filter((entry) => entry?.event_id === primary.id);
         const unifiedPreview = buildUnifiedSchedulePreview({ leagueEventLinks: eventLinks, leagueGames, scheduleEntries: eventEntries, limit: 4 });
 
-        return showPrivateYarditsOnMarker && String(primary.id) === YARDITS_ON_EVENT_ID ? (
+        return String(primary.id) === YARDITS_ON_EVENT_ID ? (
           <YarditsOnUnifiedMarker
             key={`ve-${primary.id}`}
             event={primary}

@@ -30,8 +30,8 @@ function buildMarqueeIcon(event, mode) {
   const html =
     '<div class="yardits-unified-scene yardits-unified-scene--' + mode + '">' +
       beams +
-      '<div class="yardits-unified-sign" role="img" aria-label="Yardit&#39;s On: ' + headline + '">' +
-        '<div class="yardits-unified-kicker">YARDIT&#39;S ON!</div>' +
+      '<div class="yardits-unified-sign" role="img" aria-label="Yardit&#39;s Own: ' + headline + '">' +
+        '<div class="yardits-unified-kicker">YARDIT&#39;S OWN!</div>' +
         '<div class="yardits-unified-headline">' + headline + '</div>' +
         '<div class="yardits-unified-status">' + status + '</div>' +
       '</div>' +
@@ -113,7 +113,7 @@ export default function YarditsOnUnifiedMarker({ event, registerMarker }) {
         position={[lat, lng]}
         icon={markerIcon}
         ref={registerMarker}
-        title={"Yardit's On: " + (event.organizer_business_name || event.title)}
+        title={"Yardit's Own: " + (event.organizer_business_name || event.title)}
       >
         <Popup pane="popupPane" maxWidth={270} minWidth={205} autoPan={false} className="yardit-exclusive-event-popup">
           <ExclusiveEventPopupCard event={event} />

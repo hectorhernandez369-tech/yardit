@@ -44,7 +44,7 @@ function iconFor(listing, mode) {
       '<div class="yardit-specialty-beam left" aria-hidden="true"></div>' +
       '<div class="yardit-specialty-beam right" aria-hidden="true"></div>' +
       '<div class="yardit-specialty-sign" style="' + colors + '">' +
-      '<div style="font-size:10px;font-weight:900">YARDIT&#39;S ON!</div>' +
+      '<div style="font-size:10px;font-weight:900">YARDIT&#39;S OWN!</div>' +
       '<div style="font-size:16px;font-weight:900;line-height:1.15;overflow-wrap:anywhere">' + headline + '</div>' +
       '<div style="font-size:9px;font-weight:800;color:white">COMING SOON</div>' +
       '</div></div>';

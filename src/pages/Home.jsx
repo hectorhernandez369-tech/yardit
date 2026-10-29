@@ -538,8 +538,6 @@ export default function HomePage() {
   const huntButtonPositionRef = useRef({ x: 0, y: 112 });
   const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 112 });
   const [user, setUser] = useState(null);
-  // SE1.ae: El Nuevo 2 Yardit’s On marquee preview is restricted to the verified account.
-  const canPreviewYarditsOnMarquee = user?.id === "690f554506edf795e5d84122";
   const { data: founderMemberships = [] } = useFounderMembership(user?.id);
   const [canUseMapboxTest, setCanUseMapboxTest] = useState(false);
   const [previewListingsOnMap] = useState(getPreviewListingsOnMapPreference);
@@ -2177,7 +2175,7 @@ export default function HomePage() {
                 />
               )}
 
-              {/* The private Yardit's On marquee renders as one clickable vendor event marker. */}
+              {/* Yardit's Own renders as one publicly visible, clickable vendor event marquee. */}
               {!showUpcomingWeekend && quickMapFilters.events && (
                 <SpecialtyMarqueeMarkers
                   listings={eligibleListings.filter((listing) => listing.listingType === "event" && (filter === "all" || filter === "event"))}
@@ -2190,7 +2188,6 @@ export default function HomePage() {
                 <VendorEventMapMarkers
                   vendorEvents={vendorEvents}
                   showVendorEvents={quickMapFilters.events}
-                  showPrivateYarditsOnMarker={canPreviewYarditsOnMarquee}
                   eventScheduleEntries={eventScheduleEntries}
                   leagueEventLinks={leagueEventLinks}
                   leagueGames={leagueGames}
