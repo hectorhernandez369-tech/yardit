@@ -8,7 +8,7 @@ const viewport = { width: 800, height: 650 };
 test("full marquee stays visible in clear space", () => {
   const result = chooseYarditsOnLayout(point, [], viewport);
   assert.equal(result.key, "full-above");
-  assert.ok(result.rect.bottom < point.y - 17);
+  assert.equal(result.rect.bottom, point.y - 16);
 });
 
 test("marquee gets compact instead of becoming a generic event pin", () => {
@@ -24,10 +24,11 @@ test("marquee never moves to the sides or below the event pin", () => {
 
 test("wide zoom shows only the branded event pin", () => {
   assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 12).mode, "hidden");
-  assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 14).mode, "hidden");
+  assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 12).mode, "hidden");
 });
 
 test("neighborhood zoom shows compact, close zoom shows full", () => {
+  assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 13).key, "compact-above");
   assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 15).key, "compact-above");
   assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 16).key, "full-above");
 });
@@ -35,6 +36,12 @@ test("neighborhood zoom shows compact, close zoom shows full", () => {
 test("fully occupied viewport hides only the decoration", () => {
   const obstacles = [{ left: 0, right: 800, top: 0, bottom: 650 }];
   assert.equal(chooseYarditsOnLayout(point, obstacles, viewport).mode, "hidden");
+});
+
+test("compact sign remains connected closely above the event pin", () => {
+  const layout = chooseYarditsOnLayout(point, [], viewport, "", 13);
+  assert.equal(layout.rect.bottom, point.y - 16);
+  assert.equal(layout.rect.left + (layout.rect.right - layout.rect.left) / 2, point.x);
 });
 
 test("all chosen rectangles use the same anchored map point", () => {
