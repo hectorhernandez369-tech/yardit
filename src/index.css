@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* LYFC trunk-or-treat custom map icon. Animate artwork, not map positioning. */
+@keyframes lyfc-cardinal-pulse {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.16; }
+}
+.leaflet-marker-icon img[src*="6bb56e956_exec-9d07acdb"],
+.mapboxgl-marker img[src*="6bb56e956_exec-9d07acdb"] {
+  animation: lyfc-cardinal-pulse 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-marker-icon img[src*="6bb56e956_exec-9d07acdb"],
+  .mapboxgl-marker img[src*="6bb56e956_exec-9d07acdb"] { animation: none; }
+}
+
 
 /* :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
