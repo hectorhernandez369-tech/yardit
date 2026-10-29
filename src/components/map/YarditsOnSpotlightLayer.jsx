@@ -105,7 +105,7 @@ export default function YarditsOnSpotlightLayer({
         const lng = validCoordinate(event.longitude ?? event.lng ?? event.location?.lng, 180);
         const point = map.latLngToContainerPoint([lat, lng]);
         const chosen = chooseYarditsOnLayout(
-          point, obstacles, { width: size.x, height: size.y }, modesRef.current[String(event.id)]?.key
+          point, obstacles, { width: size.x, height: size.y }, modesRef.current[String(event.id)]?.key, map.getZoom()
         );
         next[String(event.id)] = chosen;
         if (chosen.rect) obstacles.push(chosen.rect);
