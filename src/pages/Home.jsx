@@ -39,6 +39,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import MapZoomControl from "../components/map/MapZoomControl";
 import MapHoldZoom from "@/components/map/MapHoldZoom";
+import MapTierDebugBox from "@/components/map/MapTierDebugBox";
 import MapFocusController from "../components/map/MapFocusController";
 import HiddenListingsOverlay from "../components/map/HiddenListingsOverlay";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
@@ -2370,6 +2371,7 @@ export default function HomePage() {
 
             })}
             </MapContainer>
+            <MapTierDebugBox zoom={currentZoom} showListingsActive={isShowingAllListings} user={user} />
 
             {locationError &&
           <div className="absolute bottom-24 left-4 right-4 z-[1000] sm:left-auto sm:right-4 sm:w-80">
