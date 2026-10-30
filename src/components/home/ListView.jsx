@@ -1,21 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import FounderBadge from '@/components/founder/FounderBadge';
-import { MapPin, SlidersHorizontal, Navigation, Clock } from "lucide-react";
+import { SlidersHorizontal, Navigation } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import SaveListingButton from "@/components/listing/SaveListingButton";
-import {
-  formatListingDateTimeDisplay,
-  getListingDescriptionText,
-  getListingPrimaryText,
-  getListingSecondaryBadgeLabel,
-  getListingStatusUi,
-  getListingTypeBadgeLabel,
-} from "@/components/listing/listingDisplay";
+import PublicListingCard from "@/components/listing/PublicListingCard";
+
 import ListFilterModal, { DEFAULT_LIST_FILTERS } from "@/components/home/ListFilterModal";
 import PullToRefresh from "@/components/mobile/PullToRefresh";
 import { buildListViewResults } from "@/lib/listViewPipeline";
@@ -94,108 +87,8 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
         <div className="space-y-3">
           {results.map(listing => {
             const isEvent = listing.listingType === "event" || listing.is_vendor_event;
-            const isNeighborhood = listing.listingType === "neighborhood_sale";
-            const categories = isEvent
-              ? [listing.event_category].filter(Boolean)
-              : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean);
-            const statusUi = getListingStatusUi(listing);
-            const descriptionText = getListingDescriptionText(listing);
-            const distMiles = listing._distance;
-
-            const accentBar = isEvent
-              ? "border-l-[#006168]"
-              : isNeighborhood
-              ? "border-l-emerald-500"
-              : "border-l-amber-400";
-
             return (
-              <div
-                key={listing.id}
-                className={`group relative bg-white rounded-2xl border border-slate-200/70 border-l-4 ${accentBar} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden`}
-              >
-                <div className="p-4 sm:p-5">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        {/* Badges row */}
-                        <div className="flex items-center gap-1.5 flex-wrap mb-2">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 rounded-full px-2 py-0.5 border border-slate-100">
-                            {getListingTypeBadgeLabel(listing)}
-                          </span>
-                          <span className="text-[10px] font-medium text-slate-400 bg-slate-50 rounded-full px-2 py-0.5 border border-slate-100">
-                            {getListingSecondaryBadgeLabel(listing)}
-                          </span>
-                          <span className={`text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-0.5 ${
-                            statusUi.isComingSoon
-                              ? "bg-amber-50 text-amber-700 border border-amber-200"
-                              : statusUi.isActive
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-slate-100 text-slate-500 border border-slate-200"
-                          }`}>
-                            {statusUi.label}
-                          </span>
-                        </div>
-
-                        <h3 className="text-base font-semibold text-slate-800 leading-snug">
-                          {getListingPrimaryText(listing)}
-                        </h3>
-                        <FounderBadge userId={listing.ownerUserId || listing.owner_user_id} />
-
-                        <div className="flex items-center gap-3 mt-1 flex-wrap">
-                          {(listing.city || listing.state) && (
-                            <div className="flex items-center gap-1 text-slate-400">
-                              <MapPin className="w-3 h-3 flex-shrink-0" />
-                              <span className="text-xs">{[listing.city, listing.state].filter(Boolean).join(", ")}</span>
-                            </div>
-                          )}
-                          {distMiles != null && isFinite(distMiles) && (
-                            <span className="text-xs text-slate-400">
-                              {distMiles < 0.1 ? "< 0.1 mi" : `${distMiles.toFixed(1)} mi`}
-                            </span>
-                          )}
-                          <div className="flex items-center gap-1 text-slate-400">
-                            <Clock className="w-3 h-3 flex-shrink-0" />
-                            <span className="text-xs">{formatListingDateTimeDisplay(listing)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {descriptionText && (
-                      <p className="text-sm text-slate-500 leading-relaxed line-clamp-2">{descriptionText}</p>
-                    )}
-
-                    {categories.length > 0 && !statusUi.isComingSoon && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {categories.map((item, index) => (
-                          <span key={`${item}-${index}`} className="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-2 py-0.5">
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 pt-1">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          navigate(
-                            listing.is_vendor_event
-                              ? `/VendorEventPublicPage?id=${listing.vendor_event_id}`
-                              : createPageUrl("ListingDetail") + `?id=${listing.id}`
-                          )
-                        }
-                        className={`flex-1 text-white text-sm font-medium shadow-sm transition-all ${
-                          isEvent
-                            ? "bg-[#006168] hover:bg-[#004d52]"
-                            : isNeighborhood
-                            ? "bg-emerald-600 hover:bg-emerald-700"
-                            : "bg-[#006168] hover:bg-[#004d52]"
-                        }`}
-                      >
-                        {listing.is_vendor_event ? "View Event" : "View Listing"}
-                      </Button>
-
+              <PublicListingCard key={listing.id} listing={listing} onView={() => navigate(listing.is_vendor_event ? `/VendorEventPublicPage?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`)}>
                       <SaveListingButton
                         listing={listing}
                         iconOnly={true}
@@ -222,10 +115,7 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
                           {huntStops.some(s => s.id === listing.id) ? "✓ Added" : "+ Hunt Stop"}
                         </Button>
                       )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </PublicListingCard>
             );
           })}
 

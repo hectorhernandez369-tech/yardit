@@ -1,24 +1,37 @@
 import React, { useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { CalendarDays, MapPin, Sparkles } from "lucide-react";
-import { getEventIconEmoji } from "@/lib/eventListingConfig";
+import { Button } from "@/components/ui/button";
+import EventExampleMap from "@/components/create/event/EventExampleMap";
+import EventExampleDetail from "@/components/create/event/EventExampleDetail";
+import EventVisibilityExample from "@/components/create/event/EventVisibilityExample";
+import PublicListingCard from "@/components/listing/PublicListingCard";
+import { makeEventPreview, SAMPLE_LOGO } from "@/components/create/event/eventPreviewData";
 
 export default function EventMapAddOnPreview({ kind, data = {} }) {
-  const [effect, setEffect] = useState(null);
-  const [expanded, setExpanded] = useState(false);
-  const reduced = useReducedMotion();
-  const animation = effect || data.event_animation || "pulse";
-  const title = data.event_name || data.title || "Community Festival";
-  const animate = reduced || kind !== "animation" ? {} : animation === "bounce" ? { y: [0, -7, 0] } : { scale: [1, 1.16, 1] };
+  const [effect, setEffect] = useState(data.event_animation || "pulse");
+  const [enhanced, setEnhanced] = useState(false);
+  const [stage, setStage] = useState("mini");
+  const [details, setDetails] = useState(null);
+  const custom = kind === "custom_icon" && enhanced;
+  const coming = kind === "coming_soon";
+  const future = new Date(Date.now() + Number(data.coming_soon_package || 3) * 86400000).toISOString();
+  const listing = makeEventPreview(data, {
+    event_add_ons: { premium_visibility: kind === "premium_visibility" && enhanced, animation: kind === "animation", custom_icon: custom, marquee: kind === "marquee" },
+    event_icon: ["animation", "custom_icon", "marquee"].includes(kind) ? "heart" : data.event_icon || "heart",
+    event_animation: kind === "animation" ? effect : "",
+    event_logo_url: custom ? (data.event_logo_url || SAMPLE_LOGO) : "",
+    marquee_background_url: kind === "marquee" ? data.marquee_background_url : "",
+    ...(coming ? { startDateTime: future, endDateTime: new Date(new Date(future).getTime() + 3600000).toISOString(), coming_soon_package: String(data.coming_soon_package || 3), coming_soon_start_date: new Date().toISOString(), mapState: "coming_soon" } : {}),
+  });
   return (
-    <div className="space-y-3">
-      <div className="relative flex min-h-36 items-center justify-center overflow-hidden rounded-xl border bg-muted p-5">
-        <svg aria-hidden="true" className="absolute inset-0 h-full w-full text-background" viewBox="0 0 320 150" preserveAspectRatio="none"><path d="M0 32H320M0 110H320M65 0V150M240 0V150M0 150L320 0" stroke="currentColor" strokeWidth="12" fill="none" /></svg>
-        {kind === "premium_visibility" && <div className="relative flex w-full items-center justify-around gap-3 text-center text-xs"><div className="space-y-2 text-muted-foreground"><MapPin className="mx-auto h-6 w-6" />Standard pin</div><div className="space-y-2"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-accent bg-background shadow-lg"><Sparkles className="h-7 w-7 text-primary" /></div><span className="rounded bg-background px-2 py-1 font-semibold">Prominent event</span></div></div>}
-        {kind === "marquee" ? <button type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)} className="relative w-full max-w-60 rounded-xl border-4 border-dotted border-accent bg-primary p-3 text-primary-foreground shadow-lg"><Sparkles className="mx-auto mb-1 h-5 w-5 motion-safe:animate-pulse" /><span className="block break-words text-sm font-bold">{title}</span>{expanded && <span className="mt-2 block border-t border-primary-foreground/30 pt-2 text-xs">{data.marquee_schedule_slots?.[0]?.label || "Example: Music & activities"}</span>}<span className="mt-2 block text-[10px]">Tap to {expanded ? "collapse" : "expand"} preview</span></button> : kind === "coming_soon" ? <div className="relative rounded-xl border bg-background p-3 text-center shadow-sm"><CalendarDays className="mx-auto mb-2 h-6 w-6 text-primary" /><p className="text-xs font-bold">Coming Soon</p><p className="text-sm">{data.coming_soon_package || "3"} days before event day</p></div> : kind !== "premium_visibility" && <motion.div animate={animate} transition={{ duration: animation === "bounce" ? 1.1 : 1.4, repeat: Infinity, ease: "easeInOut" }} className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border-2 border-primary bg-background shadow-md">{data.event_logo_url ? <img src={data.event_logo_url} alt="Your event logo preview" className="h-full w-full object-cover" /> : data.event_icon ? <span className="text-3xl">{getEventIconEmoji(data.event_icon)}</span> : <MapPin className="h-7 w-7 text-primary" />}</motion.div>}
-      </div>
-      {kind === "animation" && <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground">Try preview:</span>{["pulse", "bounce"].map((value) => <button key={value} type="button" aria-pressed={animation === value} onClick={() => setEffect(value)} className={`rounded-md border px-3 py-1.5 text-xs capitalize ${animation === value ? "bg-primary text-primary-foreground" : "bg-background text-foreground"}`}>{value}</button>)}</div>}
-      {kind === "coming_soon" && <div className="flex items-center gap-2 text-[11px]"><span className="rounded bg-secondary px-2 py-1">Coming Soon</span><span className="h-px flex-1 bg-border" /><span className="rounded bg-primary px-2 py-1 text-primary-foreground">Event day</span></div>}
+    <div className="min-w-0 space-y-4">
+      {kind === "animation" && <div className="flex flex-wrap gap-2">{["pulse", "bounce"].map((value) => <Button key={value} type="button" variant={effect === value ? "default" : "outline"} aria-pressed={effect === value} onClick={() => setEffect(value)} className="capitalize">{value}</Button>)}</div>}
+      {["premium_visibility", "custom_icon"].includes(kind) && <div className="grid grid-cols-2 gap-2">{[false, true].map((value) => <Button key={String(value)} type="button" variant={enhanced === value ? "default" : "outline"} aria-pressed={enhanced === value} onClick={() => setEnhanced(value)}>{value ? kind === "custom_icon" ? "Uploaded Logo" : "Enhanced" : "Standard"}</Button>)}</div>}
+      {kind === "marquee" && <div className="flex flex-wrap gap-2">{["mini", "collapsed", "expanded"].map((value) => <Button key={value} type="button" size="sm" variant={stage === value ? "default" : "outline"} aria-pressed={stage === value} onClick={() => setStage(value)}>{value === "mini" ? "Map Marker" : value === "collapsed" ? "Board" : "Expanded View"}</Button>)}</div>}
+      <EventExampleMap listing={listing} marqueeStage={stage} onStage={setStage} onDetails={() => setDetails(listing)} />
+      <p className="text-xs text-muted-foreground">The actual Yardit marker renderer on the same street-map style. Tap the marker to explore; location, schedule and standard category icon are illustrative.{custom && !data.event_logo_url ? " The festival logo is a sample upload." : ""}</p>
+      {kind === "premium_visibility" && <EventVisibilityExample listing={listing} onDetails={setDetails} />}
+      {coming && <PublicListingCard listing={listing} viewLabel="View Example Details" onView={() => setDetails(listing)} />}
+      {details && <><Button type="button" size="sm" variant="outline" onClick={() => setDetails(null)}>Close Example Details</Button><EventExampleDetail data={details} kind="details" /></>}
     </div>
   );
 }

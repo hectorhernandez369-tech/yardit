@@ -7,7 +7,7 @@ import EventAddOnCard from "./EventAddOnCard";
 import EventPhotoUpload from "./EventPhotoUpload";
 import MarqueeSlotsEditor from "./MarqueeSlotsEditor";
 import EventIconManager from "@/components/events/EventIconManager";
-import EventMapAddOnPreview from "@/components/create/event/EventMapAddOnPreview";
+import EventAddOnExampleDialog from "@/components/create/event/EventAddOnExampleDialog";
 import PromoCodeInput from "@/components/payment/PromoCodeInput";
 import useFounderMembership from '@/components/founder/useFounderMembership';
 import { eventAddOnCopy } from "@/components/create/event/eventAddOnCopy";
@@ -235,7 +235,7 @@ export default function EventAddOnsStep({ formData, setFormData, user }) {
           <h4 className="font-semibold text-slate-800">Coming Soon Packages</h4>
           <p className="text-sm text-muted-foreground">{eventAddOnCopy.coming_soon.summary}</p>
           <p className="mt-2 text-sm text-muted-foreground">{eventAddOnCopy.coming_soon.details}</p>
-          <div className="mt-3"><EventMapAddOnPreview kind="coming_soon" data={formData} /><p className="mt-2 text-[10px] text-muted-foreground">Illustrative preview • select a package below to update the timeline</p></div>
+          <div className="mt-3"><EventAddOnExampleDialog kind="coming_soon" title="Coming Soon" data={formData} /></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {Object.values(RESIDENTIAL_EVENT_COMING_SOON_PACKAGES).map((pkg) => {
