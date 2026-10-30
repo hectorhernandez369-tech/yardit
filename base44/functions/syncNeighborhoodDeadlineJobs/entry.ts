@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { isDeveloperListing } from '../../shared/developerAccess.ts';
 
 function isNeighborhoodSale(listing) {
   return listing?.listingType === 'neighborhood_sale';
@@ -28,10 +29,12 @@ function buildJobs(startDateTime, saleListingId) {
   ];
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const payload = await req.json();
+    const user = await base44.auth.me().catch((error) => error.status === 401 ? null : Promise.reject(error));
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const payload = await req.json().catch(() => ({}));
     const event = payload?.event;
     const data = payload?.data;
     const oldData = payload?.old_data;
@@ -50,6 +53,11 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, skipped: 'draft_listing' });
     }
 
+    if (!['admin', 'master', 'supervisor', 'super_master'].includes(user.role)) {
+      const matches = await base44.entities.Listing.filter({ id: saleListingId }, '-created_date', 1);
+      if (matches[0]?.ownerUserId !== user.id) return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if (isDeveloperListing(listing)) return Response.json({ success: true, skipped: 'developer_payment_waived' });
     const existingJobs = await base44.asServiceRole.entities.NeighborhoodDeadlineJob.filter({ sale_listing_id: saleListingId });
 
     if (event?.type === 'delete' || isTerminalState(data || oldData) || !listing?.startDateTime) {
@@ -100,4 +108,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

@@ -18,9 +18,14 @@ export function getDistanceFeet(lat1, lon1, lat2, lon2) {
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-const DEV_BYPASS_USER_IDS = ["PUT_YOUR_USER_ID_HERE"];
+// UI access only; publishing is independently authorized on the server.
+const DEV_BYPASS_USER_IDS = ["690f554506edf795e5d84122"];
 export function isDevBypassUser(user) {
   return !!user?.id && DEV_BYPASS_USER_IDS.includes(user.id);
+}
+export function isDeveloperListing(listing) {
+  return isDevBypassUser({ id: listing?.ownerUserId }) && (listing?.payment_status === "waived" || listing?.developer_schedule_override === true) &&
+    listing?.is_demo_listing !== true && listing?.assisted_listing !== true && listing?.created_by_admin !== true;
 }
 export function minutesFromTime(value) {
   const [hours, minutes] = String(value || "").split(":").map(Number);

@@ -4,6 +4,7 @@ import StepTwo from "./StepTwo";
 import StepThree from "./StepThree";
 import ResidentialPaymentStep from "../payment/ResidentialPaymentStep";
 import AdminAssignUserStep from "../admin/AdminAssignUserStep";
+import DeveloperReviewStep from "@/components/developer/DeveloperReviewStep";
 
 export default function CreateListingResidential({
   step,
@@ -27,13 +28,15 @@ export default function CreateListingResidential({
   onAddressSelected,
   onResidentialConflictInteraction,
   isAssistedPost = false,
+  isDeveloperMode = false,
+  onDeveloperPublish,
 }) {
   if (step === 1) {
     return <StepOne formData={formData} setFormData={setFormData} />;
   }
 
   if (step === 2) {
-    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} onAddressSelected={onAddressSelected} canEditAddressOverride={isAssistedPost} />;
+    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} onAddressSelected={onAddressSelected} canEditAddressOverride={isAssistedPost || isDeveloperMode} />;
   }
 
   if (step === 3) {
@@ -43,11 +46,13 @@ export default function CreateListingResidential({
         setFormData={setFormData}
         reservedDates={reservedDates}
         onResidentialConflictInteraction={onResidentialConflictInteraction}
+        isDeveloperMode={isDeveloperMode}
       />
     );
   }
 
   if (step === 4) {
+    if (isDeveloperMode) return <DeveloperReviewStep listing={formData} onPublish={onDeveloperPublish} onBack={() => setStep(3)} isProcessing={isStartingPayment} errorMessage={paymentError} />;
     if (isAdminCreate) {
       return <AdminAssignUserStep selectedUser={selectedUserForAdmin} setSelectedUser={setSelectedUserForAdmin} />;
     }

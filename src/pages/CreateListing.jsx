@@ -20,6 +20,11 @@ import { clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustA
 import { normalizeUser } from "@/lib/normalizeUser";
 import { useAppMode } from "../components/shared/DemoMode";
 import DemoPaymentSkipDialog from "@/components/shared/DemoPaymentSkipDialog";
+import createListingInitialData from "@/components/create/createListingInitialData";
+import ListingStepNavigation from "@/components/create/ListingStepNavigation";
+import ListingCreationActions from "@/components/create/ListingCreationActions";
+import DeveloperListingControls from "@/components/developer/DeveloperListingControls";
+import buildDeveloperListingPayload from "@/components/developer/buildDeveloperListingPayload";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import AssistedListingQRPanel from "@/components/admin/assisted/AssistedListingQRPanel";
 import {
@@ -55,7 +60,7 @@ const RESIDENTIAL_TIER_PRICES = {
   premium: 799,
 };
 const FALLBACK_TZ = "";
-import { normalizeResidentialRelistTier, getRequestedStep, getDistanceFeet, isDevBypassUser, minutesFromTime, getOpenHoursError, getTodayYmd, localYmdFromIso, hasPastSelectedDates, hasListingDraftContent } from "@/lib/createListingHelpers";
+import { normalizeResidentialRelistTier, getRequestedStep, getDistanceFeet, isDevBypassUser, isDeveloperListing, minutesFromTime, getOpenHoursError, getTodayYmd, localYmdFromIso, hasPastSelectedDates, hasListingDraftContent } from "@/lib/createListingHelpers";
 export default function CreateListingPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -96,6 +101,8 @@ export default function CreateListingPage() {
   const [pendingHomeAddress, setPendingHomeAddress] = useState(null);
   const [isConfirmingHomeAddress, setIsConfirmingHomeAddress] = useState(false);
   const isAdminCreate = new URLSearchParams(location.search).get("adminCreate") === "1";
+  const [developerModeEnabled, setDeveloperModeEnabled] = useState(true);
+  const isDeveloperMode = isDevBypassUser(user) && developerModeEnabled && !isAssistedPost && !isAdminCreate;
   const [selectedUserForAdmin, setSelectedUserForAdmin] = useState(null);
   useEffect(() => {
     if (isAdminCreate && user && !["master", "supervisor"].includes(user.role)) {
@@ -104,103 +111,7 @@ export default function CreateListingPage() {
     }
   }, [isAdminCreate, user, navigate]);
   const [activeRescue, setActiveRescue] = useState(null);
-  const [formData, setFormData] = useState({
-    listingType: "yard_sale",
-    tier: "featured",
-    event_tier: "event",
-    event_add_ons: {},
-    event_animation: "",
-    event_flyer_url: "",
-    event_photo_gallery_count: 0,
-    coming_soon_package: "",
-    event_name: "",
-    event_description: "",
-    event_category: "",
-    event_icon: "calendar",
-    event_photos: [],
-    halloween_icon_key: "halloween_decorations",
-    halloween_spot_type: "halloween_decorations",
-    halloween_tags: [],
-    halloween_featured_badge: "none",
-    halloween_candy_available: false,
-    halloween_candy_schedule_mode: "",
-    halloween_candy_start_date: "",
-    halloween_candy_end_date: "",
-    halloween_candy_start_time: "",
-    halloween_candy_end_time: "",
-    halloween_candy_custom_time: false,
-    halloween_walkthrough: false,
-    halloween_lights: false,
-    halloween_sound: false,
-    halloween_jump_scares: false,
-    halloween_suggested_age: "",
-    halloween_host_name: "",
-    halloween_admission: "",
-    halloween_parking_notes: "",
-    halloween_activities: "",
-    halloween_start_date: "",
-    halloween_end_date: "",
-    halloween_start_time: "",
-    halloween_end_time: "",
-    full_icon_activation_time: "15:00",
-    display_address: "",
-    geocoded_address: "",
-    location_source: "search",
-    address_text: "",
-    coming_soon_start_date: "",
-    event_start_date: "",
-    event_end_date: "",
-    event_start_time: "",
-    event_end_time: "",
-    start_datetime: "",
-    end_datetime: "",
-    marquee_schedule_slots: [],
-    title: "",
-    description: "",
-    addressText: "",
-    city: "",
-    state: "",
-    zip: "",
-    lat: null,
-    lng: null,
-    event_center_lat: null,
-    event_center_lng: null,
-    // (plain english) listing-local timezone; we’ll derive later from lat/lng
-    timeZoneId: FALLBACK_TZ,
-    // Stored as ISO strings
-    startDateTime: "",
-    endDateTime: "",
-    openTime: "",
-    closeTime: "",
-    // Date-range selection (YYYY-MM-DD strings)
-    selectedRangeStartDate: "",
-    selectedRangeEndDate: "",
-    // Premium Early Visibility
-    earlyVisibilityDays: 0,
-    earlyVisibilityDates: [],
-    activeDates: [],
-    early_visibility_enabled: false,
-    early_visibility_days: 0,
-    visibility_start_date: "",
-    early_visibility_promo_code: "",
-    // Categories
-    category: "",
-    categories: [],
-    collectible_type: null,
-    photoUrls: [],
-    // Neighborhood fields
-    homeCount: 1,
-    spanFeet: 0,
-    validatedDistance: false,
-    validatedText: false,
-    // optional flags
-    locationMethod: "address",
-    organizer_participation: "participating",
-    fallback_action: "",
-    fallback_listing_id: "",
-    fallback_consent_at: "",
-    discovery_promo_code: ""
-  });
+  const [formData, setFormData] = useState(createListingInitialData);
   useEffect(() => {
     const requestedStep = getRequestedStep(location.search);
     if (requestedStep) {
@@ -239,18 +150,19 @@ export default function CreateListingPage() {
   }, [location.search]);
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get("draft") !== "1") return;
+    if (params.get("draft") !== "1" || !user?.id) return;
     const raw = localStorage.getItem(DRAFT_RESUME_STORAGE_KEY);
     if (!raw) return;
     try {
       const draft = JSON.parse(raw);
       if (!draft?.formData) return;
-      const restoredFormData = normalizeResidentialEventSingleDay({ ...draft.formData });
+      const developerDraft = isDevBypassUser(user) && draft.formData.developer_draft === true;
+      const restoredFormData = developerDraft ? { ...draft.formData } : normalizeResidentialEventSingleDay({ ...draft.formData });
       setActiveDraftId(draft.draftId || null);
       setIsAssistedPost(restoredFormData.assisted_post === true);
-      setFormData((prev) => normalizeResidentialEventSingleDay({ ...prev, ...restoredFormData }));
+      setFormData((prev) => developerDraft ? { ...prev, ...restoredFormData } : normalizeResidentialEventSingleDay({ ...prev, ...restoredFormData }));
       localStorage.removeItem(DRAFT_RESUME_STORAGE_KEY);
-      if (hasPastSelectedDates(draft.formData)) {
+      if (!developerDraft && hasPastSelectedDates(draft.formData)) {
         setStep(draft.formData.listingType === "event" ? 3 : 3);
         toast.warning("This draft has dates that have already passed. Please choose new dates before continuing.");
       } else {
@@ -260,7 +172,7 @@ export default function CreateListingPage() {
     } catch {
       localStorage.removeItem(DRAFT_RESUME_STORAGE_KEY);
     }
-  }, [location.search]);
+  }, [location.search, user?.id]);
   // ✅ Relist loader: reads localStorage + maps keys + routes by listing type
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -475,11 +387,11 @@ export default function CreateListingPage() {
   // Compute reserved dates for residential listings only (drives calendar blocking)
   const addressRef = user ? { lat: user.primary_latitude, lng: user.primary_longitude } : null;
   const reservedDates = React.useMemo(
-    () => (formData.listingType === "yard_sale" && !isAdminDemoMode && !isDevBypassUser(user) && addressRef
+    () => (formData.listingType === "yard_sale" && !isAdminDemoMode && !isDeveloperMode && addressRef
       ? getReservedDatesForAddress(userListings, null, addressRef)
       : new Set()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [formData.listingType, userListings, user?.primary_latitude, user?.primary_longitude, isAdminDemoMode]
+    [formData.listingType, userListings, user?.primary_latitude, user?.primary_longitude, isAdminDemoMode, isDeveloperMode]
   );
   const debugResidentialDateConflict = (reason, details = {}) => {
     if (!import.meta.env?.DEV) return;
@@ -502,7 +414,7 @@ export default function CreateListingPage() {
       debugResidentialDateConflict("skipped_non_residential_listing_type", { startDate, endDate, listingType });
       return false;
     }
-    if (!startDate || !endDate || isAdminDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
+    if (!startDate || !endDate || isAdminDemoMode || isDeveloperMode || isAdminCreate) return false;
     const conflict = findConflictingReservedListingForAddress(userListings, startDate, endDate, null, addressRef);
     const hasConflict = hasDateConflict(startDate, endDate, reservedDates);
     if (hasConflict) debugResidentialDateConflict("toast_ready_after_user_action", { startDate, endDate, listingType, conflict });
@@ -514,7 +426,7 @@ export default function CreateListingPage() {
       debugResidentialDateConflict("skipped_live_non_residential_listing_type", { startDate, endDate, listingType });
       return false;
     }
-    if (!startDate || !endDate || isAdminDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
+    if (!startDate || !endDate || isAdminDemoMode || isDeveloperMode || isAdminCreate) return false;
     const response = await base44.functions.invoke("manageResidentialAccessRequest", {
       action: "check_conflict",
       data: { ...sourceData, listingType, selectedRangeStartDate: startDate, selectedRangeEndDate: endDate },
@@ -537,14 +449,14 @@ export default function CreateListingPage() {
     if (!user?.id || isAdminCreate || isAssistedPost || !sourceFormData?.listingType) return null;
     const listingType = sourceFormData.listingType;
     const title = sourceFormData.event_name || sourceFormData.title || (listingType === "event" ? "Event draft" : listingType === "neighborhood_sale" ? "Neighborhood Sale draft" : listingType === "halloween_spot" ? "Halloween Spot draft" : "Yard Sale draft");
-    const safeSourceFormData = normalizeResidentialEventSingleDay(sourceFormData);
+    const safeSourceFormData = isDeveloperMode ? sourceFormData : normalizeResidentialEventSingleDay(sourceFormData);
     const draftData = {
       owner_user_id: user.id,
       listing_type: listingType,
       title,
       tier: safeSourceFormData.event_tier || safeSourceFormData.tier || "",
       last_step: draftStep,
-      data_json: JSON.stringify(safeSourceFormData),
+      data_json: JSON.stringify({ ...safeSourceFormData, developer_draft: isDeveloperMode }),
       status: "active",
       saved_reason: "in_progress",
     };
@@ -828,6 +740,11 @@ export default function CreateListingPage() {
   }, [userListings, user, queryClient]);
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
+      if (data.developer_create_requested === true) {
+        const { developer_create_requested, ...listingData } = data;
+        const response = await base44.functions.invoke("saveResidentialListing", { action: "developer_create", data: listingData });
+        return response.data.listing;
+      }
       const founderCreate = data.founder_vip_requested === true;
       delete data.founder_vip_requested;
       if (!isAdminCreate && data.listingType === "yard_sale" && data.selectedRangeStartDate && data.selectedRangeEndDate) {
@@ -909,8 +826,9 @@ export default function CreateListingPage() {
                 homeCount: 1,
               });
             } else {
-              const organizerState = getStateAbbreviation(user.state || user.primary_state || createdListing.state || "XX");
-              const organizerZip = user.zip_code || createdListing.zip || "0000";
+              const organizerUser = isDeveloperListing(createdListing) ? {} : user;
+              const organizerState = getStateAbbreviation(organizerUser.state || organizerUser.primary_state || createdListing.state || "XX");
+              const organizerZip = organizerUser.zip_code || createdListing.zip || "0000";
               const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
               let participantSuffix = "";
               for (let i = 0; i < 5; i++) participantSuffix += chars[Math.floor(Math.random() * chars.length)];
@@ -919,13 +837,14 @@ export default function CreateListingPage() {
                 listingType: "yard_sale",
                 title: `${createdListing.title || "Neighborhood Sale"} - Organizer Sale`,
                 description: "",
-                addressText: user.primary_address || user.street_address || createdListing.addressText,
-                city: user.city || createdListing.city,
+                addressText: organizerUser.primary_address || organizerUser.street_address || createdListing.addressText,
+                city: organizerUser.city || createdListing.city,
                 state: organizerState,
                 zip: organizerZip,
-                lat: user.primary_latitude ?? user.address_lat ?? createdListing.lat,
-                lng: user.primary_longitude ?? user.address_lng ?? createdListing.lng,
-                timeZoneId: user.timeZoneId || createdListing.timeZoneId || "",
+                lat: organizerUser.primary_latitude ?? organizerUser.address_lat ?? createdListing.lat,
+                lng: organizerUser.primary_longitude ?? organizerUser.address_lng ?? createdListing.lng,
+                timeZoneId: organizerUser.timeZoneId || createdListing.timeZoneId || "",
+                ...(isDeveloperListing(createdListing) ? { location_source: createdListing.location_source, payment_status: "waived", openTime: createdListing.openTime, closeTime: createdListing.closeTime } : {}),
                 tier: "free",
                 pricePaid: 0,
                 status: "active",
@@ -1030,6 +949,10 @@ export default function CreateListingPage() {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["myListingDrafts", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
+      queryClient.invalidateQueries({ queryKey: ["publicMapData"] });
       sessionStorage.removeItem("yardit_pending_trust_action");
       clearStaleTrustProgress();
       toast.success("Listing created successfully!");
@@ -1037,6 +960,7 @@ export default function CreateListingPage() {
     },
     onError: (error) => {
       setIsStartingPayment(false);
+      if (isDeveloperMode) setPaymentError(error?.response?.data?.error || error.message || "Could not publish listing.");
       if (error?.response?.data?.conflict) {
         setResidentialConflict({ has_conflict: true, ...error.response.data.conflict, message: error.response.data.error });
       }
@@ -1044,6 +968,7 @@ export default function CreateListingPage() {
     }
   });
   const handleNext = async () => {
+    if (isDeveloperMode) { setStep((current) => current + 1); return; }
     if (formData.listingType === "yard_sale") {
       setHasAttemptedContinue(true);
     }
@@ -1534,6 +1459,7 @@ export default function CreateListingPage() {
     }
   };
   const handlePaymentStepSubmit = async ({ promoResult, finalAmount, nonRefundAcknowledgement } = {}) => {
+    if (isDeveloperMode) { handleDeveloperPublish(); return; }
     if (promoResult && promoResult.finalAmount === 0) {
       if (window.self !== window.top) {
         setPaymentError("Checkout must be tested from the published app.");
@@ -1620,6 +1546,7 @@ export default function CreateListingPage() {
     return response.data.listing;
   };
   const handleNeighborhoodSetupSubmit = async (nonRefundAcknowledgement = {}) => {
+    if (isDeveloperMode) { handleDeveloperPublish(); return; }
     const fallbackAction = nonRefundAcknowledgement.fallback_action || formData.fallback_action;
     const fallbackListingId = nonRefundAcknowledgement.fallback_listing_id || formData.fallback_listing_id || "";
     if (!fallbackAction) {
@@ -1798,7 +1725,19 @@ export default function CreateListingPage() {
     }
     return false;
   };
+  const handleDeveloperPublish = () => {
+    if (!isDeveloperMode || createListingMutation.isPending) return;
+    try {
+      setPaymentError("");
+      createListingMutation.mutate({ ...buildDeveloperListingPayload(formData), developer_create_requested: true });
+    } catch (error) { setPaymentError(error.message); toast.error(error.message); }
+  };
   const handleSubmit = async ({ userInitiated = false } = {}) => {
+    if (isDeveloperMode) {
+      if (formData.listingType === "halloween_spot") handleDeveloperPublish();
+      else { setPaymentError(""); setStep(paymentStepNumber); }
+      return;
+    }
     const descriptionLimitError = getResidentialDescriptionLimitError(formData);
     if (descriptionLimitError) {
       toast.error(descriptionLimitError);
@@ -2270,31 +2209,13 @@ export default function CreateListingPage() {
           </h1>
           {currentMeta && <p className="text-slate-400 text-sm mt-1.5">{currentMeta}</p>}
         </div>
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s, i) => (
-              <React.Fragment key={s}>
-                <div className="flex flex-col items-center gap-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 ${
-                    s < step
-                      ? "bg-[#006168] text-white shadow-sm"
-                      : s === step
-                      ? "bg-[#006168] text-white ring-4 ring-[#006168]/20 shadow-md"
-                      : "bg-slate-100 text-slate-400"
-                  }`}>
-                    {s < step ? "✓" : s}
-                  </div>
-                  <span className={`text-[10px] font-medium hidden sm:block ${s === step ? "text-[#006168]" : s < step ? "text-slate-500" : "text-slate-300"}`}>
-                    {stepLabels[i]}
-                  </span>
-                </div>
-                {s < totalSteps && (
-                  <div className={`flex-1 h-0.5 mx-1 rounded-full transition-all duration-300 ${s < step ? "bg-[#006168]" : "bg-slate-200"}`} />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+        {isDevBypassUser(user) && !isAssistedPost && !isAdminCreate && <DeveloperListingControls
+          enabled={developerModeEnabled}
+          onEnabledChange={(enabled) => { setDeveloperModeEnabled(enabled); setResidentialConflict(null); setShowHomeAddressConfirm(false); setPaymentError(""); }}
+          step={step} labels={stepLabels} onJump={(nextStep) => { setStep(nextStep); setPaymentError(""); }}
+          busy={createListingMutation.isPending || isStartingPayment}
+        />}
+        <ListingStepNavigation step={step} totalSteps={totalSteps} stepLabels={stepLabels} />
         {canUseAssistedPost && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <label className="flex items-start gap-3 cursor-pointer">
@@ -2410,7 +2331,9 @@ export default function CreateListingPage() {
                 setSpecialtyFont={setSpecialtyFont}
                 specialtyHeadline={specialtyHeadline}
                 setSpecialtyHeadline={setSpecialtyHeadline}
-                isStartingPayment={isStartingPayment}
+                isDeveloperMode={isDeveloperMode}
+                onDeveloperPublish={handleDeveloperPublish}
+                isStartingPayment={isStartingPayment || createListingMutation.isPending}
                 paymentError={paymentError}
                 paymentRetryReady={paymentRetryReady}
                 onCancelPayment={() => { localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY); localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY); setPaymentError(""); setPaymentRetryReady(false); setIsStartingPayment(false); setStep(formData.listingType === "event" ? 4 : 3); }}
@@ -2420,6 +2343,7 @@ export default function CreateListingPage() {
             )}
             {!assistedCreated && formData.listingType === "halloween_spot" && (
               <CreateListingHalloween
+                isDeveloperMode={isDeveloperMode}
                 step={step}
                 formData={formData}
                 setFormData={setFormData}
@@ -2427,7 +2351,7 @@ export default function CreateListingPage() {
                 user={user}
                 isAssistedPost={isAssistedPost}
                 onAddressSelected={(selectedAddress) => {
-                  if (!isAssistedPost && !isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
+                  if (!isDeveloperMode && !isAssistedPost && !isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
                     setPendingHomeAddress(buildResolvedListingLocation(selectedAddress));
                     setShowHomeAddressConfirm(true);
                   }
@@ -2445,7 +2369,9 @@ export default function CreateListingPage() {
                 isAdminCreate={isAdminCreate}
                 selectedUserForAdmin={selectedUserForAdmin}
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
-                isStartingPayment={isStartingPayment}
+                isDeveloperMode={isDeveloperMode}
+                onDeveloperPublish={handleDeveloperPublish}
+                isStartingPayment={isStartingPayment || createListingMutation.isPending}
                 paymentError={paymentError}
                 paymentRetryReady={paymentRetryReady}
                 onCancelPayment={() => { localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY); localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY); setPaymentError(""); setPaymentRetryReady(false); setIsStartingPayment(false); setStep(3); }}
@@ -2465,7 +2391,9 @@ export default function CreateListingPage() {
                 selectedUserForAdmin={selectedUserForAdmin}
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
                 isAdminDemoMode={isAdminDemoMode}
-                isStartingPayment={isStartingPayment}
+                isDeveloperMode={isDeveloperMode}
+                onDeveloperPublish={handleDeveloperPublish}
+                isStartingPayment={isStartingPayment || createListingMutation.isPending}
                 paymentError={paymentError}
                 paymentRetryReady={paymentRetryReady}
                 setPaymentError={setPaymentError}
@@ -2473,7 +2401,7 @@ export default function CreateListingPage() {
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
                 residentialTierPrices={RESIDENTIAL_TIER_PRICES}
                 onAddressSelected={(selectedAddress) => {
-                  if (!isAssistedPost && !isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
+                  if (!isDeveloperMode && !isAssistedPost && !isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
                     setPendingHomeAddress(buildResolvedListingLocation(selectedAddress));
                     setShowHomeAddressConfirm(true);
                   }
@@ -2482,62 +2410,14 @@ export default function CreateListingPage() {
                 isAssistedPost={isAssistedPost}
               />
             )}
-            {!assistedCreated && (step !== paymentStepNumber || isAdminCreate) && (
-              <div className="flex gap-3 mt-8 pt-6 border-t border-slate-100">
-                {step > 1 && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep(step - 1)}
-                    className="flex-1 border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-11"
-                  >
-                    ← Back
-                  </Button>
-                )}
-                {(isAdminCreate ? step < paymentStepNumber : step < entryStepNumber) ? (
-                  <Button
-                    onClick={isAdminCreate && step === entryStepNumber ? () => setStep(paymentStepNumber) : handleNext}
-                    disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (isAssistedPost ? regularAddressIncomplete : regularAddressIncomplete && !userHasVerifiedPrimaryAddress)}
-                    className="flex-1 bg-[#006168] hover:bg-[#004d52] text-white rounded-xl h-11 font-semibold shadow-sm"
-                  >
-                    Continue →
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={isAdminCreate && step === paymentStepNumber ? () => {
-                      if (!selectedUserForAdmin) {
-                        toast.error("Please assign a user.");
-                        return;
-                      }
-                      executeSubmit("admin_create");
-                    } : () => handleSubmit({ userInitiated: true })}
-                    disabled={createListingMutation.isPending || isStartingPayment}
-                    className="flex-1 bg-[#006168] hover:bg-[#004d52] text-white rounded-xl h-11 font-semibold shadow-sm"
-                  >
-                    {isStartingPayment
-                      ? formData.listingType === "neighborhood_sale"
-                        ? "Saving Payment Method..."
-                        : "Starting Payment..."
-                      : createListingMutation.isPending
-                      ? "Creating..."
-                      : isAdminCreate && step === paymentStepNumber
-                      ? "Create Listing (Admin)"
-                      : isAdminCreate && step === entryStepNumber
-                      ? "Continue to Assign User"
-                      : isAssistedPost
-                      ? formData.listingType === "halloween_spot" ? "Create Assisted Halloween Spot 🎃" : formData.listingType === "event" ? "Create Assisted Event" : "Create Assisted Yard Sale"
-                      : formData.listingType === "event"
-                      ? "Continue to Payment →"
-                      : formData.listingType === "halloween_spot"
-                      ? "Publish Halloween Spot 🎃"
-                      : formData.listingType === "neighborhood_sale"
-                      ? "Continue to Payment Setup →"
-                      : ["featured", "premium"].includes(formData.tier)
-                      ? "Continue to Payment →"
-                      : "Publish Listing 🎉"}
-                  </Button>
-                )}
-              </div>
-            )}
+            {!assistedCreated && (step !== paymentStepNumber || isAdminCreate) && <ListingCreationActions
+              step={step} setStep={setStep} paymentStepNumber={paymentStepNumber} entryStepNumber={entryStepNumber}
+              isAdminCreate={isAdminCreate} isAssistedPost={isAssistedPost} isDeveloperMode={isDeveloperMode}
+              listingType={formData.listingType} tier={formData.tier} regularAddressIncomplete={regularAddressIncomplete}
+              userHasVerifiedPrimaryAddress={userHasVerifiedPrimaryAddress} isStartingPayment={isStartingPayment}
+              isCreating={createListingMutation.isPending} selectedUserForAdmin={selectedUserForAdmin}
+              onNext={handleNext} onSubmit={() => handleSubmit({ userInitiated: true })} onAdminCreate={() => executeSubmit("admin_create")}
+            />}
           </div>
         </div>
       </div>

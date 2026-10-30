@@ -6,6 +6,8 @@ import EventAddOnsStep from "./event/EventTierStep";
 import ResidentialPaymentStep from "../payment/ResidentialPaymentStep";
 import AdminAssignUserStep from "../admin/AdminAssignUserStep";
 import { getResidentialEventPriceBreakdown } from "@/lib/eventListingConfig";
+import DeveloperScheduleFields from "@/components/developer/DeveloperScheduleFields";
+import DeveloperReviewStep from "@/components/developer/DeveloperReviewStep";
 
 export default function CreateListingEvent({
   step,
@@ -31,6 +33,8 @@ export default function CreateListingEvent({
   setStep,
   handlePaymentStepSubmit,
   onCancelPayment,
+  isDeveloperMode = false,
+  onDeveloperPublish,
 }) {
   const eventPriceBreakdown = getResidentialEventPriceBreakdown(formData);
   if (step === 1) {
@@ -54,6 +58,7 @@ export default function CreateListingEvent({
   }
 
   if (step === 3) {
+    if (isDeveloperMode) return <DeveloperScheduleFields formData={formData} setFormData={setFormData} />;
     return <EventScheduleStep formData={formData} setFormData={setFormData} />;
   }
 
@@ -62,6 +67,7 @@ export default function CreateListingEvent({
   }
 
   if (step === 5) {
+    if (isDeveloperMode) return <DeveloperReviewStep listing={formData} onPublish={onDeveloperPublish} onBack={() => setStep(4)} isProcessing={isStartingPayment} errorMessage={paymentError} />;
     if (isAdminCreate) {
       return <AdminAssignUserStep selectedUser={selectedUserForAdmin} setSelectedUser={setSelectedUserForAdmin} />;
     }

@@ -5,8 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { CalendarDays, Clock3, Candy, Baby, Footprints, Lightbulb, Volume2, AlertTriangle, Images } from "lucide-react";
 import EventPhotoUpload from "./event/EventPhotoUpload";
+import DeveloperScheduleFields from "@/components/developer/DeveloperScheduleFields";
 
-export default function CreateListingHalloween({ step, formData, setFormData, setGeocodeRef, user, onAddressSelected, isAssistedPost = false }) {
+export default function CreateListingHalloween({ step, formData, setFormData, setGeocodeRef, user, onAddressSelected, isAssistedPost = false, isDeveloperMode = false }) {
   const spotType = formData.halloween_spot_type || formData.halloween_icon_key;
   const isTrickOrTreat = spotType === "trick_or_treat";
   const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(spotType);
@@ -29,7 +30,7 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
   }
 
   if (step === 2) {
-    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} onAddressSelected={onAddressSelected} canEditAddressOverride={isAssistedPost} />;
+    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} onAddressSelected={onAddressSelected} canEditAddressOverride={isAssistedPost || isDeveloperMode} />;
   }
 
   if (step === 3) {
@@ -40,7 +41,7 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
           <p className="text-sm text-slate-500">Your Halloween Spot is free. Full artwork appears after the activation time; daytime uses the small icon marker.</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        {isDeveloperMode ? <DeveloperScheduleFields formData={formData} setFormData={setFormData} /> : <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-800"><CalendarDays className="h-4 w-4 text-purple-700" /> Start date</Label>
             <Input
@@ -81,7 +82,7 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
               className="bg-white"
             />
           </div>
-        </div>
+        </div>}
 
         <div className="rounded-2xl border border-purple-200 bg-purple-50/70 p-4 space-y-3">
           <div>

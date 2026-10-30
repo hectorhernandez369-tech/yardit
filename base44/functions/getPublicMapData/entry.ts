@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { isDeveloperListing } from '../../shared/developerAccess.ts';
 
 const PUBLIC_LISTING_STATUSES = new Set(['active', 'scheduled', 'coming_soon', 'activated', 'activated_locked']);
 const HIDDEN_STATUSES = new Set(['draft', 'hidden', 'under_review', 'suspended', 'completed', 'expired', 'closed', 'cancelled', 'canceled', 'deleted', 'removed', 'payment_pending', 'pending_payment']);
@@ -119,6 +120,16 @@ const listingFields = [
   'id', 'listingNumber', 'listingType', 'title', 'description', 'event_name', 'event_description', 'event_category', 'event_icon', 'event_logo_url', 'event_tier', 'event_photos', 'marquee_flyer_url', 'marquee_background_url', 'marquee_schedule_slots', 'display_address', 'address_text', 'addressText', 'city', 'state', 'zip', 'lat', 'lng', 'timeZoneId', 'tier', 'status', 'event_state', 'photoUrls', 'category', 'categories', 'collectible_type', 'selectedRangeStartDate', 'selectedRangeEndDate', 'openTime', 'closeTime', 'early_visibility_enabled', 'early_visibility_days', 'visibility_start_date', 'earlyVisibilityDays', 'activeDates', 'earlyVisibilityDates', 'startDateTime', 'endDateTime', 'validatedDistance', 'spanFeet', 'homeCount', 'neighborhood_sale_id', 'neighborhood_join_status', 'participant_origin', 'activation_status', 'is_demo_listing', 'event_center_lat', 'event_center_lng', 'organizer_participation'
 ];
 
+function pickPublicListing(listing) {
+  const result = pick(listing, listingFields);
+  if (!isDeveloperListing(listing)) return result;
+  return {
+    ...result,
+    developer_schedule_override: true,
+    ...pick(listing, ['event_add_ons', 'event_animation', 'event_flyer_url', 'event_photo_gallery_count', 'coming_soon_package', 'coming_soon_start_date', 'event_start_date', 'event_end_date', 'event_start_time', 'event_end_time']),
+  };
+}
+
 const promoFields = ['id', 'code', 'title', 'status', 'promo_door_enabled', 'promo_door_lat', 'promo_door_lng', 'geographic_limit_type', 'geo_center_lat', 'geo_center_lng', 'promo_icon_logo_url', 'promo_icon_size_px', 'promo_icon_glow_enabled', 'promo_icon_animation', 'promo_min_zoom', 'promo_max_zoom', 'geo_display_label', 'default_discount_percent', 'starts_at', 'expires_at', 'applies_to_tiers'];
 const vendorEventFields = ['id', 'organizer_business_id', 'organizer_business_name', 'organizer_logo', 'title', 'description', 'category', 'event_type', 'status', 'visibility_status', 'public_contact_visibility', 'startDateTime', 'endDateTime', 'earlyVisibilityStartDateTime', 'display_address', 'latitude', 'longitude', 'timeZoneId', 'radius_feet', 'photos', 'flyer_url', 'logo', 'icon', 'coming_soon_start_date'];
 const vendorAccountFields = ['id', 'business_name', 'vendor_display_name', 'business_logo', 'business_category', 'vendor_slug', 'description', 'location', 'facebook_url', 'instagram_url', 'tiktok_url', 'vendor_tier', 'is_active'];
@@ -190,7 +201,7 @@ export default async function(req) {
       if (!isPublicListing(listing, now) || !canSeeAdDemo(listing, currentUser)) {
         return Response.json({ listing: null });
       }
-      return Response.json({ listing: pick(listing, listingFields) });
+      return Response.json({ listing: pickPublicListing(listing) });
     }
 
     const [listingRows, halloweenRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows, leagueEventRows, leagueGameRows, joinRequestRows] = await Promise.all([
@@ -207,7 +218,7 @@ export default async function(req) {
       base44.asServiceRole.entities.JoinRequest.list('-created_date', 500),
     ]);
 
-    const listings = listingRows.filter((listing) => isPublicListing(listing, now) && canSeeAdDemo(listing, currentUser)).map((listing) => pick(listing, listingFields));
+    const listings = listingRows.filter((listing) => isPublicListing(listing, now) && canSeeAdDemo(listing, currentUser)).map(pickPublicListing);
     const halloweenLocations = halloweenRows.filter((location) => isPublicHalloweenLocation(location, now) && canSeeAdDemo(location, currentUser)).map((location) => pick(location, halloweenLocationFields));
     const promoDiscoveryCodes = promoRows
       .filter((promo) => isActivePromo(promo))

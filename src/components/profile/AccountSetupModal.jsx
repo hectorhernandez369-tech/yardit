@@ -13,6 +13,7 @@ import { createPageUrl } from "@/utils";
 import SetupAddressVerification from "@/components/profile/SetupAddressVerification";
 import { afterSetupPromptKey } from "@/lib/pushPromptActions";
 import { getNameValidationError, getPhoneValidationError } from "@/lib/profileValidation";
+import { isDevBypassUser } from "@/lib/createListingHelpers";
 
 export default function AccountSetupModal({ user, setUser }) {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export default function AccountSetupModal({ user, setUser }) {
   });
 
   useEffect(() => {
-    if (!user?.id) {
+    if (!user?.id || isDevBypassUser(user)) {
       setOpen(false);
       return;
     }

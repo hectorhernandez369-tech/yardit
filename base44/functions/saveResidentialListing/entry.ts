@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { getDemoAuthorization, hasDemoBypassRequest, sanitizeDemoFields } from '../../shared/demoMode.ts';
 import { hasResidentialVip, eligibleFounderListing, founderWaiver } from '../../shared/founderVip.ts';
+import { createDeveloperListing } from '../../shared/developerListings.ts';
 
 const DESCRIPTION_LIMITS = {
   yard_sale: 500,
@@ -165,11 +166,14 @@ async function canManageListing(base44, user, listing) {
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    const user = await base44.auth.me().catch((error) => error.status === 401 ? null : Promise.reject(error));
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const payload = await req.json().catch(() => ({}));
     const action = payload.action || 'create';
+    if (action === 'developer_create') {
+      return await createDeveloperListing(base44, user, payload.data || {}, payload.validate_only === true);
+    }
     let data = normalizeResidentialEventSingleDay(payload.data || {});
     const demoAuthorization = await getDemoAuthorization(base44, user);
     const demoBypassRequested = hasDemoBypassRequest(payload) || hasDemoBypassRequest(data);

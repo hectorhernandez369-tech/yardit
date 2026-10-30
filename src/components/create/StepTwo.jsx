@@ -15,6 +15,7 @@ import { MapPin, Navigation, Loader2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
 import { buildResolvedListingLocation, resolveTimeZoneFromCoordinates, getStateAbbreviation } from "@/lib/listingLocation";
+import DeveloperScheduleFields from "@/components/developer/DeveloperScheduleFields";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -182,7 +183,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
   );
 }
 
-export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onAddressSelected, canEditAddressOverride = false }) {
+export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onAddressSelected, canEditAddressOverride = false, isDeveloperMode = false }) {
   const { isDemoMode } = useAppMode();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -1035,7 +1036,8 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onA
         />
       )}
 
-      {isNeighborhood && (
+      {isNeighborhood && isDeveloperMode && <DeveloperScheduleFields formData={formData} setFormData={setFormData} />}
+      {isNeighborhood && !isDeveloperMode && (
         <div className="rounded-2xl border border-[#2C4F4E]/15 bg-white p-4 shadow-sm">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-7 h-7 rounded-full bg-[#5DADA5] text-white flex items-center justify-center text-sm font-bold shrink-0">4</div>

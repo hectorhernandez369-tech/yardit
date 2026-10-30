@@ -1,3 +1,5 @@
+import { isDeveloperListing } from "@/lib/createListingHelpers";
+
 export const NEIGHBORHOOD_EVENT_STATES = [
   "pending_activation",
   "committed",
@@ -119,7 +121,7 @@ export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
   if (!listing) return false;
 
   if (listing.listingType === "neighborhood_sale") {
-    return isNeighborhoodVisibleOnMap(listing, nowInput) && Number(listing.homeCount || 0) >= NEIGHBORHOOD_MIN_HOMES;
+    return isNeighborhoodVisibleOnMap(listing, nowInput) && (isDeveloperListing(listing) || Number(listing.homeCount || 0) >= NEIGHBORHOOD_MIN_HOMES);
   }
 
   const now = nowInput instanceof Date ? nowInput : new Date(nowInput);

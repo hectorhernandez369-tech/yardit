@@ -1,4 +1,5 @@
 import { shouldShowListingOnMainMap, normalizeNeighborhoodJoinStatus, deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
+import { isDeveloperListing } from "@/lib/createListingHelpers";
 
 const TERMINAL_HIDDEN_STATUSES = new Set([
   "expired",
@@ -170,8 +171,8 @@ function hasValidResidentialHours(listing, now = new Date()) {
   const openMinutes = minutesFromTime(listing?.openTime);
   const closeMinutes = minutesFromTime(listing?.closeTime);
   const currentMinutes = minutesFromTime(getTimeOnly(now, listing?.timeZoneId));
-  const earliest = 5 * 60;
-  const latest = 22 * 60;
+  const earliest = isDeveloperListing(listing) ? 0 : 5 * 60;
+  const latest = isDeveloperListing(listing) ? 24 * 60 - 1 : 22 * 60;
 
   if (openMinutes === null || closeMinutes === null || currentMinutes === null) return false;
   if (openMinutes < earliest || closeMinutes > latest || openMinutes >= closeMinutes) return false;

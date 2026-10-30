@@ -9,7 +9,7 @@ import { getPhotoLimitLabel } from "@/components/shared/listingTierEngine";
 export default function EditListingPhotos({ label = "Photos", value = [], onChange, maxPhotos = 3 }) {
   const [isUploading, setIsUploading] = React.useState(false);
 
-  const limitLabel = getPhotoLimitLabel(maxPhotos === 1 ? "display" : maxPhotos === 10 ? "featured" : maxPhotos === 25 ? "premium" : "free");
+  const limitLabel = Number.isFinite(maxPhotos) ? getPhotoLimitLabel(maxPhotos === 1 ? "display" : maxPhotos === 10 ? "featured" : maxPhotos === 25 ? "premium" : "free") : "No tier limit";
 
   const handleFiles = async (event) => {
     const remaining = Math.max(0, maxPhotos - value.length);

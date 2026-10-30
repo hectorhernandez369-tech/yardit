@@ -11,6 +11,7 @@ import { computeFreeWindow, getPhotoLimitByTier } from "@/components/shared/list
 import NeighborhoodSaleNoticeCard from "./NeighborhoodSaleNoticeCard";
 import OpenHoursFields from "./OpenHoursFields";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
+import DeveloperScheduleFields from "@/components/developer/DeveloperScheduleFields";
 
 const FREE_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/9568bdd43_Screenshot_20260706_105625_Yardit.jpg";
 const FEATURED_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/a448d42b2_Screenshot_20260706_105638_Yardit.jpg";
@@ -76,6 +77,7 @@ export default function StepThree({
   setFormData,
   reservedDates = new Set(),
   onResidentialConflictInteraction,
+  isDeveloperMode = false,
 }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
@@ -90,7 +92,7 @@ export default function StepThree({
   };
 
   const applyPromoAwareFormData = (nextData) => {
-    if (isOutsidePromoWindow(nextData)) {
+    if (!isDeveloperMode && isOutsidePromoWindow(nextData)) {
       setPendingPromoChange(nextData);
       return;
     }
@@ -147,8 +149,8 @@ export default function StepThree({
     setFormData((p) => {
       const updated = { ...p, tier: nextTier };
       const maxPhotos = getPhotoLimitByTier(nextTier);
-      updated.photoUrls = (updated.photoUrls || []).slice(0, maxPhotos);
-      if (nextTier === "free") {
+      if (!isDeveloperMode) updated.photoUrls = (updated.photoUrls || []).slice(0, maxPhotos);
+      if (nextTier === "free" && !isDeveloperMode) {
         delete updated.selectedRangeStartDate;
         delete updated.selectedRangeEndDate;
         updated.earlyVisibilityDays = 0;
@@ -397,7 +399,7 @@ export default function StepThree({
               <EditListingPhotos
                 label="Add Photos"
                 value={formData.photoUrls || []}
-                maxPhotos={getPhotoLimitByTier(tier)}
+                maxPhotos={isDeveloperMode ? Infinity : getPhotoLimitByTier(tier)}
                 onChange={(photos) => {
                   markResidentialConflictInteraction();
                   setFormData((prev) => ({ ...prev, photoUrls: photos }));
@@ -408,7 +410,8 @@ export default function StepThree({
 
           <div className="my-8 border-t border-dashed border-[#2C4F4E]/20" />
 
-          {(tier === "featured" || tier === "premium") && (
+          {isDeveloperMode && <DeveloperScheduleFields formData={formData} setFormData={setFormData} />}
+          {!isDeveloperMode && (tier === "featured" || tier === "premium") && (
             <div className="pt-6 mt-6 border-t-2 border-[#2C4F4E]/20">
               <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 mb-4">
                 <h3 className="text-[#2C4F4E] font-semibold">Live Event / Sale Schedule</h3>
@@ -536,11 +539,11 @@ export default function StepThree({
             </div>
           )}
 
-          {!isNeighborhoodSale && (
+          {!isNeighborhoodSale && !isDeveloperMode && (
             <OpenHoursFields formData={formData} setFormData={setFormData} onFieldChange={updatePromoAwareField} />
           )}
 
-          {tier === "premium" && (
+          {tier === "premium" && !isDeveloperMode && (
             <div className="mt-6 p-4 border-2 border-[#F4A849] bg-[#E7D7B8] rounded-xl shadow-sm">
               <Label className="text-[#2C4F4E] text-base font-bold mb-2 block">Optional Coming Soon / Early Advertising</Label>
               <p className="text-sm text-[#1F2937] opacity-80 mb-4">
@@ -589,7 +592,7 @@ export default function StepThree({
             <div className="font-semibold text-[#2C4F4E] text-base">
               {isNeighborhoodSale ? (
                 formatDisplayRange(formData.selectedRangeStartDate, formData.selectedRangeEndDate)
-              ) : formData.tier === "free" ? (
+              ) : formData.tier === "free" && !isDeveloperMode ? (
                 freeTierDateRange
               ) : formData.tier === "featured" ? (
                 formatDisplayRange(formData.selectedRangeStartDate, formData.selectedRangeEndDate)

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { isDeveloperListing } from '../../shared/developerAccess.ts';
 
 // LOCKED FREE LISTING POLICY — do not change without owner permission.
 // Applies only to standalone residential yard_sale listings with tier="free".
@@ -84,7 +85,7 @@ function normalizeJoinStatus(value) {
 }
 
 function isStandaloneFreeYardSale(listing) {
-  return listing?.listingType === 'yard_sale' && listing?.tier === 'free' && !listing?.neighborhood_sale_id && normalizeJoinStatus(listing?.neighborhood_join_status) === 'none';
+  return !isDeveloperListing(listing) && listing?.listingType === 'yard_sale' && listing?.tier === 'free' && !listing?.neighborhood_sale_id && normalizeJoinStatus(listing?.neighborhood_join_status) === 'none';
 }
 
 function statusForWindow(now, start, end) {
@@ -93,14 +94,21 @@ function statusForWindow(now, start, end) {
   return 'expired';
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me().catch((error) => error.status === 401 ? null : Promise.reject(error));
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!['admin', 'master', 'supervisor', 'super_master'].includes(user.role)) return Response.json({ error: 'Forbidden' }, { status: 403 });
+    const payload = await req.json().catch(() => ({}));
+    const dryRun = payload.dry_run === true;
     const now = new Date();
 
     let listings = [];
     try {
-      listings = await base44.asServiceRole.entities.Listing.list('-created_date', 500);
+      listings = payload.listing_id
+        ? await base44.asServiceRole.entities.Listing.filter({ id: String(payload.listing_id) }, '-created_date', 1)
+        : await base44.asServiceRole.entities.Listing.list('-created_date', 500);
     } catch (e) {
       console.error('Error fetching listings', e);
       return Response.json({ error: e.message }, { status: 500 });
@@ -156,7 +164,7 @@ Deno.serve(async (req) => {
 
         if (needsPatch) {
           try {
-            await base44.asServiceRole.entities.Listing.update(listing.id, patch);
+            if (!dryRun) await base44.asServiceRole.entities.Listing.update(listing.id, patch);
             updates.push({ id: listing.id, listingNumber: listing.listingNumber, old: currentStatus, new: nextStatus, policy: 'locked_free_weekend' });
             console.log(`[syncListingStatuses] Locked free policy updated ${listing.listingNumber || listing.id}: ${currentStatus} → ${nextStatus}`);
           } catch (e) {
@@ -177,7 +185,7 @@ Deno.serve(async (req) => {
       const nextStatus = statusForWindow(now, start, end);
       if (nextStatus !== currentStatus) {
         try {
-          await base44.asServiceRole.entities.Listing.update(listing.id, {
+          if (!dryRun) await base44.asServiceRole.entities.Listing.update(listing.id, {
             status: nextStatus,
             category: listing.category || 'Miscellaneous',
             timeZoneId: listing.timeZoneId || 'America/Los_Angeles',
@@ -191,9 +199,9 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[syncListingStatuses] Done. Updated: ${updates.length}, Skipped: ${skipped.length}`);
-    return Response.json({ success: true, updated_count: updates.length, updates, skipped_count: skipped.length });
+    return Response.json({ success: true, dry_run: dryRun, updated_count: dryRun ? 0 : updates.length, planned_updates: dryRun ? updates : undefined, updates: dryRun ? [] : updates, skipped_count: skipped.length });
   } catch (error) {
     console.error('[syncListingStatuses] Fatal error:', error?.message || error);
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}
