@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import tzLookup from 'npm:tz-lookup@6.1.25';
 import { isDeveloperListing } from '../../shared/developerAccess.ts';
 
 const PUBLIC_LISTING_STATUSES = new Set(['active', 'scheduled', 'coming_soon', 'activated', 'activated_locked']);
@@ -43,19 +44,26 @@ function isPublicListing(listing, now) {
   return true;
 }
 
-function localYmd(date) {
-  const pad = (value) => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+function localYmd(date, location) {
+  const { latitude, longitude } = location;
+  const hasCoordinates = isValidCoordinate(latitude) && Math.abs(latitude) <= 90
+    && isValidCoordinate(longitude) && Math.abs(longitude) <= 180;
+  // Use the event's location, never the server's or visitor's clock zone.
+  const timeZone = hasCoordinates ? tzLookup(latitude, longitude) : 'America/Los_Angeles';
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date).map(({ type, value }) => [type, value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function isPublicHalloweenLocation(location, now) {
   if (!location || location.type !== 'halloween_candy' || location.status !== 'active') return false;
   const teaserUntil = location.teaser_until ? new Date(location.teaser_until) : null;
   if (teaserUntil && !Number.isNaN(teaserUntil.getTime()) && now <= teaserUntil) return true;
-  const today = localYmd(now);
+  const today = localYmd(now, location);
   const start = location.halloween_start_date || location.start_date_time?.slice?.(0, 10) || '';
   const end = location.halloween_end_date || location.end_date_time?.slice?.(0, 10) || location.expires_at?.slice?.(0, 10) || '';
-  const currentYear = String(now.getFullYear());
+  const currentYear = today.slice(0, 4);
   const seasonYear = String(start || end).slice(0, 4);
   if (seasonYear && seasonYear !== currentYear) return false;
   if (today < `${currentYear}-09-01`) return false;
