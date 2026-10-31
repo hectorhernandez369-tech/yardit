@@ -198,6 +198,11 @@
       "default": false,
       "description": "Admin status"
     },
+    "is_tester": {
+      "type": "boolean",
+      "default": false,
+      "description": "Tester classification shown to admins; does not grant access or change account permissions"
+    },
     "accountStatus": {
       "type": "string",
       "enum": [

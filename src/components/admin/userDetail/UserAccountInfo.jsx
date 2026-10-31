@@ -233,6 +233,7 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
           <span className="text-gray-500">Account Status</span>
           <div className="mt-0.5">
             <Badge className={statusColors[status]}>{status.toUpperCase()}</Badge>
+            {user.is_tester && <Badge variant="secondary" className="ml-2">TESTER</Badge>}
           </div>
         </div>
         <div>

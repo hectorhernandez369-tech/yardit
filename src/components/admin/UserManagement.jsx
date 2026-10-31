@@ -98,6 +98,7 @@ export default function UserManagement() {
                       {(user.accountStatus || "active").toUpperCase()}
                     </Badge>
                     {user.isAdmin && <Badge variant="outline">ADMIN</Badge>}
+                    {user.is_tester && <Badge variant="secondary">TESTER</Badge>}
                   </div>
                 </div>
                 
