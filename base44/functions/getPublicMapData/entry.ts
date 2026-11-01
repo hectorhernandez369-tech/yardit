@@ -61,9 +61,10 @@ function isPublicHalloweenLocation(location, now) {
   const teaserUntil = location.teaser_until ? new Date(location.teaser_until) : null;
   if (teaserUntil && !Number.isNaN(teaserUntil.getTime()) && now <= teaserUntil) return true;
   const today = localYmd(now, location);
+  const currentYear = today.slice(0, 4);
+  if (today >= `${currentYear}-11-01`) return false;
   const start = location.halloween_start_date || location.start_date_time?.slice?.(0, 10) || '';
   const end = location.halloween_end_date || location.end_date_time?.slice?.(0, 10) || location.expires_at?.slice?.(0, 10) || '';
-  const currentYear = today.slice(0, 4);
   const seasonYear = String(start || end).slice(0, 4);
   if (seasonYear && seasonYear !== currentYear) return false;
   if (today < `${currentYear}-09-01`) return false;
