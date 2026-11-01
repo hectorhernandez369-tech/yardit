@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
 import tzLookup from 'npm:tz-lookup@6.1.25';
 import { isDeveloperListing } from '../../shared/developerAccess.ts';
 
@@ -163,6 +163,30 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const listingId = typeof body?.listingId === 'string' ? body.listingId : '';
     const halloweenLocationId = typeof body?.halloweenLocationId === 'string' ? body.halloweenLocationId : '';
+
+    // Holiday Lights are separate Location records; Halloween and assisted QR flows stay unchanged.
+    if (body.holidayLights === true || Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) {
+      const fields = ['id', 'owner_user_id', 'type', 'title', 'display_title', 'description', 'address', 'street_address', 'city', 'state', 'zip_code', 'latitude', 'longitude', 'start_date_time', 'end_date_time', 'viewing_start_time', 'viewing_end_time', 'display_active', 'status', 'photos'];
+      const isPublicLight = (spot) => {
+        if (!spot || spot.status !== 'active' || !isValidCoordinate(spot.latitude) || !isValidCoordinate(spot.longitude) || !canSeeAdDemo(spot, currentUser)) return false;
+        const md = localYmd(now, spot).slice(5);
+        return (md >= '11-01' || md <= '01-02') && (!spot.end_date_time || now <= new Date(spot.end_date_time));
+      };
+      if (Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) {
+        if (typeof body.holidayLightId !== 'string' || !/^[a-f0-9]{24}$/i.test(body.holidayLightId)) return Response.json({ location: null });
+        const [spot] = await base44.asServiceRole.entities.Location.filter({ id: body.holidayLightId, type: 'holiday_lights' }, '-created_date', 1);
+        const isOwner = currentUser?.id && spot?.owner_user_id === currentUser.id;
+        return Response.json({ location: spot && (isPublicLight(spot) || isOwner || currentUser?.role === 'admin') ? pick(spot, fields) : null });
+      }
+      const query = { type: 'holiday_lights', status: 'active', $or: [{ end_date_time: { $gte: now.toISOString() } }, { end_date_time: { $exists: false } }] };
+      const bounds = body.bounds;
+      if (bounds && [bounds.south, bounds.north, bounds.west, bounds.east].every(isValidCoordinate)) {
+        query.latitude = { $gte: Math.max(-90, bounds.south), $lte: Math.min(90, bounds.north) };
+        if (bounds.west <= bounds.east) query.longitude = { $gte: Math.max(-180, bounds.west), $lte: Math.min(180, bounds.east) };
+      }
+      const page = await base44.asServiceRole.entities.Location.filter(query, { sort: '-created_date', limit: 50, ...(typeof body.cursor === 'string' ? { cursor: body.cursor } : {}) });
+      return Response.json({ items: page.items.filter(isPublicLight).map(spot => pick(spot, fields)), next_cursor: page.next_cursor, has_more: page.has_more });
+    }
 
     // Resolve a stable public pin, never a historical check-in's coordinates.
     if (Object.prototype.hasOwnProperty.call(body, 'vendorPinId')) {

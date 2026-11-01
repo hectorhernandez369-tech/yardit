@@ -40,6 +40,8 @@ import CommunityGuidelines from './pages/CommunityGuidelines';
 import InstallYardit from './pages/InstallYardit';
 import PushSetup from './pages/PushSetup';
 import CreateListingEntry from './pages/CreateListingEntry';
+import CreateHolidayLights from '@/pages/CreateHolidayLights';
+import HolidayLightsDetail from '@/pages/HolidayLightsDetail';
 import MapboxTest from './pages/MapboxTest';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -107,6 +109,8 @@ const AuthenticatedApp = () => {
   return <Routes>
     <Route path="/" element={<LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>} />
     <Route path="/CreateListing" element={<LayoutWrapper currentPageName="CreateListing"><CreateListingEntry /></LayoutWrapper>} />
+    <Route path="/CreateHolidayLights" element={<LayoutWrapper currentPageName="CreateHolidayLights"><CreateHolidayLights /></LayoutWrapper>} />
+    <Route path="/HolidayLightsDetail" element={<LayoutWrapper currentPageName="HolidayLightsDetail"><HolidayLightsDetail /></LayoutWrapper>} />
     {Object.entries(Pages).filter(([path]) => path !== "CreateListing").map(([path, Page]) => <Route key={path} path={`/${path}`} element={<LayoutWrapper currentPageName={path}><Page /></LayoutWrapper>} />)}
     <Route path="/install" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
     <Route path="/InstallYardit" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />

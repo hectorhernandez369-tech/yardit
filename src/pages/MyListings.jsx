@@ -13,6 +13,7 @@ import { format } from "date-fns";
 
 import EditListingDialog from "@/components/listing/EditListingDialog";
 import HalloweenOwnerEditDialog from "@/components/listing/HalloweenOwnerEditDialog";
+import MyHolidayLights from "@/components/holiday-lights/MyHolidayLights";
 import { toast } from "sonner";
 import { getListingDisplayStatus } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus, deriveNeighborhoodEventState, isWithinParticipationWindow } from "@/lib/neighborhoodSaleState";
@@ -905,6 +906,7 @@ export default function MyListingsPage() {
           </div>
         </div>
 
+        <MyHolidayLights user={user} />
         <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex gap-2 flex-wrap rounded-xl border bg-white/70 p-2 shadow-sm max-w-4xl">
             <Button variant={tab === "active" ? "default" : "outline"} onClick={() => setTab("active")}>Active ({activeListings.length})</Button>

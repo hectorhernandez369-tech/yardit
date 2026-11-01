@@ -1,7 +1,8 @@
 import React from "react";
-import { Tags, Calendar, Store, Users, ChevronLeft, Ghost } from "lucide-react";
+import { Tags, Calendar, Store, Users, ChevronLeft, Ghost, TreePine } from "lucide-react";
 
 const FILTERS = [
+  { key: "holidayLights", label: "Holiday Lights", icon: TreePine, activeColor: "bg-holiday-night", activeDot: "bg-holiday-gold" },
   {
     key: "yardSales",
     label: "Yard Sales",
@@ -39,7 +40,7 @@ const FILTERS = [
   },
 ];
 
-export default function QuickMapFilters({ value, onChange, showHalloween = true }) {
+export default function QuickMapFilters({ value, onChange, showHalloween = true, showHolidayLights = false }) {
   const [collapsed, setCollapsed] = React.useState(true);
   const [position, setPosition] = React.useState(() => ({
     right: 16,
@@ -71,7 +72,7 @@ export default function QuickMapFilters({ value, onChange, showHalloween = true 
 
   const stopDrag = () => { dragRef.current = null; };
 
-  const visibleFilters = showHalloween ? FILTERS : FILTERS.filter((filter) => filter.key !== "halloween");
+  const visibleFilters = FILTERS.filter(filter => (filter.key !== "halloween" || showHalloween) && (filter.key !== "holidayLights" || showHolidayLights));
   const activeCount = visibleFilters.filter(f => value[f.key] !== false).length;
 
   return (

@@ -127,7 +127,7 @@ function RecenterMap({ center, recenterZoom, currentZoomRef }) {
   return null;
 }
 
-export default function EventLocationPicker({ open, onOpenChange, eventType, value, onChange }) {
+export default function EventLocationPicker({ open, onOpenChange, eventType, value, onChange, title = "Choose Event Location", description = "Where is your event located? Add flags and highlighted areas later in Event Map Setup." }) {
   const searchWrapRef = useRef(null);
   const searchInputRef = useRef(null);
   const currentZoomRef = useRef(13);
@@ -254,8 +254,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Choose Event Location</DialogTitle>
-          <p className="text-sm text-slate-500">Where is your event located? Add flags and highlighted areas later in Event Map Setup.</p>
+          <DialogTitle>{title}</DialogTitle>
+          <p className="text-sm text-slate-500">{description}</p>
         </DialogHeader>
 
         <div className="space-y-4">

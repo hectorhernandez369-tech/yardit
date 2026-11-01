@@ -135,6 +135,10 @@ export default function StepOne({ formData, setFormData }) {
   return (
     <div className="space-y-8">
 
+      <button type="button" onClick={() => navigate('/CreateHolidayLights')} className="flex w-full items-center gap-3 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow">
+        <Sparkles className="h-6 w-6 shrink-0 text-holiday-gold" />
+        <span><strong className="block text-sm">Holiday Lights</strong><span className="text-xs opacity-80">Share your festive display, viewing dates, and nightly hours</span></span>
+      </button>
       {/* Listing type selector */}
       <div>
         <Label className="text-sm font-semibold text-slate-900 mb-3 block">What are you listing?</Label>

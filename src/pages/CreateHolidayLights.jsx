@@ -1,0 +1,31 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { TreePine, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { base44 } from '@/api/base44Client';
+import { hasVerifiedPrimaryAddress } from '@/lib/trustActions';
+import useHolidayLightEditor from '@/hooks/useHolidayLightEditor';
+import HolidayLightsFields from '@/components/holiday-lights/HolidayLightsFields';
+import HolidayLightsLocation from '@/components/holiday-lights/HolidayLightsLocation';
+import HolidayLightsNotFound from '@/components/holiday-lights/HolidayLightsNotFound';
+
+export default function CreateHolidayLights() {
+  const id = new URLSearchParams(window.location.search).get('id');
+  const { user, form, setForm, record, save } = useHolidayLightEditor(id);
+  if (!user) return <div className="mx-auto max-w-lg space-y-4 p-8 text-center"><h1 className="text-2xl font-bold">Post Holiday Lights</h1><p>Log in to add your holiday display.</p><Button onClick={() => base44.auth.redirectToLogin(window.location.href)}>Log In / Sign Up</Button></div>;
+  if (!hasVerifiedPrimaryAddress(user) && user.role !== 'admin') return <div className="mx-auto max-w-lg space-y-4 p-8 text-center"><h1 className="text-2xl font-bold">Verify your address first</h1><p>Complete your primary address verification before posting a display.</p><Button asChild><Link to="/Profile">Complete my profile</Link></Button></div>;
+  if (id && record.isPending) return <p className="p-8 text-center">Loading display…</p>;
+  if (id && record.isError) return <p role="alert" className="p-8 text-center text-destructive">Could not load this display. <button onClick={() => record.refetch()} className="underline">Retry</button></p>;
+  if (id && record.data === null) return <HolidayLightsNotFound />;
+  return <div className="mx-auto w-full max-w-2xl space-y-5 px-4 py-6">
+    <Link to="/CreateListing" className="text-sm underline">Back to listing types</Link>
+    <header className="rounded-2xl bg-holiday-night p-6 text-holiday-snow"><TreePine className="mb-3 h-9 w-9 text-holiday-gold" /><h1 className="text-2xl font-bold">{id ? 'Edit Holiday Lights' : 'Post Holiday Lights'}</h1><p className="mt-2 text-sm opacity-80">Help neighbors discover your festive display. Free to post, separate from Halloween.</p></header>
+    <form className="space-y-6 rounded-2xl border bg-card p-5 text-card-foreground" onSubmit={e => { e.preventDefault(); save.mutate(); }}>
+      <HolidayLightsFields form={form} setForm={setForm} />
+      <HolidayLightsLocation form={form} setForm={setForm} />
+      {save.isError && <p role="alert" className="text-sm text-destructive">{save.error.message}</p>}
+      <p className="text-xs text-muted-foreground">By posting, you confirm you own this display or have permission to list it.</p>
+      <Button type="submit" className="w-full" disabled={save.isPending}>{save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{save.isPending ? 'Saving…' : id ? 'Save display' : 'Publish Holiday Lights'}</Button>
+    </form>
+  </div>;
+}
