@@ -65,7 +65,7 @@ import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import SpecialtyMarqueeMarkers from "@/components/map/SpecialtyMarqueeMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
-import { isHalloweenSpot, isHalloweenSpotVisible, hasHalloweenCandy } from "@/lib/halloweenSpots";
+import { isHalloweenSpot, isHalloweenSpotVisible, hasHalloweenCandy, isHalloweenSeasonActive } from "@/lib/halloweenSpots";
 import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize, getHalloweenCollisionSizes, getHalloweenSpotMapOpacity } from "@/lib/halloweenMapIcons";
 import { getHolidayYardSaleOpacity, isYardSaleHolidayFaded } from "@/lib/holidayMapPriority";
 import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
@@ -559,6 +559,7 @@ export default function HomePage() {
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
   const [scheduleNow, setScheduleNow] = useState(() => new Date());
+  const halloweenSeasonActive = isHalloweenSeasonActive(scheduleNow);
   const markerRefsMap = useRef({});
   const hasCenteredOnUser = useRef(!!requestedVendorPinId);
   const userHasMovedMap = useRef(false);
@@ -1842,11 +1843,13 @@ export default function HomePage() {
             zoomControl={false}>
             
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => {mapRef.current = map;}} />
-              <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} />
-              <HalloweenMapFilterPill
-                enabled={quickMapFilters.halloween}
-                onToggle={(halloween) => setQuickMapFilters((current) => ({ ...current, halloween }))}
-              />
+              <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} showHalloween={halloweenSeasonActive} />
+              {halloweenSeasonActive && (
+                <HalloweenMapFilterPill
+                  enabled={quickMapFilters.halloween}
+                  onToggle={(halloween) => setQuickMapFilters((current) => ({ ...current, halloween }))}
+                />
+              )}
               <MapHoldZoom />
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
