@@ -334,6 +334,25 @@ button:focus-visible {
     background: linear-gradient(145deg, #f28c28 0%, #d9651f 58%, #4b255f 100%);
   }
 
+  .yardit-mobile-nav-christmas-post,
+  .yardit-mobile-nav-christmas-post:hover {
+    position: relative;
+    overflow: visible;
+    color: hsl(var(--holiday-snow));
+    border-color: hsl(var(--holiday-gold));
+    background: hsl(var(--holiday-night));
+    box-shadow: 0 5px 14px hsl(var(--holiday-night) / 0.28);
+  }
+
+  .yardit-mobile-nav-christmas-post::after {
+    content: "🎄";
+    position: absolute;
+    top: -0.55rem;
+    right: -0.35rem;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
   .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: center;

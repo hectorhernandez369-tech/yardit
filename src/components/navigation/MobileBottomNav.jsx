@@ -9,12 +9,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import { isHolidayLightsSeason } from "@/lib/holidayLights";
 
 export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccount, hasAdminProfile, showVendorHomeButton, navigateToLogin, onPostSale, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isMapActive = location.pathname === createPageUrl("Home") || location.pathname === "/";
   const isVendorDashboardActive = location.pathname === "/VendorDashboard";
+  const isChristmasSeason = isHolidayLightsSeason();
   const handleMapClick = () => {
     window.dispatchEvent(new CustomEvent("yardit:show-map-view"));
     navigate(createPageUrl("Home"));
@@ -61,7 +63,7 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
         <span>Alerts</span>
       </div>
 
-      <button onClick={onPostSale} className="yardit-mobile-nav-item yardit-mobile-nav-primary yardit-mobile-nav-halloween-post">
+      <button onClick={onPostSale} className={`yardit-mobile-nav-item yardit-mobile-nav-primary ${isChristmasSeason ? "yardit-mobile-nav-christmas-post" : "yardit-mobile-nav-halloween-post"}`}>
         <Plus className="w-5 h-5" />
         <span>Post</span>
       </button>

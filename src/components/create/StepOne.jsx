@@ -11,6 +11,8 @@ import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 import { RESIDENTIAL_CATEGORY_GROUPS } from "@/lib/residentialCategories";
 import { HALLOWEEN_ICON_ASSETS } from "@/lib/halloweenMapIcons";
+import { isHolidayLightsSeason } from "@/lib/holidayLights";
+import ChristmasListingChoice from "@/components/create/ChristmasListingChoice";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
 const LOCKED_LISTING_TYPES = [];
@@ -99,6 +101,7 @@ export default function StepOne({ formData, setFormData }) {
   const listingType = formData?.listingType || "yard_sale";
   const isNeighborhood = listingType === "neighborhood_sale";
   const isHalloween = listingType === "halloween_spot";
+  const showChristmasChoice = isHolidayLightsSeason() && !formData.assisted_post && !isHalloween;
   const descriptionLimit = getResidentialDescriptionLimit(listingType);
   const [expandedLocked, setExpandedLocked] = useState(null);
 
@@ -135,10 +138,10 @@ export default function StepOne({ formData, setFormData }) {
   return (
     <div className="space-y-8">
 
-      <button type="button" onClick={() => navigate('/CreateHolidayLights')} className="flex w-full items-center gap-3 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow">
+      {!showChristmasChoice && <button type="button" onClick={() => navigate('/CreateHolidayLights')} className="flex w-full items-center gap-3 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow">
         <Sparkles className="h-6 w-6 shrink-0 text-holiday-gold" />
         <span><strong className="block text-sm">Holiday Lights</strong><span className="text-xs opacity-80">Share your festive display, viewing dates, and nightly hours</span></span>
-      </button>
+      </button>}
       {/* Listing type selector */}
       <div>
         <Label className="text-sm font-semibold text-slate-900 mb-3 block">What are you listing?</Label>
@@ -148,6 +151,7 @@ export default function StepOne({ formData, setFormData }) {
           className="space-y-2.5"
         >
           {LISTING_TYPES.map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor }) => {
+            if (value === "halloween_spot" && showChristmasChoice) return <ChristmasListingChoice key="holiday_lights" />;
             const isLocked = LOCKED_LISTING_TYPES.includes(value);
             const isSelected = formData.listingType === value && !isLocked;
             const isHalloweenOption = value === "halloween_spot";
