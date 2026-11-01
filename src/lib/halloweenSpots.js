@@ -26,6 +26,12 @@ function localYmd(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+export function isHalloweenSeasonActive(now = new Date()) {
+  const today = localYmd(now);
+  const year = String(now.getFullYear());
+  return today >= `${year}-09-01` && today < `${year}-11-01`;
+}
+
 export function getHalloweenSpotType(listing) {
   const candidate = listing?.halloween_spot_type || listing?.halloween_icon_key || listing?.icon_key || "halloween_decorations";
   return HALLOWEEN_SPOT_TYPE_LABELS[candidate] ? candidate : "halloween_decorations";
@@ -43,6 +49,7 @@ export function isHalloweenTeaser(listing, now = new Date()) {
 
 export function isHalloweenSpotVisible(listing, now = new Date()) {
   if (!isHalloweenSpot(listing)) return false;
+  if (!isHalloweenSeasonActive(now)) return false;
   if (listing?.status && listing.status !== "active") return false;
   if (isHalloweenTeaser(listing, now)) return true;
 
