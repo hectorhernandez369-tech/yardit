@@ -39,7 +39,7 @@ const FILTERS = [
   },
 ];
 
-export default function QuickMapFilters({ value, onChange }) {
+export default function QuickMapFilters({ value, onChange, showHalloween = true }) {
   const [collapsed, setCollapsed] = React.useState(true);
   const [position, setPosition] = React.useState(() => ({
     right: 16,
@@ -71,7 +71,8 @@ export default function QuickMapFilters({ value, onChange }) {
 
   const stopDrag = () => { dragRef.current = null; };
 
-  const activeCount = FILTERS.filter(f => value[f.key] !== false).length;
+  const visibleFilters = showHalloween ? FILTERS : FILTERS.filter((filter) => filter.key !== "halloween");
+  const activeCount = visibleFilters.filter(f => value[f.key] !== false).length;
 
   return (
     <div
@@ -91,9 +92,9 @@ export default function QuickMapFilters({ value, onChange }) {
           {!collapsed && (
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Filters</span>
-              {activeCount < FILTERS.length && (
+              {activeCount < visibleFilters.length && (
                 <span className="text-[9px] bg-[#006168] text-white rounded-full px-1.5 py-0.5 font-bold leading-none">
-                  {activeCount}/{FILTERS.length}
+                  {activeCount}/{visibleFilters.length}
                 </span>
               )}
             </div>
@@ -135,7 +136,7 @@ export default function QuickMapFilters({ value, onChange }) {
         {/* Filter buttons */}
         {!collapsed && (
           <div className="px-2 pb-2.5 space-y-1">
-            {FILTERS.map(({ key, label, icon: Icon, activeColor, activeDot }) => {
+            {visibleFilters.map(({ key, label, icon: Icon, activeColor, activeDot }) => {
               const isOn = value[key] !== false;
               return (
                 <button
@@ -165,7 +166,7 @@ export default function QuickMapFilters({ value, onChange }) {
         {/* Collapsed state — show active dots */}
         {collapsed && (
           <div className="pb-2.5 px-2 flex flex-col items-center gap-1">
-            {FILTERS.map(({ key, activeDot }) => {
+            {visibleFilters.map(({ key, activeDot }) => {
               const isOn = value[key] !== false;
               return (
                 <div
