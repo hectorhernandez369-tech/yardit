@@ -13,6 +13,7 @@ import { RESIDENTIAL_CATEGORY_GROUPS } from "@/lib/residentialCategories";
 import { HALLOWEEN_ICON_ASSETS } from "@/lib/halloweenMapIcons";
 import { isHolidayLightsSeason } from "@/lib/holidayLights";
 import ChristmasListingChoice from "@/components/create/ChristmasListingChoice";
+import { useAuth } from "@/lib/AuthContext";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
 const LOCKED_LISTING_TYPES = [];
@@ -98,10 +99,12 @@ const COLLECTIBLE_TYPES = [
 
 export default function StepOne({ formData, setFormData }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const christmasPreviewAllowed = user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com';
   const listingType = formData?.listingType || "yard_sale";
   const isNeighborhood = listingType === "neighborhood_sale";
   const isHalloween = listingType === "halloween_spot";
-  const showChristmasChoice = isHolidayLightsSeason() && !formData.assisted_post && !isHalloween;
+  const showChristmasChoice = christmasPreviewAllowed && isHolidayLightsSeason() && !formData.assisted_post && !isHalloween;
   const descriptionLimit = getResidentialDescriptionLimit(listingType);
   const [expandedLocked, setExpandedLocked] = useState(null);
 
@@ -138,7 +141,7 @@ export default function StepOne({ formData, setFormData }) {
   return (
     <div className="space-y-8">
 
-      {!showChristmasChoice && <button type="button" onClick={() => navigate('/CreateHolidayLights')} className="flex w-full items-center gap-3 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow">
+      {christmasPreviewAllowed && !showChristmasChoice && <button type="button" onClick={() => navigate('/CreateHolidayLights')} className="flex w-full items-center gap-3 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow">
         <Sparkles className="h-6 w-6 shrink-0 text-holiday-gold" />
         <span><strong className="block text-sm">Holiday Lights</strong><span className="text-xs opacity-80">Share your festive display, viewing dates, and nightly hours</span></span>
       </button>}
