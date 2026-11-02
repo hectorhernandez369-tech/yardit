@@ -906,7 +906,7 @@ export default function MyListingsPage() {
           </div>
         </div>
 
-        <MyHolidayLights user={user} />
+        {user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com' && <MyHolidayLights user={user} />}
         <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex gap-2 flex-wrap rounded-xl border bg-white/70 p-2 shadow-sm max-w-4xl">
             <Button variant={tab === "active" ? "default" : "outline"} onClick={() => setTab("active")}>Active ({activeListings.length})</Button>
