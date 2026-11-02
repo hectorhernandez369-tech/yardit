@@ -16,7 +16,7 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
   const navigate = useNavigate();
   const isMapActive = location.pathname === createPageUrl("Home") || location.pathname === "/";
   const isVendorDashboardActive = location.pathname === "/VendorDashboard";
-  const isChristmasSeason = isHolidayLightsSeason();
+  const isChristmasSeason = user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com' && isHolidayLightsSeason();
   const handleMapClick = () => {
     window.dispatchEvent(new CustomEvent("yardit:show-map-view"));
     navigate(createPageUrl("Home"));
