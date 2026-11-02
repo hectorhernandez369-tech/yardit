@@ -365,17 +365,35 @@
     "read": {
       "$and": [
         {
-          "$or": [
+          "$and": [
             {
-              "data.is_demo_listing": {
-                "$ne": true
-              }
+              "$or": [
+                {
+                  "data.is_demo_listing": {
+                    "$ne": true
+                  }
+                },
+                {
+                  "data.owner_user_id": "{{user.id}}"
+                },
+                {
+                  "created_by_id": "{{user.id}}"
+                }
+              ]
             },
             {
-              "data.owner_user_id": "{{user.id}}"
-            },
-            {
-              "created_by_id": "{{user.id}}"
+              "$or": [
+                {
+                  "data.type": {
+                    "$ne": "holiday_lights"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "email": "hectorhernandez369@gmail.com"
+                  }
+                }
+              ]
             }
           ]
         },
@@ -387,9 +405,7 @@
               }
             },
             {
-              "user_condition": {
-                "email": "hectorhernandez369@gmail.com"
-              }
+              "data.owner_user_id": "{{user.id}}"
             }
           ]
         }
