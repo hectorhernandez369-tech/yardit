@@ -1845,8 +1845,8 @@ export default function HomePage() {
             zoomControl={false}>
             
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => {mapRef.current = map;}} />
-              <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} showHalloween={halloweenSeasonActive} showHolidayLights={isHolidayLightsSeason(scheduleNow, { lat: mapCenter[0], lng: mapCenter[1] })} />
-              <HolidayLightsMapLayer enabled={quickMapFilters.holidayLights !== false} now={scheduleNow} />
+              <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} showHalloween={halloweenSeasonActive} showHolidayLights={user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com' && isHolidayLightsSeason(scheduleNow, { lat: mapCenter[0], lng: mapCenter[1] })} />
+              {user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com' && <HolidayLightsMapLayer enabled={quickMapFilters.holidayLights !== false} now={scheduleNow} />}
               {halloweenSeasonActive && (
                 <HalloweenMapFilterPill
                   enabled={quickMapFilters.halloween}
