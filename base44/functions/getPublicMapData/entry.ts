@@ -165,6 +165,13 @@ export default async function(req) {
     const halloweenLocationId = typeof body?.halloweenLocationId === 'string' ? body.halloweenLocationId : '';
 
     // Holiday Lights are separate Location records; Halloween and assisted QR flows stay unchanged.
+    // Private Christmas preview: reject map and direct-detail requests for all other users.
+    const christmasPreviewAllowed = String(currentUser?.email || '').trim().toLowerCase() === 'hectorhernandez369@gmail.com';
+    if ((body.holidayLights === true || Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) && !christmasPreviewAllowed) {
+      return Object.prototype.hasOwnProperty.call(body, 'holidayLightId')
+        ? Response.json({ location: null })
+        : Response.json({ items: [], next_cursor: null, has_more: false });
+    }
     if (body.holidayLights === true || Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) {
       const fields = ['id', 'owner_user_id', 'type', 'title', 'display_title', 'description', 'address', 'street_address', 'city', 'state', 'zip_code', 'latitude', 'longitude', 'start_date_time', 'end_date_time', 'viewing_start_time', 'viewing_end_time', 'display_active', 'status', 'photos'];
       const isPublicLight = (spot) => {
