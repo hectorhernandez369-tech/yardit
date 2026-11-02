@@ -28,6 +28,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "./components/guest/GuestAuthModal";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
 import MobileBottomNav from "@/components/navigation/MobileBottomNav";
+import ChristmasComingSoonModal from "@/components/ChristmasComingSoonModal";
 import UserAccountMenuContent from "@/components/navigation/UserAccountMenuContent";
 import AccountSetupModal from "./components/profile/AccountSetupModal";
 import VerifiedAddressRequiredModal from "./components/profile/VerifiedAddressRequiredModal";
@@ -159,6 +160,7 @@ function LayoutContent({ children, user, setUser }) {
   return (
     <div className="yardit-app-shell min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
+      {(location.pathname === "/" || location.pathname === createPageUrl("Home")) && <ChristmasComingSoonModal />}
       <header className="yardit-top-nav sticky top-0 z-[3000] border-b-2 border-[#2C4F4E] bg-[#5DADA5] shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-2">
           <div className="yardit-nav-row flex items-center justify-between">
