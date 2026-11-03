@@ -1,6 +1,7 @@
 import React from "react";
 import { TreePine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import HolidayHeaderDecorations from '@/components/holiday-lights/HolidayHeaderDecorations';
 
 export default function ChristmasListingChoice({ disabled = false }) {
   const navigate = useNavigate();
@@ -9,15 +10,14 @@ export default function ChristmasListingChoice({ disabled = false }) {
       type="button"
       disabled={disabled}
       onClick={() => navigate("/CreateHolidayLights")}
-      className={disabled
-        ? "flex w-full cursor-not-allowed items-start gap-4 rounded-xl border border-border bg-muted p-4 text-left text-muted-foreground opacity-60"
-        : "flex w-full items-start gap-4 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow hover:border-holiday-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-holiday-gold"}
+      className={`relative isolate flex w-full items-start gap-4 overflow-hidden rounded-2xl border-2 border-holiday-gold bg-gradient-to-br from-christmas-red via-christmas-red to-christmas-green p-6 pt-12 text-left text-holiday-snow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-holiday-gold ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-holiday-snow'}`}
     >
-      <TreePine className={disabled ? "h-6 w-6 shrink-0 text-muted-foreground" : "h-6 w-6 shrink-0 text-holiday-gold"} />
-      <span>
+      <HolidayHeaderDecorations />
+      <span className="relative z-10 inline-flex shrink-0 rounded-xl border border-holiday-gold bg-christmas-green p-2"><TreePine className="h-9 w-9 text-holiday-gold" /></span>
+      <span className="relative z-10">
         <strong className="block text-sm">Christmas / Holiday Lights</strong>
         {disabled && <span className="block text-xs font-semibold">Coming Soon</span>}
-        <span className="mt-0.5 block text-xs opacity-80">Share your festive display, viewing dates, and nightly hours</span>
+        <span className="mt-0.5 block text-xs">Share your festive display, viewing dates, and nightly hours</span>
       </span>
     </button>
   );
