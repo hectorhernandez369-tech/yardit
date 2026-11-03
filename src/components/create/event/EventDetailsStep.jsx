@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EVENT_CATEGORIES, getDefaultEventIconForCategory, getEventIconEmoji } from "@/lib/eventListingConfig";
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
+import ChristmasListingChoice from "@/components/create/ChristmasListingChoice";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function EventDetailsStep({
   formData, setFormData, isAssistedPost = false,
@@ -15,6 +17,8 @@ export default function EventDetailsStep({
   specialtyHeadline, setSpecialtyHeadline,
 }) {
   const descriptionLimit = getResidentialDescriptionLimit("event");
+  const { user } = useAuth();
+  const showHolidayLightsChoice = user?.email?.toLowerCase() === "hectorhernandez369@gmail.com" && !isAssistedPost && !formData.assisted_post;
 
   const setListingType = (value) => {
     setFormData((prev) => ({
@@ -93,6 +97,7 @@ export default function EventDetailsStep({
             );
           })}
         </RadioGroup>
+        {showHolidayLightsChoice && <div className="mt-2.5"><ChristmasListingChoice /></div>}
       </div>
 
       {/* Event Name */}
