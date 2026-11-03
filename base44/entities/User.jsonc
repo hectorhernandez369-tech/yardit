@@ -2,6 +2,11 @@
   "name": "User",
   "type": "object",
   "properties": {
+    "christmas_announcement_seen": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this user has already been shown the Christmas Displays Coming Soon announcement"
+    },
     "first_name": {
       "type": "string",
       "description": "Optional first name"
@@ -58,7 +63,7 @@
     "community_guidelines_accepted_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the user accepted the Community Guidelines"
+      "description": "When the user acknowledged the Community Guidelines"
     },
     "community_guidelines_version": {
       "type": "string",

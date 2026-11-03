@@ -1,19 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
+import useChristmasAnnouncement from "@/hooks/useChristmasAnnouncement";
 import { TreePine } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-const KEY = "yardit_christmas_coming_soon_2026_v1";
 export default function ChristmasComingSoonModal() {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    try { setOpen(localStorage.getItem(KEY) !== "seen"); }
-    catch { setOpen(true); }
-  }, []);
-  const dismiss = () => {
-    try { localStorage.setItem(KEY, "seen"); } catch {}
-    setOpen(false);
-  };
+  const { open, dismiss } = useChristmasAnnouncement();
   return <Dialog open={open} onOpenChange={value => { if (!value) dismiss(); }}>
     <DialogContent className="max-w-sm rounded-2xl border-amber-300 bg-slate-950 text-white">
       <DialogHeader>
