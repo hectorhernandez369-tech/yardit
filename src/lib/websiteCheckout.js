@@ -39,8 +39,7 @@ export async function openCheckout(url) {
   if (parsed.origin !== "https://yardit.app" || parsed.pathname !== "/IosWebsiteCheckout") throw new Error("Invalid website checkout link.");
   const id = localStorage.getItem(IOS_PENDING_KEY);
   if (!id) throw new Error("Checkout could not be saved. Please try again.");
-  const context = Object.fromEntries(CONTEXT_KEYS.map(key => [key, localStorage.getItem(key)]).filter(([,value]) => value));
-  await base44.functions.invoke("iosWebsiteCheckout", { action: "save_context", handoff_id: id, context });
+  await saveCheckoutContext(id);
   // Never fall back to same-WebView navigation or window.open: neither guarantees an external browser.
   try {
     const opened = await adapter.openExternalBrowser(url);
@@ -49,6 +48,10 @@ export async function openCheckout(url) {
     // Includes a retry of the SAME session if native opening fails.
     window.location.assign("/IosCheckoutPending");
   }
+}
+export async function saveCheckoutContext(id) {
+  const context = Object.fromEntries(CONTEXT_KEYS.map(key => [key, localStorage.getItem(key)]).filter(([,value]) => value));
+  await base44.functions.invoke("iosWebsiteCheckout", { action: "save_context", handoff_id: id, context });
 }
 export function restoreCheckoutContext(context) {
   for (const key of CONTEXT_KEYS) {
