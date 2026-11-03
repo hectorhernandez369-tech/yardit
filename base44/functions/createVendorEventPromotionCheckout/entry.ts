@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     }
 
     const account = (await base44Admin.entities.VendorAccount.filter({ id: vendor_account_id }))?.[0];
-    if (!account || (account.owner_user_id !== user.id && account.owner_email !== user.email)) {
+    if (!account || (account.owner_user_id !== user.id && !(account.owner_email && user.email && account.owner_email === user.email))) {
       return Response.json({ error: 'Only the vendor account owner can purchase this promotion.' }, { status: 403 });
     }
     const savedDays = Number(vendorEvent.promotion_upgrade_days);

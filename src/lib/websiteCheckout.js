@@ -3,16 +3,19 @@ import { checkoutPlatform, requireIosCheckoutAdapter } from "./checkoutPlatform"
 export const IOS_PENDING_KEY = "yardit_ios_checkout_pending_v1";
 export const CONTEXT_KEYS = ["yardit_paid_listing_checkout_v1", "yardit_neighborhood_setup_v1", "yardit_listing_upgrade_checkout_v1"];
 
+export function ensureCheckoutCanStart() {
+  if (checkoutPlatform().startsWith("ios") && localStorage.getItem(IOS_PENDING_KEY)) {
+    window.location.assign("/IosCheckoutPending");
+    throw new Error("Please finish or cancel your previous checkout before starting another payment.");
+  }
+}
 let creatingCheckout = false;
 export async function invokeCheckout(name, payload = {}) {
   if (payload.action && payload.action !== "create") return base44.functions.invoke(name, payload);
   const platform = checkoutPlatform();
   if (!platform.startsWith("ios")) return base44.functions.invoke(name, payload);
   requireIosCheckoutAdapter();
-  if (localStorage.getItem(IOS_PENDING_KEY)) {
-    window.location.assign("/IosCheckoutPending");
-    throw new Error("Please finish or cancel your previous checkout before starting another payment.");
-  }
+  ensureCheckoutCanStart();
   if (creatingCheckout) throw new Error("Checkout is already starting. Please wait.");
   creatingCheckout = true;
   try {
@@ -43,7 +46,7 @@ export async function openCheckout(url) {
   // Never fall back to same-WebView navigation or window.open: neither guarantees an external browser.
   try {
     const opened = await adapter.openExternalBrowser(url);
-    if (opened === false) throw new Error("Browser did not open.");
+    if (opened !== true) throw new Error("Browser did not open.");
   } finally {
     // Includes a retry of the SAME session if native opening fails.
     window.location.assign("/IosCheckoutPending");

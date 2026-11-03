@@ -1,4 +1,4 @@
-import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
+import { ensureCheckoutCanStart, invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import useFounderMembership from '@/components/founder/useFounderMembership';
@@ -104,6 +104,7 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
         non_refund_acknowledged_by_user_id: user?.id || "",
         non_refund_disclosure_text: nonRefundAcknowledgement?.disclosure_text || "",
       };
+      ensureCheckoutCanStart();
       localStorage.setItem(UPGRADE_CHECKOUT_KEY, JSON.stringify({
         listingId: listing.id,
         targetTier: selectedTier,
@@ -111,7 +112,9 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
         checkoutRequest,
       }));
 
-      const response = await invokeCheckout("createListingUpgradeCheckout", checkoutRequest);
+      const response = founderVip
+        ? await base44.functions.invoke("createListingUpgradeCheckout", checkoutRequest)
+        : await invokeCheckout("createListingUpgradeCheckout", checkoutRequest);
       if (response?.data?.founder_vip) {
         localStorage.removeItem(UPGRADE_CHECKOUT_KEY);
         await queryClient.invalidateQueries();

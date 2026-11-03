@@ -1,4 +1,4 @@
-import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
+import { ensureCheckoutCanStart, invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import useFounderMembership from '@/components/founder/useFounderMembership';
@@ -577,6 +577,7 @@ export default function CreateListingPage() {
       setPaymentError("");
       setPaymentRetryReady(false);
       setIsStartingPayment(true);
+      ensureCheckoutCanStart();
       const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
       const earlyVisibilityFields = buildPromoEarlyVisibilityFields(promoResult);
       const checkoutFormData = normalizeResidentialEventSingleDay({
@@ -679,6 +680,7 @@ export default function CreateListingPage() {
       setPaymentError("");
       setPaymentRetryReady(false);
       setIsStartingPayment(true);
+      ensureCheckoutCanStart();
       const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
       localStorage.setItem(NEIGHBORHOOD_SETUP_KEY, JSON.stringify({ formData: { ...sourceFormData, ...nonRefundFields } }));
       const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
@@ -1458,7 +1460,8 @@ export default function CreateListingPage() {
       try {
         setPaymentError("");
         setIsStartingPayment(true);
-        const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
+        ensureCheckoutCanStart();
+      const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
         const earlyVisibilityFields = buildPromoEarlyVisibilityFields(promoResult);
         const listingPayload = { ...buildFreePromoListingPayload({ ...formData, ...earlyVisibilityFields }), ...nonRefundFields };
         const createdListing = await createListingDirectlyWithPromo(listingPayload);

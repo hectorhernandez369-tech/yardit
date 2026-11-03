@@ -1,4 +1,4 @@
-import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
+import { ensureCheckoutCanStart, invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import useFounderMembership from '@/components/founder/useFounderMembership';
@@ -140,8 +140,11 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
         ...baseRequest,
         action: "create",
       };
+      ensureCheckoutCanStart();
       localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ listingId: listing.id, targetTier: listing.event_tier || listing.tier || "event", purchaseType: "event_add_on", checkoutRequest }));
-      const response = await invokeCheckout("createListingUpgradeCheckout", checkoutRequest);
+      const response = founderVip
+        ? await base44.functions.invoke("createListingUpgradeCheckout", checkoutRequest)
+        : await invokeCheckout("createListingUpgradeCheckout", checkoutRequest);
       if (response?.data?.founder_vip) {
         localStorage.removeItem(CHECKOUT_KEY);
         await queryClient.invalidateQueries();

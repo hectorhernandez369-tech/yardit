@@ -43,7 +43,7 @@ export default function IosCheckoutPending() {
       const adapter = requireIosCheckoutAdapter();
       const { data } = await base44.functions.invoke("iosWebsiteCheckout", { action: "reopen", handoff_id: id });
       const opened = await adapter.openExternalBrowser(data.checkout_url);
-      if (opened === false) throw new Error("The browser did not open. Please try again.");
+      if (opened !== true) throw new Error("The browser did not open. Please try again.");
     } catch (e) { setMessage(e?.response?.data?.error || e.message); }
     finally { running.current = false; setBusy(false); }
   };

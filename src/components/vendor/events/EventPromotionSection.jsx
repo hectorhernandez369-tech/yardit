@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { CalendarClock, Info, AlertTriangle, ArrowUpCircle, CreditCard, Loader2 } from "lucide-react";
 import { getPromotionRule, getPromotionDates, calcPromotionUpgrade } from "@/lib/vendorEventPromotion";
 import { getVendorTierConfig } from "@/lib/vendorTiers";
-import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
 /**

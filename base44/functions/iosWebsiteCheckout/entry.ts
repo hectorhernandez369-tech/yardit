@@ -80,6 +80,10 @@ Deno.serve(async (req) => {
     if (!row?.session_id) return response({ error: "Checkout not found for this account." }, 404);
     if (body.action === "save_context") {
       const key = contextKey(row.checkout_function);
+      // Once captured, the snapshot is immutable. A later checkout attempt cannot
+      // replace an earlier paid listing with different locally stored details.
+      const saved = JSON.parse(row.context_json || "{}");
+      if (!key || typeof saved[key] === "string") return response({ ok: true });
       const context = key && typeof body.context?.[key] === "string" ? { [key]: body.context[key] } : {};
       if (key && !context[key]) return response({ error: "Your saved checkout details are missing. Please reopen Yardit on the device where payment started." }, 409);
       const json = JSON.stringify(context);

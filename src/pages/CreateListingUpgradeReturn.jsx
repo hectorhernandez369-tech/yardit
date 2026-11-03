@@ -1,7 +1,7 @@
+import { isIosCheckout } from "@/lib/checkoutPlatform";
 import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -93,9 +93,14 @@ export default function CreateListingUpgradeReturn() {
             navigate(createPageUrl("MyListings"));
             return;
           }
-        } catch {}
+        } catch (error) {
+          if (isIosCheckout()) throw error;
+        }
       }
 
+      if (isIosCheckout() && new URLSearchParams(window.location.search).get("payment") !== "cancel") {
+        throw new Error("Your payment is still being confirmed. Please retry verification before making another payment.");
+      }
       const response = await invokeCheckout("createListingUpgradeCheckout", storedCheckout.checkoutRequest);
       if (response?.data?.founder_vip) {
         localStorage.removeItem(UPGRADE_CHECKOUT_KEY);
