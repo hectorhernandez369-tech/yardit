@@ -7,7 +7,10 @@ export default function IosWebsiteCheckoutReturn() {
   useEffect(() => {
     let active = true;
     base44.functions.invoke("iosWebsiteCheckout", { action: "return_info" })
-      .then(result => { if (active) setReturnUrl(result.data?.app_return_url || ""); })
+      .then(result => {
+        const url = result.data?.app_return_url;
+        if (active && url) { setReturnUrl(url); window.location.assign(url); }
+      })
       .catch(() => {});
     return () => { active = false; };
   }, []);
