@@ -114,4 +114,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return response({ error: error?.message || "Could not confirm checkout. Please do not pay again." }, 400);
   }
-}
+});
