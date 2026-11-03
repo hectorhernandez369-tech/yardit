@@ -48,7 +48,8 @@ export default function useHolidayLightEditor(id) {
     return !!start && start<=form.end && (!end||end>=form.start);
   });
   if(duplicate)throw new Error('A Christmas display is already listed at or near this address for these dates.');
-  return id?base44.entities.Location.update(id,payload):base44.entities.Location.create(payload);
+  if(id){const {status,christmas_featured_badge,...editablePayload}=payload;return base44.entities.Location.update(id,editablePayload);}
+  return base44.entities.Location.create(payload);
  },onSuccess:async spot=>{
   await client.invalidateQueries({queryKey:['holidayLights']});
   navigate('/HolidayLightsDetail?id='+spot.id,{replace:true});
