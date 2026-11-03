@@ -2,7 +2,7 @@ import React from 'react';
 import { TreePine, Gift, Music2, Sparkles, Baby, Footprints, Camera, Radio, UserRound, Snowflake } from 'lucide-react';
 
 export const CHRISTMAS_SPOT_TYPES = [
-  {value:'christmas_decorations', label:'Christmas Decorations', description:'Decorated homes, inflatables, yard ornaments, wreaths, and festive displays.', icon:TreePine},
+  {value:'christmas_decorations', label:'Lights, Inflatables & Decorations', description:'For displays with both lights and inflatables, or any mix of holiday decorations, yard ornaments, and wreaths.', icon:TreePine},
   {value:'christmas_lights', label:'Christmas Lights', description:'Homes and yards featuring beautiful holiday lighting.', icon:Sparkles},
   {value:'light_show', label:'Christmas Light Show', description:'Synchronized music, animated lights, or colorful projections.', icon:Music2},
   {value:'christmas_experience', label:'Christmas Experience', description:'Santa visits, interactive displays, walk-throughs, or community holiday attractions.', icon:Gift},

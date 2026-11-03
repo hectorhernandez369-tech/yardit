@@ -15,7 +15,7 @@ export default function HolidayLightsFields({form,setForm}) {
  return <div className="space-y-5">
   <section className="space-y-3 rounded-2xl border border-amber-300/50 bg-emerald-950 p-4 text-white">
    <Label className="font-bold text-amber-200">Christmas Display Type *</Label>
-   <p className="text-xs text-emerald-100/80">Just like Halloween: choose the icon that best describes your display.</p>
+   <p className="text-xs text-emerald-100/80">Have both lights and inflatables? Choose Lights, Inflatables & Decorations. Choose Christmas Lights for a lighting-focused display.</p>
    <Select value={form.christmas_spot_type||'christmas_decorations'} onValueChange={value=>change('christmas_spot_type',value)}>
     <SelectTrigger className="bg-white text-slate-950"><SelectValue placeholder="Choose a Christmas type"/></SelectTrigger>
     <SelectContent>{CHRISTMAS_SPOT_TYPES.map(item=><SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent>
