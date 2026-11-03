@@ -14,7 +14,7 @@ export default function CreateHolidayLights() {
   const id = new URLSearchParams(window.location.search).get('id');
   const { user, form, setForm, record, save } = useHolidayLightEditor(id);
   if (user && user.email?.toLowerCase() !== 'hectorhernandez369@gmail.com') return <div className="mx-auto max-w-lg p-8 text-center"><h1 className="text-2xl font-bold">Christmas Displays Coming Soon</h1><p>Holiday listings are not open yet.</p><Link to="/">Back to map</Link></div>;
-  if (!user) return <div className="mx-auto max-w-lg space-y-4 p-8 text-center"><h1 className="text-2xl font-bold">Post Holiday Lights</h1><p>Log in to add your holiday display.</p><Button onClick={() => base44.auth.redirectToLogin(window.location.href)}>Log In / Sign Up</Button></div>;
+  if (!user) return <div className="mx-auto max-w-lg p-8 text-center"><h1 className="text-2xl font-bold">Christmas Displays Coming Soon</h1><p>Holiday listings aren't available yet.</p><Link to="/">Back to map</Link></div>;
   if (!hasVerifiedPrimaryAddress(user) && user.role !== 'admin') return <div className="mx-auto max-w-lg space-y-4 p-8 text-center"><h1 className="text-2xl font-bold">Verify your address first</h1><p>Complete your primary address verification before posting a display.</p><Button asChild><Link to="/Profile">Complete my profile</Link></Button></div>;
   if (id && record.isPending) return <p className="p-8 text-center">Loading display…</p>;
   if (id && record.isError) return <p role="alert" className="p-8 text-center text-destructive">Could not load this display. <button onClick={() => record.refetch()} className="underline">Retry</button></p>;
