@@ -59,6 +59,7 @@ import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents
 import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
 import QuickMapFilters from "@/components/map/QuickMapFilters";
 import HalloweenMapFilterPill from "@/components/map/HalloweenMapFilterPill";
+import ChristmasMapFilterPill from "@/components/map/ChristmasMapFilterPill";
 import HolidayLightsMapLayer from "@/components/holiday-lights/HolidayLightsMapLayer";
 import { isHolidayLightsSeason } from "@/lib/holidayLights";
 import MapFilterModal from "@/components/map/MapFilterModal";
@@ -1857,6 +1858,7 @@ export default function HomePage() {
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => {mapRef.current = map;}} />
               <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} showHalloween={halloweenSeasonActive} showHolidayLights={user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com' && isHolidayLightsSeason(scheduleNow, { lat: mapCenter[0], lng: mapCenter[1] })} />
               {user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com' && <HolidayLightsMapLayer enabled={quickMapFilters.holidayLights !== false} now={scheduleNow} />}
+              {user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com' && isHolidayLightsSeason(scheduleNow, { lat: mapCenter[0], lng: mapCenter[1] }) && <ChristmasMapFilterPill value={quickMapFilters} onChange={setQuickMapFilters} belowHalloween={halloweenSeasonActive} />}
               {halloweenSeasonActive && (
                 <HalloweenMapFilterPill
                   enabled={quickMapFilters.halloween}

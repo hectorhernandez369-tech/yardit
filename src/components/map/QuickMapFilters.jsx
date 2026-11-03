@@ -49,7 +49,7 @@ export default function QuickMapFilters({ value, onChange, showHalloween = true,
   const dragRef = React.useRef(null);
 
   const toggleFilter = (key, currentValue) => {
-    onChange({ ...value, [key]: !currentValue });
+    onChange({ ...value, [key]: !currentValue, ...(key === "holidayLights" && !currentValue ? { halloween: false } : {}) });
   };
 
   const startDrag = (e) => {

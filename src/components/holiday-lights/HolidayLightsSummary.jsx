@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapPin, CalendarDays, Clock3, Star } from 'lucide-react';
 import FounderBadge from '@/components/founder/FounderBadge';
+import { getListingNumber } from '@/components/listing/listingDisplay';
 import { holidayDate, holidayLightState } from '@/lib/holidayLights';
 import { ChristmasIcon, ChristmasTags, getChristmasType } from './ChristmasDesign';
 
@@ -19,6 +20,7 @@ export default function HolidayLightsSummary({spot,now=new Date(),compact=false}
     <div className="min-w-0 flex-1">
       <span className="rounded-full border border-amber-300/40 bg-red-700/30 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-200">Christmas Display</span>
       <h1 className={'mt-1 font-black leading-tight '+(compact?'text-base':'text-3xl sm:text-4xl')}>{title}</h1>
+      <p className="mt-1 break-all text-xs font-medium text-holiday-snow/75">Listing #{getListingNumber({ ...spot, zip: spot.zip_code })}</p>
       <p className="mt-1 text-xs font-bold text-amber-200">{type.label}</p>
     </div>
    </div>
