@@ -97,30 +97,30 @@ export default function VendorBillingTab({ account, onRefresh }) {
       return;
     }
     try {
-    const response = await invokeCheckout("createVendorSubscriptionCheckout", {
-      vendor_account_id: account.id,
-      target_tier: tierKey,
-      return_url: `${window.location.origin}/VendorDashboard?tab=tier`,
-    });
-    const { checkoutUrl, sessionId } = response?.data || {};
-    if (!checkoutUrl) throw new Error("Vendor subscription checkout could not start.");
-
-    // Record promo redemption if a promo was applied
-    const { appliedPromo, discountAmount } = promoData;
-    if (appliedPromo?.id) {
-      await base44.functions.invoke("recordVendorPromoRedemption", {
-        promo_code_id: appliedPromo.id,
-        promo_code: appliedPromo.code,
+      const response = await invokeCheckout("createVendorSubscriptionCheckout", {
         vendor_account_id: account.id,
-        tier_selected: tierKey,
-        discount_type: appliedPromo.discount_type,
-        discount_value: appliedPromo.discount_value,
-        discount_applied_dollars: discountAmount || 0,
-        checkout_session_id: sessionId || null,
-      }).catch(() => {});
-    }
+        target_tier: tierKey,
+        return_url: `${window.location.origin}/VendorDashboard?tab=tier`,
+      });
+      const { checkoutUrl, sessionId } = response?.data || {};
+      if (!checkoutUrl) throw new Error("Vendor subscription checkout could not start.");
 
-    await openCheckout(checkoutUrl);
+      // Record promo redemption if a promo was applied
+      const { appliedPromo, discountAmount } = promoData;
+      if (appliedPromo?.id) {
+        await base44.functions.invoke("recordVendorPromoRedemption", {
+          promo_code_id: appliedPromo.id,
+          promo_code: appliedPromo.code,
+          vendor_account_id: account.id,
+          tier_selected: tierKey,
+          discount_type: appliedPromo.discount_type,
+          discount_value: appliedPromo.discount_value,
+          discount_applied_dollars: discountAmount || 0,
+          checkout_session_id: sessionId || null,
+        }).catch(() => {});
+      }
+
+      await openCheckout(checkoutUrl);
     } catch (error) {
       toast.error(error?.response?.data?.error || error?.message || "Could not open checkout.");
       setChangingTier("");

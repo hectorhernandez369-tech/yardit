@@ -57,6 +57,7 @@ export async function saveCheckoutContext(id) {
   await base44.functions.invoke("iosWebsiteCheckout", { action: "save_context", handoff_id: id, context });
 }
 export function restoreCheckoutContext(context) {
+  if (!CONTEXT_KEYS.some(key => typeof context?.[key] === "string")) return;
   for (const key of CONTEXT_KEYS) {
     if (typeof context?.[key] === "string") localStorage.setItem(key, context[key]);
     else localStorage.removeItem(key);

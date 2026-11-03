@@ -132,7 +132,7 @@ export default function CreateListingUpgradeReturn() {
             <div className="grid gap-2">
               {storedCheckout?.checkoutRequest && (
                 <Button onClick={retryPayment} disabled={isRetrying} className="bg-amber-600 hover:bg-amber-700 text-white">
-                  {isRetrying ? "Opening Stripe..." : "Retry Payment"}
+                  {isRetrying ? "Checking checkout..." : isIosCheckout() && new URLSearchParams(window.location.search).get("payment") !== "cancel" ? "Retry verification" : "Retry Payment"}
                 </Button>
               )}
               <Button variant="outline" onClick={() => navigate(createPageUrl("MyListings"))}>

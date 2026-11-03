@@ -132,3 +132,11 @@ test("existing iOS checkout blocks another charge, while verification stays unch
   await c.api.invokeCheckout("residentialStripeCheckout",{action:"verify",session_id:"cs_1"});
   assert.equal(c.calls.length,2);assert.equal(c.calls[1][0],"residentialStripeCheckout");
 });
+
+test("a later local draft cannot overwrite the original checkout snapshot",async()=>{
+  const original = {yardit_paid_listing_checkout_v1:'{"formData":{"title":"Original"}}'};
+  const s=server({row:{checkout_function:"residentialStripeCheckout",context_json:JSON.stringify(original)}});
+  await s.request({action:"save_context",handoff_id:"h1",context:{yardit_paid_listing_checkout_v1:'{"formData":{"title":"Different"}}'}});
+  assert.deepEqual(JSON.parse(s.record.context_json),original);
+  assert.ok(!s.calls.some(c=>c[0]==="update"));
+});

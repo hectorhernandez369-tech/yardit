@@ -225,20 +225,20 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
                           }
                           setCheckingOut(true);
                           try {
-                          const res = await invokeCheckout("createVendorEventPromotionCheckout", {
-                            vendor_event_id: savedEventId,
-                            vendor_account_id: vendorAccountId,
-                            additional_days: additionalDays,
-                            price_per_day: 500, // cents per extra day ($5)
-                          });
-                          const { checkout_url, error } = res?.data || {};
-                          if (error || !checkout_url) {
-                            toast.error(error || "Could not start checkout. Please try again.");
-                            setCheckingOut(false);
-                            return;
-                          }
-                          // Redirect to Stripe — upgrade remains locked until webhook confirms
-                          await openCheckout(checkout_url);
+                            const res = await invokeCheckout("createVendorEventPromotionCheckout", {
+                              vendor_event_id: savedEventId,
+                              vendor_account_id: vendorAccountId,
+                              additional_days: additionalDays,
+                              price_per_day: 500, // cents per extra day ($5)
+                            });
+                            const { checkout_url, error } = res?.data || {};
+                            if (error || !checkout_url) {
+                              toast.error(error || "Could not start checkout. Please try again.");
+                              setCheckingOut(false);
+                              return;
+                            }
+                            // Redirect to Stripe — upgrade remains locked until webhook confirms
+                            await openCheckout(checkout_url);
                           } catch (error) {
                             toast.error(error?.response?.data?.error || error?.message || "Could not open checkout.");
                             setCheckingOut(false);

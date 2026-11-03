@@ -1460,8 +1460,7 @@ export default function CreateListingPage() {
       try {
         setPaymentError("");
         setIsStartingPayment(true);
-        ensureCheckoutCanStart();
-      const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
+        const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
         const earlyVisibilityFields = buildPromoEarlyVisibilityFields(promoResult);
         const listingPayload = { ...buildFreePromoListingPayload({ ...formData, ...earlyVisibilityFields }), ...nonRefundFields };
         const createdListing = await createListingDirectlyWithPromo(listingPayload);
