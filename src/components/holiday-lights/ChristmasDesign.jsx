@@ -18,13 +18,14 @@ export const CHRISTMAS_FEATURES = [
 export function getChristmasType(value) {
  return CHRISTMAS_SPOT_TYPES.find(item=>item.value===value)||CHRISTMAS_SPOT_TYPES[0];
 }
+export const CHRISTMAS_ICON_ASSETS = {
+  christmas_decorations:'/assets/christmas/christmas-decorations.svg',
+  christmas_lights:'/assets/christmas/christmas-lights.svg',
+  light_show:'/assets/christmas/light-show.svg',
+  christmas_experience:'/assets/christmas/christmas-experience.svg',
+};
 export function ChristmasIcon({type,size=34,className=''}) {
-  const selected=getChristmasType(type);
-  const Icon=selected.icon;
-  return <div className={'relative flex shrink-0 items-center justify-center rounded-2xl border-2 border-amber-300/80 bg-gradient-to-br from-red-800 via-emerald-950 to-emerald-900 text-amber-200 shadow-lg '+className} style={{width:size,height:size}}>
-   <Snowflake aria-hidden="true" className="absolute right-0.5 top-0.5 h-2.5 w-2.5 text-white/70"/>
-   <Icon aria-hidden="true" style={{width:size*.64,height:size*.64}} strokeWidth={2.2}/>
-  </div>;
+  return <img src={CHRISTMAS_ICON_ASSETS[type]||CHRISTMAS_ICON_ASSETS.christmas_decorations} alt="" aria-hidden="true" className={'shrink-0 object-contain '+className} style={{width:size,height:size}} />;
 }
 export function ChristmasTags({tags=[],compact=false}) {
  return <div className="flex flex-wrap gap-1.5">
