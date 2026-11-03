@@ -44,18 +44,11 @@ export default function useHolidayLightEditor(id) {
   if((form.photos||[]).length>3)throw new Error('Only three photos are allowed.');
   const payload={...holidayPayload({...form,...verifiedLocation},user.id),...verifiedLocation};
   if(new Date(payload.end_date_time)<=new Date())throw new Error('Choose a last night that has not ended.');
-  // Same 50-foot overlapping-date duplicate protection used for Halloween.
-  const existing=rows(await base44.entities.Location.filter({type:'holiday_lights',status:'active'}));
-  const duplicate=existing.find(spot=>{
-    if(spot.id===id||!Number.isFinite(spot.latitude)||!Number.isFinite(spot.longitude))return false;
-    if(distanceFeet(payload.latitude,payload.longitude,spot.latitude,spot.longitude)>50)return false;
-    const start=spot.start_date_time?.slice(0,10)||'';
-    const end=spot.end_date_time?.slice(0,10)||'';
-    return !!start && start<=form.end && (!end||end>=form.start);
-  });
-  if(duplicate)throw new Error('A Christmas display is already listed at or near this address for these dates.');
-  if(id){const {status,christmas_featured_badge,...editablePayload}=payload;return base44.entities.Location.update(id,editablePayload);}
-  return base44.entities.Location.create(payload);
+  // Server obtains the verified primary address from the signed-in account; no client-selected location is trusted.
+  const response=await base44.functions.invoke('manageChristmasListing',{action:'save',id:id||undefined,payload});
+  if(response?.data?.error)throw new Error(response.data.error);
+  if(!response?.data?.location?.id)throw new Error('Could not save Christmas display.');
+  return response.data.location;
  },onSuccess:async spot=>{
   await client.invalidateQueries({queryKey:['holidayLights']});
   navigate('/HolidayLightsDetail?id='+spot.id,{replace:true});
