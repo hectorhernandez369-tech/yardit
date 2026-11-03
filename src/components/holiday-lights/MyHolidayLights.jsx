@@ -18,7 +18,7 @@ export default function MyHolidayLights({user}) {
   },
  });
  const mutation=useMutation({
-  mutationFn:({spot,remove,value})=>remove?base44.entities.Location.delete(spot.id):base44.entities.Location.update(spot.id,{display_active:value}),
+  mutationFn:async ({spot,remove,value})=>{const result=await base44.functions.invoke('manageChristmasListing',remove?{action:'remove',id:spot.id}:{action:'toggle',id:spot.id,display_active:value}); if(result?.data?.error)throw new Error(result.data.error); return result;},
   onSuccess:()=>client.invalidateQueries({queryKey:['holidayLights']}),
  });
  return <section className="mb-6 space-y-4 rounded-2xl border border-amber-400/40 bg-card p-5 text-card-foreground">
