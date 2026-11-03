@@ -17,7 +17,7 @@ export default function HolidayLightsActions({spot,user}) {
  const [reportOpen,setReportOpen]=React.useState(false);
  const added=!!hunt?.huntStops?.some(stop=>stop.id===spot.id);
  const shareUrl=window.location.origin+'/HolidayLightsDetail?id='+spot.id;
- return <section className="rounded-2xl border border-amber-400/40 bg-gradient-to-b from-emerald-950 to-slate-950 p-5 text-white shadow-lg">
+ return <section className="rounded-2xl border border-holiday-gold/60 bg-gradient-to-b from-christmas-green to-christmas-red p-5 text-holiday-snow shadow-lg">
    <h2 className="mb-3 font-black uppercase tracking-wider text-amber-200">Plan Your Stop</h2>
    <div className="space-y-3">
      <Button asChild className="w-full bg-red-700 text-white hover:bg-red-600"><a href={'https://www.google.com/maps/dir/?api=1&destination='+spot.latitude+','+spot.longitude} target="_blank" rel="noopener noreferrer"><Navigation className="mr-2 h-4 w-4"/>Directions</a></Button>

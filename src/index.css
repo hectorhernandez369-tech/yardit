@@ -598,6 +598,21 @@ button:focus-visible {
   --holiday-gold: 42 88% 66%;
 }
 
+@keyframes holiday-detail-snowfall {
+  from { top: -1rem; transform: translateX(0); opacity: 0; }
+  10% { opacity: 0.85; }
+  90% { opacity: 0.7; }
+  to { top: 100%; transform: translateX(var(--snow-drift)); opacity: 0; }
+}
+.holiday-detail-snow {
+  animation: holiday-detail-snowfall var(--snow-duration) linear var(--snow-delay) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .holiday-detail-snow { animation: none; top: 20%; opacity: 0.6; }
+  .holiday-detail-snow:nth-child(2n) { top: 50%; }
+  .holiday-detail-snow:nth-child(3n) { top: 80%; }
+}
+
 @keyframes holiday-header-snowfall {
   from { transform: translate(0, -12px); opacity: 0; }
   10% { opacity: 0.8; }

@@ -13,7 +13,7 @@ export default function HolidayLightsSummary({spot,now=new Date(),compact=false}
  const state=holidayLightState(spot,now);
  const start=holidayDate(spot,'start_date_time'), end=holidayDate(spot,'end_date_time');
  const address=spot.address||[spot.street_address,spot.city,spot.state,spot.zip_code].filter(Boolean).join(', ');
- return <section className={'overflow-hidden rounded-2xl border border-amber-400/60 bg-gradient-to-b from-emerald-950 via-slate-950 to-red-950 text-white shadow-xl '+(compact?'p-2.5':'p-5 sm:p-7')}>
+ return <section className={'overflow-hidden rounded-2xl border border-holiday-gold/60 bg-gradient-to-br from-christmas-red to-christmas-green text-holiday-snow shadow-xl '+(compact?'p-2.5':'p-5 sm:p-7')}>
    <div className="relative flex items-center gap-3">
     <ChristmasIcon type={type.value} size={compact?50:105}/>
     <div className="min-w-0 flex-1">
@@ -25,9 +25,9 @@ export default function HolidayLightsSummary({spot,now=new Date(),compact=false}
    {spot.christmas_featured_badge==='must_see' && <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-400 px-2 py-1 text-xs font-bold text-emerald-950"><Star className="h-3 w-3"/>Yardit Must See</div>}
    <div className="mt-3 inline-flex rounded-full border border-amber-300/30 bg-emerald-800/60 px-3 py-1 text-xs font-bold text-amber-100">{state}</div>
    {!compact && <FounderBadge userId={spot.owner_user_id}/>}
-   {spot.description && <p className={'mt-3 text-sm leading-relaxed text-slate-200 '+(compact?'line-clamp-2':'whitespace-pre-wrap')}>{spot.description}</p>}
+   {spot.description && <p className={'mt-3 text-sm leading-relaxed text-holiday-snow '+(compact?'line-clamp-2':'whitespace-pre-wrap')}>{spot.description}</p>}
    {!compact && spot.photos?.length>0 && <div className="mt-4 grid gap-2 sm:grid-cols-3">{spot.photos.slice(0,3).map((url,i)=><img key={url} src={url} alt={title+' photo '+(i+1)} className="h-48 w-full rounded-xl border border-white/20 object-cover"/>)}</div>}
-   <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-100">
+   <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-holiday-snow">
      <p className="flex items-start gap-2"><MapPin className="h-4 w-4 shrink-0 text-amber-200"/><span className="break-words">{address}</span></p>
      <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-amber-200"/>{christmasDate(start)} – {christmasDate(end)}</p>
      <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 shrink-0 text-amber-200"/>{christmasTime(spot.viewing_start_time)} – {christmasTime(spot.viewing_end_time)} nightly</p>
