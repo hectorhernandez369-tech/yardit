@@ -20,7 +20,7 @@ export default function CreateHolidayLights() {
   if (id && record.data === null) return <HolidayLightsNotFound />;
   return <div className="mx-auto w-full max-w-2xl space-y-5 px-4 py-6">
     <Link to="/CreateListing" className="text-sm underline">Back to listing types</Link>
-    <header className="rounded-2xl bg-holiday-night p-6 text-holiday-snow"><TreePine className="mb-3 h-9 w-9 text-holiday-gold" /><h1 className="text-2xl font-bold">{id ? 'Edit Holiday Lights' : 'Post Holiday Lights'}</h1><p className="mt-2 text-sm opacity-80">Help neighbors discover your festive display. Free to post, separate from Halloween.</p></header>
+    <header className="rounded-2xl border-2 border-holiday-gold bg-gradient-to-br from-christmas-red via-christmas-red to-christmas-green p-6 text-holiday-snow"><div className="mb-3 inline-flex rounded-xl border border-holiday-gold bg-christmas-green p-2"><TreePine className="h-9 w-9 text-holiday-gold" /></div><h1 className="text-2xl font-bold">{id ? 'Edit Holiday Lights' : 'Post Holiday Lights'}</h1><p className="mt-2 text-sm">Help neighbors discover your festive display. Free to post, separate from Halloween.</p></header>
     <form className="space-y-6 rounded-2xl border bg-card p-5 text-card-foreground" onSubmit={e => { e.preventDefault(); save.mutate(); }}>
       <HolidayLightsFields form={form} setForm={setForm} />
       <HolidayLightsLocation form={form} setForm={setForm} />

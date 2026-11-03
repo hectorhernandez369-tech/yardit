@@ -10,6 +10,8 @@ module.exports = {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
+            'christmas-red': 'hsl(var(--christmas-red))',
+            'christmas-green': 'hsl(var(--christmas-green))',
             'holiday-night': 'hsl(var(--holiday-night))',
             'holiday-snow': 'hsl(var(--holiday-snow))',
             'holiday-gold': 'hsl(var(--holiday-gold))',
