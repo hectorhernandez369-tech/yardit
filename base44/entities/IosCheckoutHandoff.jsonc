@@ -1,0 +1,46 @@
+{
+  "name": "IosCheckoutHandoff",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "token_hash": {
+      "type": "string"
+    },
+    "checkout_function": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "return_path": {
+      "type": "string"
+    },
+    "cancel_path": {
+      "type": "string"
+    },
+    "context_json": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "token_hash",
+    "checkout_function",
+    "expires_at"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}
