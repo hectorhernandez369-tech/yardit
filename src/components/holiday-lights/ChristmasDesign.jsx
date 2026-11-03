@@ -1,4 +1,6 @@
 import React from 'react';
+import lightsAndInflatablesIcon from '@/components/holiday-lights/assets/lights-and-inflatables.svg';
+import christmasExperienceIcon from '@/components/holiday-lights/assets/christmas-experience.svg';
 import { TreePine, Gift, Music2, Sparkles, Baby, Footprints, Camera, Radio, UserRound, Snowflake } from 'lucide-react';
 
 export const CHRISTMAS_SPOT_TYPES = [
@@ -19,10 +21,10 @@ export function getChristmasType(value) {
  return CHRISTMAS_SPOT_TYPES.find(item=>item.value===value)||CHRISTMAS_SPOT_TYPES[0];
 }
 export const CHRISTMAS_ICON_ASSETS = {
-  christmas_decorations:'/assets/christmas/christmas-decorations.svg',
+  christmas_decorations:lightsAndInflatablesIcon,
   christmas_lights:'/assets/christmas/christmas-lights.svg',
   light_show:'/assets/christmas/light-show.svg',
-  christmas_experience:'/assets/christmas/christmas-experience.svg',
+  christmas_experience:christmasExperienceIcon,
 };
 export function ChristmasIcon({type,size=34,className=''}) {
   return <img src={CHRISTMAS_ICON_ASSETS[type]||CHRISTMAS_ICON_ASSETS.christmas_decorations} alt="" aria-hidden="true" className={'shrink-0 object-contain '+className} style={{width:size,height:size}} />;
