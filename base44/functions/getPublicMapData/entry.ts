@@ -191,8 +191,9 @@ export default async function(req) {
         query.latitude = { $gte: Math.max(-90, bounds.south), $lte: Math.min(90, bounds.north) };
         if (bounds.west <= bounds.east) query.longitude = { $gte: Math.max(-180, bounds.west), $lte: Math.min(180, bounds.east) };
       }
-      const page = await base44.asServiceRole.entities.Location.filter(query, { sort: '-created_date', limit: 50, ...(typeof body.cursor === 'string' ? { cursor: body.cursor } : {}) });
-      return Response.json({ items: page.items.filter(isPublicLight).map(spot => pick(spot, fields)), next_cursor: page.next_cursor, has_more: page.has_more });
+      // Base44 filter returns an array, not a cursor-page object. Avoid a broken map response.
+      const locations = await base44.asServiceRole.entities.Location.filter(query, '-created_date', 500);
+      return Response.json({ items: (locations || []).filter(isPublicLight).map(spot => pick(spot, fields)), next_cursor: null, has_more: false });
     }
 
     // Resolve a stable public pin, never a historical check-in's coordinates.
