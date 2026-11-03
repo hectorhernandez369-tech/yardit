@@ -56,6 +56,7 @@ export default function HolidayLightsMapLayer({enabled=true,now,targetId=''}) {
   for(const spot of additional){if(!combined.some(item=>item.id===spot.id))combined.push(spot);}
   return combined;
  },[query.data,selectedSpot,targetQuery.data]);
+ useEffect(()=>{lastFocusedId.current=null;},[targetId]);
  useEffect(()=>{
   if(!season||!enabled||!targetId||targetQuery.data?.id!==targetId||lastFocusedId.current===targetId)return;
   const spot=targetQuery.data;
@@ -76,7 +77,6 @@ export default function HolidayLightsMapLayer({enabled=true,now,targetId=''}) {
   const fallback=window.setTimeout(open,850);
   return ()=>{cancelled=true;map.off('moveend',open);window.clearTimeout(fallback);};
  },[season,enabled,targetId,targetQuery.data,map]);
- useEffect(()=>{lastFocusedId.current=null;},[targetId]);
  useEffect(()=>{if(!enabled) setSelectedSpot(null);},[enabled]);
  if(!season) return null;
  return <>
