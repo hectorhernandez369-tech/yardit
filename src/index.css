@@ -597,3 +597,27 @@ button:focus-visible {
   --holiday-snow: 42 100% 96%;
   --holiday-gold: 42 88% 66%;
 }
+
+@keyframes holiday-header-snowfall {
+  from { transform: translate(0, -12px); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.65; }
+  to { transform: translate(var(--snow-drift), 340px); opacity: 0; }
+}
+.holiday-header-snow {
+  animation: holiday-header-snowfall var(--snow-duration) linear var(--snow-delay) infinite;
+}
+@keyframes holiday-header-twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.holiday-header-light > span {
+  box-shadow: 0 0 7px 2px currentColor;
+  animation: holiday-header-twinkle 2.8s ease-in-out var(--light-delay) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .holiday-header-snow { animation: none; opacity: 0.5; top: 30%; }
+  .holiday-header-snow:nth-child(2n) { top: 65%; }
+  .holiday-header-snow:nth-child(3n) { top: 85%; }
+  .holiday-header-light > span { animation: none; }
+}
