@@ -9,8 +9,10 @@ import Stripe from 'npm:stripe@18.5.0';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user?.id) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await req.json();
-    const { vendor_event_id, vendor_account_id, additional_days, price_per_day } = body;
+    const { vendor_event_id, vendor_account_id, additional_days } = body;
 
     if (!vendor_event_id || !vendor_account_id || !additional_days) {
       return Response.json({ error: 'Missing required fields: vendor_event_id, vendor_account_id, additional_days' }, { status: 400 });
@@ -37,19 +39,30 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Account mismatch' }, { status: 403 });
     }
 
+    const account = (await base44Admin.entities.VendorAccount.filter({ id: vendor_account_id }))?.[0];
+    if (!account || (account.owner_user_id !== user.id && account.owner_email !== user.email)) {
+      return Response.json({ error: 'Only the vendor account owner can purchase this promotion.' }, { status: 403 });
+    }
+    const savedDays = Number(vendorEvent.promotion_upgrade_days);
+    if (!Number.isInteger(savedDays) || savedDays <= 0 || savedDays > 365 || savedDays !== Number(additional_days)) {
+      return Response.json({ error: 'Save your updated event draft before purchasing promotion days.' }, { status: 400 });
+    }
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-02-24.acacia',
     });
 
     // $5 per extra promotion day (adjust as needed — no Stripe Price ID required, use inline price)
-    const unitAmountCents = Math.round((price_per_day || 500) * additional_days);
+    const unitAmountCents = 500 * savedDays;
     if (unitAmountCents <= 0) {
       return Response.json({ error: 'Invalid price calculation' }, { status: 400 });
     }
 
     const origin = req.headers.get('origin') || 'https://app.base44.com';
-    const returnUrl = `${origin}/VendorEventDashboard?event_id=${vendor_event_id}&promo_checkout=return`;
-    const cancelUrl = `${origin}/VendorEventDashboard?event_id=${vendor_event_id}&promo_checkout=cancel`;
+    const websiteReturn = body.return_url === 'https://yardit.app/IosWebsiteCheckoutReturn'
+      ? body.return_url : '';
+    const returnUrl = websiteReturn || `${origin}/VendorEventDashboard?event_id=${vendor_event_id}&promo_checkout=return`;
+    const cancelUrl = websiteReturn || `${origin}/VendorEventDashboard?event_id=${vendor_event_id}&promo_checkout=cancel`;
 
     // Check if running in iframe — the frontend handles this, but we keep the session creation clean
     const session = await stripe.checkout.sessions.create({
@@ -73,6 +86,7 @@ Deno.serve(async (req) => {
       metadata: {
         base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
         purpose: 'vendor_event_promotion_upgrade',
+        owner_user_id: user.id,
         vendor_event_id,
         vendor_account_id,
         additional_days: String(additional_days),

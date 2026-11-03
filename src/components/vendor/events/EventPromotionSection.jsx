@@ -1,3 +1,4 @@
+import { checkoutLabel } from "@/lib/checkoutPlatform";
 import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import { useMemo, useEffect, useState } from "react";
 import { format, differenceInCalendarDays, isSameDay } from "date-fns";
@@ -224,6 +225,7 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
                             return;
                           }
                           setCheckingOut(true);
+                          try {
                           const res = await invokeCheckout("createVendorEventPromotionCheckout", {
                             vendor_event_id: savedEventId,
                             vendor_account_id: vendorAccountId,
@@ -238,12 +240,15 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
                           }
                           // Redirect to Stripe — upgrade remains locked until webhook confirms
                           await openCheckout(checkout_url);
-                          // No setCheckingOut(false) here — page is navigating away
+                          } catch (error) {
+                            toast.error(error?.response?.data?.error || error?.message || "Could not open checkout.");
+                            setCheckingOut(false);
+                          }
                         }}
                         className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
                       >
                         {checkingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
-                        Pay for Promotion Upgrade
+                        {checkoutLabel("Pay for Promotion Upgrade")}
                       </Button>
                     )}
                     {!savedEventId && !onSaveDraft && (

@@ -96,6 +96,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
       setChangingTier("");
       return;
     }
+    try {
     const response = await invokeCheckout("createVendorSubscriptionCheckout", {
       vendor_account_id: account.id,
       target_tier: tierKey,
@@ -120,6 +121,10 @@ export default function VendorBillingTab({ account, onRefresh }) {
     }
 
     await openCheckout(checkoutUrl);
+    } catch (error) {
+      toast.error(error?.response?.data?.error || error?.message || "Could not open checkout.");
+      setChangingTier("");
+    }
   };
 
   const handleDemoCheckoutSkip = async () => {
