@@ -4,6 +4,7 @@ import Stripe from "npm:stripe@18.5.0";
 const ORIGIN = "https://yardit.app";
 const ALLOWED = new Set(["residentialStripeCheckout", "createResidentialListingCheckout", "createListingUpgradeCheckout", "neighborhoodSaleSetupCheckout", "createNeighborhoodSaleSetup", "createVendorSubscriptionCheckout", "createVendorEventPromotionCheckout"]);
 const KEYS = ["yardit_paid_listing_checkout_v1", "yardit_neighborhood_setup_v1", "yardit_listing_upgrade_checkout_v1"];
+const contextKey = (name) => name === "createListingUpgradeCheckout" ? KEYS[2] : ["neighborhoodSaleSetupCheckout", "createNeighborhoodSaleSetup"].includes(name) ? KEYS[1] : ["residentialStripeCheckout", "createResidentialListingCheckout"].includes(name) ? KEYS[0] : null;
 const response = (data, status = 200) => Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
 const hash = async (token) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token)))).map(b => b.toString(16).padStart(2, "0")).join("");
 const token = () => Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, "0")).join("");
@@ -78,7 +79,9 @@ Deno.serve(async (req) => {
     const row = (await records.filter({ id: body.handoff_id, user_id: user.id }))[0];
     if (!row?.session_id) return response({ error: "Checkout not found for this account." }, 404);
     if (body.action === "save_context") {
-      const context = Object.fromEntries(KEYS.filter(key => typeof body.context?.[key] === "string").map(key => [key, body.context[key]]));
+      const key = contextKey(row.checkout_function);
+      const context = key && typeof body.context?.[key] === "string" ? { [key]: body.context[key] } : {};
+      if (key && !context[key]) return response({ error: "Your saved checkout details are missing. Please reopen Yardit on the device where payment started." }, 409);
       const json = JSON.stringify(context);
       if (json.length > 200000) return response({ error: "Checkout draft is too large." }, 400);
       await records.update(row.id, { context_json: json });
@@ -108,9 +111,12 @@ Deno.serve(async (req) => {
       verified = event?.promotion_status === "paid" && event?.stripe_checkout_session_id === session.id;
     }
     const canceled = session.status === "expired";
+    const context = JSON.parse(row.context_json || "{}");
+    const requiredKey = contextKey(row.checkout_function);
+    if ((verified || canceled) && requiredKey && !context[requiredKey]) return response({ error: "Payment status is saved, but your draft is not available yet. Reopen the same checkout from your original device to restore it." }, 409);
     const resume = (verified ? row.return_path : row.cancel_path) + (verified ? "&session_id=" + encodeURIComponent(session.id) : "");
     await records.update(row.id, { status: verified ? "verified" : canceled ? "canceled" : "pending" });
-    return response({ verified, canceled, pending: !verified && !canceled, resume_path: verified || canceled ? resume : null, context: JSON.parse(row.context_json || "{}") });
+    return response({ verified, canceled, pending: !verified && !canceled, resume_path: verified || canceled ? resume : null, context });
   } catch (error) {
     return response({ error: error?.message || "Could not confirm checkout. Please do not pay again." }, 400);
   }
