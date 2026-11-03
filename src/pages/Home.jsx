@@ -776,6 +776,16 @@ export default function HomePage() {
     if (lid) {
       setFocusListingId(lid);
     }
+    if (params.get("holidayLightId") && params.has("lat") && params.has("lng")) {
+      const lat = Number(params.get("lat")), lng = Number(params.get("lng"));
+      if (Number.isFinite(lat) && Math.abs(lat) <= 90 && Number.isFinite(lng) && Math.abs(lng) <= 180) {
+        hasCenteredOnUser.current = true;
+        setView("map");
+        setMapCenter([lat, lng]);
+        setMapZoom(17);
+        setQuickMapFilters(previous => ({ ...previous, holidayLights: true }));
+      }
+    }
 
     // Restore expanded marquee after back-navigation from ListingDetail
     const restoredId = sessionStorage.getItem(MARQUEE_RESTORED_KEY);
