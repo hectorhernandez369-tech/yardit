@@ -155,6 +155,7 @@ export default function StepOne({ formData, setFormData }) {
         >
           {LISTING_TYPES.map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor }) => {
             if (value === "halloween_spot" && showChristmasChoice) return <ChristmasListingChoice key="holiday_lights" />;
+            if (value === "halloween_spot" && !formData.assisted_post && !christmasPreviewAllowed) return <ChristmasListingChoice key="holiday_lights" disabled />;
             const isLocked = LOCKED_LISTING_TYPES.includes(value);
             const isSelected = formData.listingType === value && !isLocked;
             const isHalloweenOption = value === "halloween_spot";

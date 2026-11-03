@@ -18,7 +18,8 @@ export default function EventDetailsStep({
 }) {
   const descriptionLimit = getResidentialDescriptionLimit("event");
   const { user } = useAuth();
-  const showHolidayLightsChoice = user?.email?.toLowerCase() === "hectorhernandez369@gmail.com" && !isAssistedPost && !formData.assisted_post;
+  const christmasPreviewAllowed = user?.email?.toLowerCase() === "hectorhernandez369@gmail.com";
+  const showHolidayLightsChoice = !isAssistedPost && !formData.assisted_post;
 
   const setListingType = (value) => {
     setFormData((prev) => ({
@@ -97,7 +98,7 @@ export default function EventDetailsStep({
             );
           })}
         </RadioGroup>
-        {showHolidayLightsChoice && <div className="mt-2.5"><ChristmasListingChoice /></div>}
+        {showHolidayLightsChoice && <div className="mt-2.5"><ChristmasListingChoice disabled={!christmasPreviewAllowed} /></div>}
       </div>
 
       {/* Event Name */}
