@@ -15,7 +15,7 @@ export default function HolidayLightsPopupActions({ spot }) {
   const { guardAction, showModal, setShowModal, modalProps, isGuest } = useGuestGuard();
   const { isAuthenticated } = useAuth();
   return <>
-    <div className="flex shrink-0 flex-wrap items-center justify-center gap-1 px-2.5 pb-2.5 pt-1" onClick={event => event.stopPropagation()}>
+    <div className="flex shrink-0 flex-nowrap items-start justify-center gap-1 px-2 pb-2 pt-1" onClick={event => event.stopPropagation()}>
       <Button asChild size="sm" className="h-6 bg-christmas-red px-2 py-0 text-[10px] font-bold text-holiday-snow hover:bg-christmas-red/90"><Link to={'/HolidayLightsDetail?id=' + spot.id}>View Details</Link></Button>
       <div onClickCapture={event => { if (!isAuthenticated) { event.stopPropagation(); event.preventDefault(); guardAction(() => {}, { modal: { title: 'Create an Account to Save', description: 'Guests cannot save listings.', detail: 'Create a free account to save listings for later.' } }); } }}>
         <SaveListingButton listing={listing} iconOnly size="sm" className="h-6 w-6 border-holiday-gold/40 bg-holiday-snow p-0 text-christmas-green" />

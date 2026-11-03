@@ -29,7 +29,7 @@ export default function HolidayLightsSummary({spot,now=new Date(),compact=false,
    {!compact && <FounderBadge userId={spot.owner_user_id}/>}
    {spot.description && <p className={'mt-3 text-sm leading-relaxed text-holiday-snow '+(compact?'line-clamp-2':'whitespace-pre-wrap')}>{spot.description}</p>}
    {!compact && spot.photos?.length>0 && <div className="mt-4 grid gap-2 sm:grid-cols-3">{spot.photos.slice(0,3).map((url,i)=><img key={url} src={url} alt={title+' photo '+(i+1)} className="h-48 w-full rounded-xl border border-white/20 object-cover"/>)}</div>}
-   <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-holiday-snow">
+   <div className={'rounded-xl border border-white/10 bg-white/5 text-xs text-holiday-snow '+(compact?'mt-2 space-y-1 p-2':'mt-3 space-y-2 p-3')}>
      <p className="flex items-start gap-2"><MapPin className="h-4 w-4 shrink-0 text-amber-200"/><span className="break-words">{address}</span></p>
      <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-amber-200"/>{christmasDate(start)} – {christmasDate(end)}</p>
      <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 shrink-0 text-amber-200"/>{christmasTime(spot.viewing_start_time)} – {christmasTime(spot.viewing_end_time)} nightly</p>
