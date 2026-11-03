@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Marker, Popup, useMapEvents } from 'react-leaflet';
+import { useMapEvents } from 'react-leaflet';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import L from 'leaflet';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import HolidayLightsMapMarker from '@/components/holiday-lights/HolidayLightsMapMarker';
 import { base44 } from '@/api/base44Client';
 import { holidayLightState, isHolidayLightsSeason } from '@/lib/holidayLights';
 import { CHRISTMAS_SPOT_TYPES, ChristmasIcon } from './ChristmasDesign';
-import HolidayLightsSummary from './HolidayLightsSummary';
 import HolidayLightsMapCard from './HolidayLightsMapCard';
 
 const ICON_CACHE=new Map();
@@ -25,6 +23,7 @@ function getIcon(spot,on) {
 
 export default function HolidayLightsMapLayer({enabled=true,now}) {
  const [bounds,setBounds]=useState(null);
+ const [selectedSpot,setSelectedSpot]=useState(null);
  const map=useMapEvents({moveend:updateBounds});
  function updateBounds() {
   const b=map.getBounds();
@@ -38,16 +37,14 @@ export default function HolidayLightsMapLayer({enabled=true,now}) {
   placeholderData:previous=>previous,
   getNextPageParam:page=>page.has_more?page.next_cursor:undefined,
  });
- const spots=useMemo(()=>query.data?.pages.flatMap(page=>page.items||[])||[],[query.data]);
+ const spots=useMemo(()=>{
+  const items=query.data?.pages.flatMap(page=>page.items||[])||[];
+  return selectedSpot&&!items.some(spot=>spot.id===selectedSpot.id)?[...items,selectedSpot]:items;
+ },[query.data,selectedSpot]);
+ useEffect(()=>{if(!enabled) setSelectedSpot(null);},[enabled]);
  if(!season) return null;
  return <>
   <HolidayLightsMapCard enabled={enabled} query={query}/>
-  {enabled&&spots.map(spot=><Marker key={spot.id} position={[spot.latitude,spot.longitude]} icon={getIcon(spot,holidayLightState(spot,now)==='Lights on now')} eventHandlers={{click:()=>map.panTo([spot.latitude,spot.longitude])}}>
-    <Popup maxWidth={310} autoPan className="yardit-christmas-popup">
-     <div className="w-[235px] max-w-[70vw]"><HolidayLightsSummary spot={spot} now={now} compact/>
-       <Button asChild className="mt-2 w-full bg-emerald-800 font-bold text-white hover:bg-emerald-700"><Link to={'/HolidayLightsDetail?id='+spot.id}>View Details</Link></Button>
-     </div>
-    </Popup>
-  </Marker>)}
+  {enabled&&spots.map(spot=><HolidayLightsMapMarker key={spot.id} spot={spot} now={now} icon={getIcon(spot,holidayLightState(spot,now)==='Lights on now')} onSelect={setSelectedSpot}/>)}
  </>;
 }
