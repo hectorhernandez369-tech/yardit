@@ -35,6 +35,7 @@ export default function HolidayLightsMapLayer({enabled=true,now}) {
  const season=isHolidayLightsSeason(now,{lat:center.lat,lng:center.lng});
  const query=useInfiniteQuery({queryKey:['holidayLights','map',bounds],enabled:season&&enabled&&!!bounds,initialPageParam:null,
   queryFn:async ({pageParam})=>(await base44.functions.invoke('getPublicMapData',{holidayLights:true,bounds,cursor:pageParam})).data,
+  placeholderData:previous=>previous,
   getNextPageParam:page=>page.has_more?page.next_cursor:undefined,
  });
  const spots=useMemo(()=>query.data?.pages.flatMap(page=>page.items||[])||[],[query.data]);
