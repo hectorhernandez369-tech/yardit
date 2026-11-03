@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMapEvents } from 'react-leaflet';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import L from 'leaflet';
 import HolidayLightsMapMarker from '@/components/holiday-lights/HolidayLightsMapMarker';
@@ -21,9 +21,12 @@ function getIcon(spot,on) {
  return icon;
 }
 
-export default function HolidayLightsMapLayer({enabled=true,now}) {
+export default function HolidayLightsMapLayer({enabled=true,now,targetId=''}) {
  const [bounds,setBounds]=useState(null);
  const [selectedSpot,setSelectedSpot]=useState(null);
+ const targetMarkerRef=useRef(null);
+ const lastFocusedId=useRef(null);
+ const setTargetMarker=useCallback(ref=>{ targetMarkerRef.current=ref; },[]);
  const map=useMapEvents({moveend:updateBounds});
  function updateBounds() {
   const b=map.getBounds();
@@ -37,14 +40,47 @@ export default function HolidayLightsMapLayer({enabled=true,now}) {
   placeholderData:previous=>previous,
   getNextPageParam:page=>page.has_more?page.next_cursor:undefined,
  });
+ // Fetch the linked listing independently from the visible map bounds.
+ const targetQuery=useQuery({
+  queryKey:['holidayLights','map-focus',targetId],
+  enabled:season&&enabled&&!!targetId,
+  queryFn:async()=>{
+   const result=await base44.functions.invoke('getPublicMapData',{holidayLightId:targetId});
+   return result?.data?.location||null;
+  },
+ });
  const spots=useMemo(()=>{
   const items=query.data?.pages.flatMap(page=>page.items||[])||[];
-  return selectedSpot&&!items.some(spot=>spot.id===selectedSpot.id)?[...items,selectedSpot]:items;
- },[query.data,selectedSpot]);
+  const additional=[selectedSpot,targetQuery.data].filter(Boolean);
+  const combined=[...items];
+  for(const spot of additional){if(!combined.some(item=>item.id===spot.id))combined.push(spot);}
+  return combined;
+ },[query.data,selectedSpot,targetQuery.data]);
+ useEffect(()=>{
+  if(!season||!enabled||!targetId||targetQuery.data?.id!==targetId||lastFocusedId.current===targetId)return;
+  const spot=targetQuery.data;
+  if(!Number.isFinite(spot.latitude)||!Number.isFinite(spot.longitude))return;
+  lastFocusedId.current=targetId;
+  setSelectedSpot(spot);
+  const target=[spot.latitude,spot.longitude];
+  const zoom=Math.max(16,map.getZoom());
+  const mapHeight=map.getSize().y||0;
+  const offset=Math.min(150,Math.max(75,mapHeight*0.2));
+  const targetPoint=map.project(target,zoom).subtract([0,offset]);
+  const center=map.unproject(targetPoint,zoom);
+  let cancelled=false;
+  const open=()=>{if(!cancelled)targetMarkerRef.current?.openPopup?.();};
+  // Give Leaflet time to mount the marker before opening its popup.
+  map.once('moveend',open);
+  map.flyTo(center,zoom,{animate:true,duration:0.65});
+  const fallback=window.setTimeout(open,850);
+  return ()=>{cancelled=true;map.off('moveend',open);window.clearTimeout(fallback);};
+ },[season,enabled,targetId,targetQuery.data,map]);
+ useEffect(()=>{lastFocusedId.current=null;},[targetId]);
  useEffect(()=>{if(!enabled) setSelectedSpot(null);},[enabled]);
  if(!season) return null;
  return <>
   <HolidayLightsMapCard enabled={enabled} query={query}/>
-  {enabled&&spots.map(spot=><HolidayLightsMapMarker key={spot.id} spot={spot} now={now} icon={getIcon(spot,holidayLightState(spot,now)==='Lights on now')} onSelect={setSelectedSpot}/>)}
+  {enabled&&spots.map(spot=><HolidayLightsMapMarker key={spot.id} spot={spot} now={now} icon={getIcon(spot,holidayLightState(spot,now)==='Lights on now')} onSelect={setSelectedSpot} markerRef={spot.id===targetId?setTargetMarker:undefined}/>)}
  </>;
 }
