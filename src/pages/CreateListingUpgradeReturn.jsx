@@ -1,3 +1,4 @@
+import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -51,7 +52,7 @@ export default function CreateListingUpgradeReturn() {
       }
 
       try {
-        const verifyResponse = await base44.functions.invoke("createListingUpgradeCheckout", {
+        const verifyResponse = await invokeCheckout("createListingUpgradeCheckout", {
           action: "verify",
           session_id: sessionId,
         });
@@ -82,7 +83,7 @@ export default function CreateListingUpgradeReturn() {
     try {
       if (storedCheckout.sessionId) {
         try {
-          const verifyResponse = await base44.functions.invoke("createListingUpgradeCheckout", {
+          const verifyResponse = await invokeCheckout("createListingUpgradeCheckout", {
             action: "verify",
             session_id: storedCheckout.sessionId,
           });
@@ -95,7 +96,7 @@ export default function CreateListingUpgradeReturn() {
         } catch {}
       }
 
-      const response = await base44.functions.invoke("createListingUpgradeCheckout", storedCheckout.checkoutRequest);
+      const response = await invokeCheckout("createListingUpgradeCheckout", storedCheckout.checkoutRequest);
       if (response?.data?.founder_vip) {
         localStorage.removeItem(UPGRADE_CHECKOUT_KEY);
         toast.success('Founder VIP benefits activated. No charge.');
@@ -109,7 +110,7 @@ export default function CreateListingUpgradeReturn() {
       const nextStored = { ...storedCheckout, sessionId };
       localStorage.setItem(UPGRADE_CHECKOUT_KEY, JSON.stringify(nextStored));
       setStoredCheckout(nextStored);
-      window.location.assign(checkoutUrl);
+      await openCheckout(checkoutUrl);
     } catch (error) {
       setMessage(error?.response?.data?.error || error?.message || "Checkout could not restart.");
       setIsRetrying(false);

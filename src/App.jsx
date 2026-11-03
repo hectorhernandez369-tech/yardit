@@ -1,3 +1,4 @@
+import CheckoutRoutes from "@/components/payment/CheckoutRoutes";
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -158,7 +159,7 @@ const AuthenticatedApp = () => {
 };
 
 function App() {
-  return <AuthProvider><QueryClientProvider client={queryClientInstance}><Router><NavigationTracker /><AuthenticatedApp /></Router><Toaster /><VisualEditAgent /></QueryClientProvider></AuthProvider>
+  return <AuthProvider><QueryClientProvider client={queryClientInstance}><Router><NavigationTracker /><CheckoutRoutes><AuthenticatedApp /></CheckoutRoutes></Router><Toaster /><VisualEditAgent /></QueryClientProvider></AuthProvider>
 }
 
 export default App

@@ -1,3 +1,4 @@
+import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import { useMemo, useEffect, useState } from "react";
 import { format, differenceInCalendarDays, isSameDay } from "date-fns";
 import { Label } from "@/components/ui/label";
@@ -223,7 +224,7 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
                             return;
                           }
                           setCheckingOut(true);
-                          const res = await base44.functions.invoke("createVendorEventPromotionCheckout", {
+                          const res = await invokeCheckout("createVendorEventPromotionCheckout", {
                             vendor_event_id: savedEventId,
                             vendor_account_id: vendorAccountId,
                             additional_days: additionalDays,
@@ -236,7 +237,7 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
                             return;
                           }
                           // Redirect to Stripe — upgrade remains locked until webhook confirms
-                          window.location.href = checkout_url;
+                          await openCheckout(checkout_url);
                           // No setCheckingOut(false) here — page is navigating away
                         }}
                         className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"

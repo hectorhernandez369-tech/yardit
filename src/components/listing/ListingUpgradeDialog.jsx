@@ -1,3 +1,4 @@
+import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import useFounderMembership from '@/components/founder/useFounderMembership';
@@ -58,7 +59,7 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
 
       try {
         setIsRefreshingPaymentMethod(true);
-        const response = await base44.functions.invoke("createListingUpgradeCheckout", {
+        const response = await invokeCheckout("createListingUpgradeCheckout", {
           action: "payment_method",
           customer_id: customerId,
         });
@@ -110,7 +111,7 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
         checkoutRequest,
       }));
 
-      const response = await base44.functions.invoke("createListingUpgradeCheckout", checkoutRequest);
+      const response = await invokeCheckout("createListingUpgradeCheckout", checkoutRequest);
       if (response?.data?.founder_vip) {
         localStorage.removeItem(UPGRADE_CHECKOUT_KEY);
         await queryClient.invalidateQueries();
@@ -132,7 +133,7 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
         throw new Error("Upgrade checkout could not start.");
       }
 
-      window.location.assign(checkoutUrl);
+      await openCheckout(checkoutUrl);
     } catch (error) {
       toast.error(error?.response?.data?.error || error?.message || "Upgrade checkout could not start.");
       setIsStartingPayment(false);
@@ -143,7 +144,7 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
     if (!listing || !selectedTier || amountDue <= 0) return;
     try {
       setIsStartingPayment(true);
-      await base44.functions.invoke("createListingUpgradeCheckout", {
+      await invokeCheckout("createListingUpgradeCheckout", {
         action: "demo_skip_upgrade",
         listing_id: listing.id,
         target_tier: selectedTier,

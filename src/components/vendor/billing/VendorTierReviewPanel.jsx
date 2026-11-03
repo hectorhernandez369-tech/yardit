@@ -1,3 +1,4 @@
+import { checkoutLabel } from "@/lib/checkoutPlatform";
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -398,7 +399,7 @@ export default function VendorTierReviewPanel({
         >
           {isProcessing
             ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</>
-            : <><Lock className="mr-2 h-4 w-4" />Continue to Secure Checkout</>}
+            : <><Lock className="mr-2 h-4 w-4" />{checkoutLabel("Continue to Secure Checkout")}</>}
         </Button>
       </div>
     </div>

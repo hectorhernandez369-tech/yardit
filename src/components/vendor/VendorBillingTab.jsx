@@ -1,3 +1,4 @@
+import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -95,7 +96,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
       setChangingTier("");
       return;
     }
-    const response = await base44.functions.invoke("createVendorSubscriptionCheckout", {
+    const response = await invokeCheckout("createVendorSubscriptionCheckout", {
       vendor_account_id: account.id,
       target_tier: tierKey,
       return_url: `${window.location.origin}/VendorDashboard?tab=tier`,
@@ -118,7 +119,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
       }).catch(() => {});
     }
 
-    window.location.assign(checkoutUrl);
+    await openCheckout(checkoutUrl);
   };
 
   const handleDemoCheckoutSkip = async () => {
@@ -127,7 +128,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
     setDemoCheckoutRequest(null);
     setReviewTier("");
     setChangingTier(request.tierKey);
-    await base44.functions.invoke("createVendorSubscriptionCheckout", {
+    await invokeCheckout("createVendorSubscriptionCheckout", {
       action: "demo_skip_subscription",
       vendor_account_id: account.id,
       target_tier: request.tierKey,

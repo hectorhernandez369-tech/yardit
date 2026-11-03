@@ -1,3 +1,4 @@
+import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import useFounderMembership from '@/components/founder/useFounderMembership';
@@ -120,7 +121,7 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
       };
 
       if (!founderVip && promoResult && finalAmountDue === 0) {
-        const response = await base44.functions.invoke("createListingUpgradeCheckout", {
+        const response = await invokeCheckout("createListingUpgradeCheckout", {
           ...baseRequest,
           action: "complete_free_event_add_on",
           promo_code_id: promoResult.promoCode?.id,
@@ -140,7 +141,7 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
         action: "create",
       };
       localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ listingId: listing.id, targetTier: listing.event_tier || listing.tier || "event", purchaseType: "event_add_on", checkoutRequest }));
-      const response = await base44.functions.invoke("createListingUpgradeCheckout", checkoutRequest);
+      const response = await invokeCheckout("createListingUpgradeCheckout", checkoutRequest);
       if (response?.data?.founder_vip) {
         localStorage.removeItem(CHECKOUT_KEY);
         await queryClient.invalidateQueries();
@@ -153,7 +154,7 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
       const sessionId = response?.data?.sessionId || "";
       localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ listingId: listing.id, targetTier: listing.event_tier || listing.tier || "event", purchaseType: "event_add_on", checkoutRequest, sessionId }));
       if (!checkoutUrl) throw new Error("Add-on checkout could not start.");
-      window.location.assign(checkoutUrl);
+      await openCheckout(checkoutUrl);
     } catch (error) {
       toast.error(error?.response?.data?.error || error?.message || "Add-on checkout could not start.");
       setIsStartingPayment(false);

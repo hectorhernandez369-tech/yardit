@@ -1,3 +1,4 @@
+import { checkoutLabel } from "@/lib/checkoutPlatform";
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -199,7 +200,7 @@ export default function ReviewPayContent({
             disabled={isProcessing || (effectiveRequireNonRefundAcknowledgement && !nonRefundAcknowledged)}
             className="bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] font-bold shadow-sm"
           >
-            {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : continueLabel}
+            {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : price > 0 ? checkoutLabel(continueLabel) : continueLabel}
           </Button>
         </div>
       </section>

@@ -1,3 +1,4 @@
+import { invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import useFounderMembership from '@/components/founder/useFounderMembership';
@@ -599,7 +600,7 @@ export default function CreateListingPage() {
         promo_early_visibility_days: promoResult.earlyVisibility?.days || 0,
         promo_visibility_start_date: promoResult.earlyVisibility?.visibility_start_date || "",
       } : {};
-      const response = await base44.functions.invoke("residentialStripeCheckout", {
+      const response = await invokeCheckout("residentialStripeCheckout", {
         tier: checkoutFormData.listingType === "event" ? "event" : checkoutFormData.tier,
         listing_kind: checkoutFormData.listingType === "event" ? "event" : "residential",
         amount_cents: amountCents,
@@ -637,10 +638,8 @@ export default function CreateListingPage() {
         executeSubmit('founder_vip', checkoutFormData);
         return;
       }
-      console.log("Stripe session created", response?.data);
       const checkoutUrl = response?.data?.checkoutUrl;
       const sessionId = response?.data?.sessionId;
-      console.log("Stripe checkout URL/session returned", { checkoutUrl, sessionId });
       if (sessionId) {
         localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({
           formData: checkoutFormData,
@@ -651,17 +650,8 @@ export default function CreateListingPage() {
       if (!checkoutUrl) {
         throw new Error("Payment checkout could not start.");
       }
-      console.log("Stripe redirect attempted", checkoutUrl);
-      window.location.assign(checkoutUrl);
-      setTimeout(() => {
-        const link = document.createElement("a");
-        link.href = checkoutUrl;
-        link.target = "_self";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }, 120);
+      await openCheckout(checkoutUrl);
+
     } catch (error) {
       setIsStartingPayment(false);
       setPaymentError(error?.response?.data?.error || error?.message || "Payment could not start.");
@@ -692,7 +682,7 @@ export default function CreateListingPage() {
       const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
       localStorage.setItem(NEIGHBORHOOD_SETUP_KEY, JSON.stringify({ formData: { ...sourceFormData, ...nonRefundFields } }));
       const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
-      const response = await base44.functions.invoke("neighborhoodSaleSetupCheckout", {
+      const response = await invokeCheckout("neighborhoodSaleSetupCheckout", {
         return_url: returnUrl,
         customer_id: sourceFormData.organizer_stripe_customer_id || undefined,
         non_refund_acknowledged: nonRefundFields.non_refund_acknowledged,
@@ -712,7 +702,7 @@ export default function CreateListingPage() {
       if (!checkoutUrl) {
         throw new Error("Payment method setup could not start.");
       }
-      window.location.assign(checkoutUrl);
+      await openCheckout(checkoutUrl);
     } catch (error) {
       setIsStartingPayment(false);
       setPaymentError(error?.response?.data?.error || error?.message || "Payment method setup could not start.");
@@ -927,7 +917,7 @@ export default function CreateListingPage() {
         }
       }
       if (createdListing.pending_checkout_session_id && ["yard_sale", "event"].includes(createdListing.listingType)) {
-        await base44.functions.invoke("residentialStripeCheckout", {
+        await invokeCheckout("residentialStripeCheckout", {
           action: "link_paid_listing",
           session_id: createdListing.pending_checkout_session_id,
           listing_id: createdListing.id,
@@ -1472,7 +1462,7 @@ export default function CreateListingPage() {
         const earlyVisibilityFields = buildPromoEarlyVisibilityFields(promoResult);
         const listingPayload = { ...buildFreePromoListingPayload({ ...formData, ...earlyVisibilityFields }), ...nonRefundFields };
         const createdListing = await createListingDirectlyWithPromo(listingPayload);
-        await base44.functions.invoke("residentialStripeCheckout", {
+        await invokeCheckout("residentialStripeCheckout", {
           action: "complete_free_promo",
           listing_id: createdListing.id,
           promo_code_id: promoResult.promoCode.id,
@@ -1964,7 +1954,7 @@ export default function CreateListingPage() {
       const stored = JSON.parse(raw);
       if (!stored?.formData) return;
       recoveringPaidCheckoutRef.current = true;
-      base44.functions.invoke("residentialStripeCheckout", {
+      invokeCheckout("residentialStripeCheckout", {
         action: "recover_paid_checkout",
         session_id: stored.session_id || "",
       }).then(async (response) => {
@@ -2033,7 +2023,7 @@ export default function CreateListingPage() {
       if (setupState === "success" && sessionId && handledNeighborhoodSetupSessionRef.current !== sessionId && stored?.formData) {
         if (!user?.id) return;
         handledNeighborhoodSetupSessionRef.current = sessionId;
-        base44.functions.invoke("neighborhoodSaleSetupCheckout", {
+        invokeCheckout("neighborhoodSaleSetupCheckout", {
           action: "verify",
           session_id: sessionId,
         }).then((response) => {
@@ -2099,7 +2089,7 @@ export default function CreateListingPage() {
         if (!user?.id) return;
         handledCheckoutSessionRef.current = sessionId;
         localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
-        base44.functions.invoke("residentialStripeCheckout", {
+        invokeCheckout("residentialStripeCheckout", {
           action: "verify",
           session_id: sessionId,
         }).then(async (response) => {
@@ -2150,7 +2140,7 @@ export default function CreateListingPage() {
             if (!currentParams.get("payment")) {
               if (stored.session_id) {
                 try {
-                  const response = await base44.functions.invoke("residentialStripeCheckout", {
+                  const response = await invokeCheckout("residentialStripeCheckout", {
                     action: "recover_paid_checkout",
                     session_id: stored.session_id,
                   });

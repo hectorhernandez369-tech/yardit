@@ -1,3 +1,4 @@
+import { isIosCheckout } from "@/lib/checkoutPlatform";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -71,7 +72,7 @@ export default function NeighborhoodSetupStep({ isProcessing, errorMessage, retr
           disabled={isProcessing || !nonRefundAcknowledged || !fallbackReady}
           className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
         >
-          {isProcessing ? "Opening Stripe..." : retryPayment ? "Retry Payment" : "Add Payment Method"}
+          {isProcessing ? "Opening checkout..." : isIosCheckout() ? "Add payment method on website" : retryPayment ? "Retry Payment" : "Add Payment Method"}
         </Button>
       </div>
     </div>

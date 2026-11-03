@@ -11,14 +11,14 @@ export default function usePaidCheckoutReturn() {
   const navigate = useNavigate();
   const initialSessionId = new URLSearchParams(window.location.search).get("session_id") || loadPaidCheckout()?.session_id || "";
   const [sessionId, setSessionId] = useState(initialSessionId);
-  const [state, setState] = useState({ status: "processing", message: "Your payment was received. Yardit is verifying it with Stripe now." });
+  const [state, setState] = useState({ status: "processing", message: "Yardit is checking your payment with Stripe." });
   const running = useRef(false);
   const cancelled = useRef(false);
 
   const finish = useCallback(async () => {
     if (running.current || cancelled.current) return;
     running.current = true;
-    setState({ status: "processing", message: "Your payment was received. Yardit is verifying it with Stripe now." });
+    setState({ status: "processing", message: "Yardit is checking your payment with Stripe." });
     try {
       const user = await base44.auth.me();
       let exactSessionId = sessionId;
