@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { IOS_PENDING_KEY, restoreCheckoutContext } from "@/lib/websiteCheckout";
+import { IOS_PENDING_KEY, restoreCheckoutContext, saveCheckoutContext } from "@/lib/websiteCheckout";
 import { requireIosCheckoutAdapter } from "@/lib/checkoutPlatform";
 import { CheckoutCard, checkoutButtonClass } from "./IosWebsiteCheckout";
 
@@ -14,6 +14,7 @@ export default function IosCheckoutPending() {
     if (!id || running.current || finished.current) return;
     running.current = true; setBusy(true);
     try {
+      await saveCheckoutContext(id);
       const { data } = await base44.functions.invoke("iosWebsiteCheckout", { action, handoff_id: id });
       if (data.verified || data.canceled) {
         if (!data.resume_path?.startsWith("/") || data.resume_path.startsWith("//")) throw new Error("Invalid checkout return.");
