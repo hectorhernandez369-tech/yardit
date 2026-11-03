@@ -309,6 +309,53 @@
     "halloween_added_by_name": {
       "type": "string",
       "description": "Public display name of the user or Yardit admin who originally added this Halloween Spot"
+    },
+    "christmas_spot_type": {
+      "type": "string",
+      "enum": [
+        "christmas_decorations",
+        "christmas_lights",
+        "light_show",
+        "christmas_experience"
+      ],
+      "description": "Christmas display map icon and primary type"
+    },
+    "christmas_tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "kid_friendly",
+          "walkthrough",
+          "music",
+          "santa",
+          "photo_op",
+          "synchronized_lights"
+        ]
+      }
+    },
+    "christmas_host_name": {
+      "type": "string"
+    },
+    "christmas_admission": {
+      "type": "string"
+    },
+    "christmas_parking_notes": {
+      "type": "string"
+    },
+    "christmas_activities": {
+      "type": "string"
+    },
+    "christmas_suggested_age": {
+      "type": "string"
+    },
+    "christmas_featured_badge": {
+      "type": "string",
+      "enum": [
+        "none",
+        "must_see"
+      ],
+      "default": "none"
     }
   },
   "required": [
