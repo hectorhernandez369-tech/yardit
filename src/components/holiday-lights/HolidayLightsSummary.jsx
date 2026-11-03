@@ -8,13 +8,13 @@ import { ChristmasIcon, ChristmasTags, getChristmasType } from './ChristmasDesig
 export const christmasDate=value=>value?new Date(value+'T12:00:00').toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'}):'TBD';
 export const christmasTime=value=>value?new Date('2000-01-01T'+value).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'TBD';
 
-export default function HolidayLightsSummary({spot,now=new Date(),compact=false}) {
+export default function HolidayLightsSummary({spot,now=new Date(),compact=false,embedded=false}) {
  const title=spot.display_title||spot.title||'Christmas Display';
  const type=getChristmasType(spot.christmas_spot_type);
  const state=holidayLightState(spot,now);
  const start=holidayDate(spot,'start_date_time'), end=holidayDate(spot,'end_date_time');
  const address=spot.address||[spot.street_address,spot.city,spot.state,spot.zip_code].filter(Boolean).join(', ');
- return <section className={'overflow-hidden rounded-2xl border border-holiday-gold/60 bg-gradient-to-br from-christmas-red to-christmas-green text-holiday-snow shadow-xl '+(compact?'p-2.5':'p-5 sm:p-7')}>
+ return <section className={(embedded?'text-holiday-snow ':'overflow-hidden rounded-2xl border border-holiday-gold/60 bg-gradient-to-br from-christmas-red to-christmas-green text-holiday-snow shadow-xl ')+(compact?'p-2.5':'p-5 sm:p-7')}>
    <div className="relative flex items-center gap-3">
     <ChristmasIcon type={type.value} size={compact?50:105}/>
     <div className="min-w-0 flex-1">
