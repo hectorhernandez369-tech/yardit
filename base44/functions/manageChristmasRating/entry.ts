@@ -1,6 +1,32 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
 
 const PREVIEW_EMAIL = 'hectorhernandez369@gmail.com';
+const MAX_DISTANCE_FEET = 150;
+const MAX_ACCURACY_METERS = 45;
+const MAX_LOCATION_AGE_MS = 30000;
+const POINTS: Record<number, number> = {1: 0, 2: 0, 3: 1, 4: 3, 5: 5};
+function distanceFeet(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const rad = Math.PI / 180, a = (lat2-lat1)*rad, b = (lng2-lng1)*rad;
+  const h = Math.sin(a/2)**2 + Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(b/2)**2;
+  return 20902231*2*Math.atan2(Math.sqrt(h),Math.sqrt(Math.max(0,1-h)));
+}
+function getLocationError(body: any, listing: any) {
+  const lat = body?.geo?.latitude, lng = body?.geo?.longitude;
+  const accuracy = body?.geo?.accuracy_meters, sampledAt = body?.geo?.sampled_at;
+  if (typeof lat !== 'number' || typeof lng !== 'number' ||
+    !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 ||
+    typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy < 0) {
+    return 'Enable precise location to rate this display.';
+  }
+  if (accuracy > MAX_ACCURACY_METERS) return 'Your location is not accurate enough yet. Move outdoors and try again.';
+  const age = Date.now()-Number(sampledAt);
+  if (!Number.isFinite(age) || age < -5000 || age > MAX_LOCATION_AGE_MS)
+    return 'Location expired. Please retry your rating.';
+  if (!Number.isFinite(Number(listing.latitude)) || !Number.isFinite(Number(listing.longitude)) ||
+      distanceFeet(lat,lng,Number(listing.latitude),Number(listing.longitude)) > MAX_DISTANCE_FEET)
+    return 'You must be within 150 feet of this display to rate it.';
+  return null;
+}
 function fail(message: string, code = 400) { return Response.json({error: message}, {status: code}); }
 function currentSeason(date = new Date()) {
   return date.getUTCMonth() === 0 ? date.getUTCFullYear() - 1 : date.getUTCFullYear();
@@ -54,6 +80,12 @@ Deno.serve(async req => {
       return fail('Ratings are available only for active displays during Christmas season.', 403);
     const rating = scoreValue(body.rating);
     if (rating === null) return fail('Choose one to five stars.');
+    // Preview admin may test remotely. Other users must provide a fresh, accurate
+    // device location. GPS readings from browsers are not tamper-proof.
+    if (myEmail !== PREVIEW_EMAIL) {
+      const error = getLocationError(body, location);
+      if (error) return fail(error, 403);
+    }
     // One record per signed-in person and listing within the season. Editing never adds a vote.
     const original = mine[0];
     if (original) {
@@ -69,10 +101,14 @@ Deno.serve(async req => {
     const sum = votes.reduce((n: number, vote: any) => n + Number(vote.rating_value), 0);
     const count = votes.length;
     const average = count ? sum / count : 0;
+    const points = votes.reduce((n: number, vote: any) => n + POINTS[Number(vote.rating_value)], 0);
+    const fiveStarVotes = votes.filter((vote: any) => Number(vote.rating_value) === 5).length;
     await base44.asServiceRole.entities.Location.update(locationId, {
       average_rating: average, ratings_count: count, holiday_score: sum,
+      christmas_points: points, five_star_votes: fiveStarVotes,
     });
-    return Response.json({ok: true, my_rating: rating, average_rating: average, ratings_count: count});
+    return Response.json({ok: true, my_rating: rating, average_rating: average, ratings_count: count,
+      christmas_points: points, five_star_votes: fiveStarVotes});
   } catch (e) {
     console.error('manageChristmasRating', e);
     return fail('Could not save Christmas rating.', 500);

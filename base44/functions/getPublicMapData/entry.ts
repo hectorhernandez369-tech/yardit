@@ -173,7 +173,7 @@ export default async function(req) {
         : Response.json({ items: [], next_cursor: null, has_more: false });
     }
     if (body.holidayLights === true || Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) {
-      const fields = ['id', 'owner_user_id', 'type', 'title', 'display_title', 'description', 'address', 'street_address', 'city', 'state', 'zip_code', 'latitude', 'longitude', 'start_date_time', 'end_date_time', 'viewing_start_time', 'viewing_end_time', 'display_active', 'status', 'photos', 'christmas_spot_type', 'christmas_tags', 'christmas_host_name', 'christmas_admission', 'christmas_parking_notes', 'christmas_activities', 'christmas_suggested_age', 'christmas_featured_badge', 'average_rating', 'ratings_count', 'holiday_score'];
+      const fields = ['id', 'owner_user_id', 'type', 'title', 'display_title', 'description', 'address', 'street_address', 'city', 'state', 'zip_code', 'latitude', 'longitude', 'start_date_time', 'end_date_time', 'viewing_start_time', 'viewing_end_time', 'display_active', 'status', 'photos', 'christmas_spot_type', 'christmas_tags', 'christmas_host_name', 'christmas_admission', 'christmas_parking_notes', 'christmas_activities', 'christmas_suggested_age', 'christmas_featured_badge', 'average_rating', 'ratings_count', 'holiday_score', 'christmas_points', 'five_star_votes'];
       const isPublicLight = (spot) => {
         if (!spot || spot.status !== 'active' || !isValidCoordinate(spot.latitude) || !isValidCoordinate(spot.longitude) || !canSeeAdDemo(spot, currentUser)) return false;
         const md = localYmd(now, spot).slice(5);

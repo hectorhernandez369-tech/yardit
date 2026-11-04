@@ -229,11 +229,16 @@ Deno.serve(async (req) => {
       const total = currentVotes.reduce((sum, value) => sum + value, 0);
       const count = currentVotes.length;
       const average = count ? total / count : 0;
+      const weights = { 1: 0, 2: 0, 3: 1, 4: 3, 5: 5 };
+      const points = currentVotes.reduce((sum, value) => sum + (weights[value] || 0), 0);
+      const fiveStarVotes = currentVotes.filter(value => value === 5).length;
 
       await base44.asServiceRole.entities.Location.update(locationId, {
         average_rating: average,
         ratings_count: count,
         holiday_score: total,
+        christmas_points: points,
+        five_star_votes: fiveStarVotes,
       });
 
       return Response.json({ ok: true, average_rating: average, ratings_count: count, holiday_score: total });
