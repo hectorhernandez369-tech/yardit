@@ -14,7 +14,7 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 5,
-      "description": "One to five Christmas stars"
+      "description": "Christmas rating 1 to 5 stars"
     },
     "season_year": {
       "type": "integer",
@@ -22,7 +22,7 @@
     },
     "user_id": {
       "type": "string",
-      "description": "Authenticated voter ID"
+      "description": "Authenticated user ID"
     }
   },
   "required": [
