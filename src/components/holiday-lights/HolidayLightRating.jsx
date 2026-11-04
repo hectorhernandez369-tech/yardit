@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Star, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function HolidayLightRating({locationId, displayActive=true, compact=false, onSaved}) {
+export default function HolidayLightRating({locationId, displayActive=true, compact=false, onSaved=()=>{}}) {
   const { user, isAuthenticated } = useAuth();
   const [hover, setHover] = useState(0);
   const client = useQueryClient();
@@ -16,7 +16,7 @@ export default function HolidayLightRating({locationId, displayActive=true, comp
     retry: false,
   });
   const mutation = useMutation({
-    mutationFn: async value => (await base44.functions.invoke('manageChristmasRating', {action:'rate', location_id:locationId, rating:value})).data,
+    mutationFn: async (value: number) => (await base44.functions.invoke('manageChristmasRating', {action:'rate', location_id:locationId, rating:value})).data,
     onSuccess: data => {
       client.setQueryData(['christmasVote', locationId, user?.id], data);
       client.invalidateQueries({queryKey:['holidayLeaderboardLocations']});
@@ -25,7 +25,7 @@ export default function HolidayLightRating({locationId, displayActive=true, comp
       onSaved?.(data);
       toast.success('Your Christmas rating was saved.');
     },
-    onError: err => toast.error(err?.response?.data?.error || 'Could not save your rating.'),
+    onError: err => toast.error(err?.message || 'Could not save your rating.'),
   });
   const saved = Number(ratingQuery.data?.my_rating || 0);
   const selected = hover || saved;
