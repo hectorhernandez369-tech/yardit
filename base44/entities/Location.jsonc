@@ -371,6 +371,16 @@
       "type": "number",
       "default": 0,
       "description": "Current sum of Christmas stars"
+    },
+    "christmas_points": {
+      "type": "integer",
+      "default": 0,
+      "description": "Weighted Christmas leaderboard points"
+    },
+    "five_star_votes": {
+      "type": "integer",
+      "default": 0,
+      "description": "Unique 5-star rating count"
     }
   },
   "required": [
