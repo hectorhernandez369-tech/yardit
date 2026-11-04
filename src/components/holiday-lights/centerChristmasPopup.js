@@ -25,10 +25,12 @@ export function centerChristmasPopup(map, latlng, popupElement, animate = true) 
     mapHeight - bottomClearance,
     Math.max(topClearance + effectiveHeight - 14, (mapHeight + popupHeight) / 2)
   );
-  const zoom = map.getZoom();
+  // Christmas displays are free listings: Yardit's normal detail threshold is 15.
+  // Don't zoom out if the visitor is already closer.
+  const zoom = Math.min(map.getMaxZoom(), Math.max(15, map.getZoom()));
   const pinPoint = map.project([lat, lng], zoom);
   const centerPoint = pinPoint.subtract([0, desiredPinY - mapHeight / 2]);
   const targetCenter = map.unproject(centerPoint, zoom);
-  if (animate) map.panTo(targetCenter, { animate: true, duration: 0.4 });
+  if (animate) map.flyTo(targetCenter, zoom, { animate: true, duration: 0.65 });
   else map.setView(targetCenter, zoom, { animate: false });
 }
