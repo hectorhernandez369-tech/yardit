@@ -555,6 +555,24 @@ button:focus-visible {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
 }
 
+/* Christmas popup should be evergreen, not a red-green/brown gradient.
+   Keep the actual card and all Leaflet chrome one consistent background. */
+.leaflet-popup.yardit-christmas-popup .leaflet-popup-content-wrapper {
+  background: #123f30 !important;
+  color: #fff8e7 !important;
+  border: 1px solid #e9c36b !important;
+  border-radius: 18px !important;
+}
+.leaflet-popup.yardit-christmas-popup .leaflet-popup-tip {
+  background: #123f30 !important;
+}
+.leaflet-popup.yardit-christmas-popup .leaflet-popup-content {
+  background: #123f30 !important;
+  color: #fff8e7 !important;
+}
+.leaflet-popup.yardit-christmas-popup {
+  max-width: calc(100vw - 28px);
+}
 /* Christmas uses Halloween's mobile popup positioning, with its own festive chrome. */
 .leaflet-popup.yardit-christmas-popup .leaflet-popup-close-button {
   border-color: rgba(244, 191, 58, 0.8) !important;

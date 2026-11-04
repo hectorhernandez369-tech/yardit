@@ -20,7 +20,7 @@ export default function HolidayLightsActions({ spot, user }) {
   const shareUrl = window.location.origin + '/HolidayLightsDetail?id=' + spot.id;
   const isOwner = user?.id === spot.owner_user_id;
 
-  return <section aria-label="Display actions" className="min-w-0 rounded-2xl border border-holiday-gold/50 bg-gradient-to-b from-christmas-green to-christmas-red p-3 text-holiday-snow shadow-lg sm:p-4">
+  return <section aria-label="Display actions" className="min-w-0 rounded-2xl border border-holiday-gold/50 bg-[#123f30] p-3 text-holiday-snow shadow-lg sm:p-4">
     <h2 className="mb-3 text-sm font-black uppercase tracking-wider text-amber-200">Plan Your Stop</h2>
 
     {/* The two navigation actions are the most important while visiting a display. */}

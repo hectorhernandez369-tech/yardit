@@ -4,21 +4,26 @@ import { Marker, Popup, useMap } from 'react-leaflet';
 import HolidayLightsPopupActions from '@/components/holiday-lights/HolidayLightsPopupActions';
 import HolidayLightsSummary from '@/components/holiday-lights/HolidayLightsSummary';
 import HolidayLightRating from '@/components/holiday-lights/HolidayLightRating';
+import { centerChristmasPopup } from './centerChristmasPopup';
 
 export default function HolidayLightsMapMarker({ spot, icon, now, onSelect, markerRef }) {
   const map = useMap();
   const position = useMemo(() => [spot.latitude, spot.longitude], [spot.latitude, spot.longitude]);
   const eventHandlers = useMemo(() => ({
-    click: () => {
-      // Move the selected Christmas icon to the exact map center without changing zoom.
-      // Leaflet already opens its popup when the marker is clicked.
-      if (Number.isFinite(Number(spot.latitude)) && Number.isFinite(Number(spot.longitude))) {
-        map.panTo([Number(spot.latitude), Number(spot.longitude)], { animate: true, duration: 0.45 });
-      }
+    popupopen: event => {
+      onSelect(spot);
+      // Leaflet opens the popup on a marker click. Wait until the card is
+      // measured, then pan the map so both card and icon are visible.
+      const popup = event.popup;
+      const element = popup?.getElement?.();
+      requestAnimationFrame(() => {
+        if (map.hasLayer(popup)) {
+          centerChristmasPopup(map, position, element, true);
+        }
+      });
     },
-    popupopen: () => onSelect(spot),
     popupclose: () => onSelect(current => current?.id === spot.id ? null : current),
-  }), [spot, onSelect, map]);
+  }), [spot, onSelect, map, position]);
   const average = Number(spot.average_rating || 0);
   const ratings = Number(spot.ratings_count || 0);
   return <Marker ref={markerRef} position={position} icon={icon} eventHandlers={eventHandlers}>

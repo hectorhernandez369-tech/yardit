@@ -68,10 +68,7 @@ export default function HolidayLightsMapLayer({enabled=true,now,targetId=''}) {
   setSelectedSpot(spot);
   const target=[spot.latitude,spot.longitude];
   const zoom=Math.max(16,map.getZoom());
-  const mapHeight=map.getSize().y||0;
-  const offset=Math.min(150,Math.max(75,mapHeight*0.2));
-  const targetPoint=map.project(target,zoom).subtract([0,offset]);
-  const center=map.unproject(targetPoint,zoom);
+  const center=target;
   let cancelled=false;
   const open=()=>{if(!cancelled)targetMarkerRef.current?.openPopup?.();};
   // Give Leaflet time to mount the marker before opening its popup.
