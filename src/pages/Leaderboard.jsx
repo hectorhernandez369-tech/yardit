@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Trophy, Star, Loader2, ArrowLeft, Search } from 'lucide-react';
 import { isHolidaySeason, getCurrentSeasonYear } from '@/components/holidays/SeasonCheck';
 import { CHRISTMAS_SPOT_TYPES } from '@/components/holiday-lights/ChristmasDesign';
+import useLeaderboardZip from '@/hooks/useLeaderboardZip';
 
 const MIN_RATINGS = 5;
 const MILES = [0, 1, 5, 10, 25, 50];
@@ -26,12 +27,11 @@ async function lookupZip(zip) {
 }
 
 export default function LeaderboardPage(){
-  const [zip,setZip]=useState('');
-  const [searchedZip,setSearchedZip]=useState('');
   const [radius,setRadius]=useState(10);
   const [type,setType]=useState('all');
   const seasonYear=getCurrentSeasonYear();
   const inSeason=isHolidaySeason();
+  const {zip,setZip,searchedZip,setSearchedZip,isLocating,locationMessage}=useLeaderboardZip(inSeason,MAPBOX_TOKEN);
   const zipQuery=useQuery({queryKey:['christmasZipCenter',searchedZip],queryFn:()=>lookupZip(searchedZip),enabled:searchedZip.length===5 && radius>0,retry:false});
   const {data:locations=[],isLoading,isError}=useQuery({
     queryKey:['holidayLeaderboardLocations',seasonYear],
@@ -84,9 +84,9 @@ export default function LeaderboardPage(){
               </select>
             </div>
           </div>
-          <p className="text-xs text-gray-500">Choose a ZIP, search within that distance, and optionally narrow results to one Christmas display type. No location permission needed.</p>
+          <p className="text-xs text-muted-foreground" role="status">{isLocating?'Finding your current ZIP code…':locationMessage||'Your current ZIP loads automatically with location access. You can also search another ZIP, adjust the radius, or choose a display type.'}</p>
         </div>
-        {isLoading || zipQuery.isLoading ? <div className="flex justify-center gap-2 py-10 text-gray-600"><Loader2 className="animate-spin"/>Loading rankings…</div>
+        {isLocating || isLoading || zipQuery.isLoading ? <div className="flex justify-center gap-2 py-10 text-muted-foreground" role="status"><Loader2 className="animate-spin"/>{isLocating?'Finding your ZIP and nearby leaders…':'Loading rankings…'}</div>
         : isError ? <p className="mt-4 rounded-xl bg-white p-5 text-red-700">Could not load Christmas rankings.</p>
         : zipQuery.isError && radius>0 ? <p className="mt-4 rounded-xl bg-white p-5 text-red-700">{zipQuery.error?.message||'Could not look up the ZIP code.'}</p>
         : <section className="mt-5">
