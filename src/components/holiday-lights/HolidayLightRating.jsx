@@ -16,7 +16,7 @@ export default function HolidayLightRating({locationId, displayActive=true, comp
     retry: false,
   });
   const mutation = useMutation({
-    mutationFn: async (value: number) => (await base44.functions.invoke('manageChristmasRating', {action:'rate', location_id:locationId, rating:value})).data,
+    mutationFn: async (value = 0) => (await base44.functions.invoke('manageChristmasRating', {action:'rate', location_id:locationId, rating:value})).data,
     onSuccess: data => {
       client.setQueryData(['christmasVote', locationId, user?.id], data);
       client.invalidateQueries({queryKey:['holidayLeaderboardLocations']});
