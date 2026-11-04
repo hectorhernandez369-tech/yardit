@@ -216,8 +216,18 @@ Deno.serve(async (req) => {
         season_year: seasonYear,
       }).catch(() => []);
 
-      const total = (ratings || []).reduce((sum, rating) => sum + Number(rating.rating_value || 0), 0);
-      const count = ratings?.length || 0;
+      // One current 1–5 star rating per signed-in user per display per season.
+      // Legacy duplicate records must never inflate the average or vote count.
+      const latestByUser = new Map();
+      for (const vote of [...(ratings || [])].sort((a, b) =>
+        String(a.updated_date || a.created_date || '').localeCompare(String(b.updated_date || b.created_date || '')))) {
+        const voter = String(vote.user_email || vote.user_id || '').trim().toLowerCase();
+        const value = Number(vote.rating_value);
+        if (voter && Number.isInteger(value) && value >= 1 && value <= 5) latestByUser.set(voter, value);
+      }
+      const currentVotes = [...latestByUser.values()];
+      const total = currentVotes.reduce((sum, value) => sum + value, 0);
+      const count = currentVotes.length;
       const average = count ? total / count : 0;
 
       await base44.asServiceRole.entities.Location.update(locationId, {

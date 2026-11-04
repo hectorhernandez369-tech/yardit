@@ -17,7 +17,7 @@ function uniqueVotes(records: any[]) {
   const byUser = new Map<string, any>();
   for (const item of [...records].sort((a, b) =>
     String(a.created_date || '').localeCompare(String(b.created_date || '')))) {
-    const key = String(item.user_id || item.user_email || '').trim().toLowerCase();
+    const key = String(item.user_email || item.user_id || '').trim().toLowerCase();
     if (!key || scoreValue(item.rating_value) === null) continue;
     byUser.set(key, item);
   }
