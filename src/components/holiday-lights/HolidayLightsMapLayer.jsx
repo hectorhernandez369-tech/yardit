@@ -8,15 +8,18 @@ import { base44 } from '@/api/base44Client';
 import { holidayLightState, isHolidayLightsSeason } from '@/lib/holidayLights';
 import { CHRISTMAS_SPOT_TYPES, ChristmasIcon } from './ChristmasDesign';
 import HolidayLightsMapCard from './HolidayLightsMapCard';
+import { Star } from 'lucide-react';
 
 const ICON_CACHE=new Map();
 function getIcon(spot,on) {
  const type=CHRISTMAS_SPOT_TYPES.some(x=>x.value===spot.christmas_spot_type)?spot.christmas_spot_type:'christmas_decorations';
- const key=type+(on?'on':'off');
+ const score=Number(spot.average_rating||0), votes=Number(spot.ratings_count||0);
+ const label=votes>0&&score>0?score.toFixed(1):'';
+ const key=type+(on?'on':'off')+'-'+label;
  if (ICON_CACHE.has(key)) return ICON_CACHE.get(key);
  const size=on?54:45;
- const html=renderToStaticMarkup(<div className={on?'drop-shadow-[0_0_9px_rgba(251,191,36,0.85)]':''}><ChristmasIcon type={type} size={size} className={on?'':'opacity-70'}/></div>);
- const icon=L.divIcon({className:'yardit-christmas-marker',html,iconSize:[size,size],iconAnchor:[size/2,size/2],popupAnchor:[0,-size/2]});
+ const html=renderToStaticMarkup(<div className={'flex flex-col items-center '+(on?'drop-shadow-[0_0_9px_rgba(251,191,36,0.85)]':'')}>{label&&<div className="mb-0.5 flex items-center gap-0.5 rounded-full border border-amber-300 bg-[#123f30] px-1.5 py-0.5 text-[11px] font-bold text-amber-200"><Star size={10} className="fill-amber-400 text-amber-400"/>{label}</div>}<ChristmasIcon type={type} size={size} className={on?'':'opacity-70'}/></div>);
+ const icon=L.divIcon({className:'yardit-christmas-marker',html,iconSize:[size, size+(label?20:0)],iconAnchor:[size/2,size+(label?20:0)],popupAnchor:[0,-size-(label?20:0)]});
  ICON_CACHE.set(key,icon);
  return icon;
 }

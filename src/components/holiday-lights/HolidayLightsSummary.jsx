@@ -4,6 +4,7 @@ import FounderBadge from '@/components/founder/FounderBadge';
 import { getListingNumber } from '@/components/listing/listingDisplay';
 import { holidayDate, holidayLightState } from '@/lib/holidayLights';
 import { ChristmasIcon, ChristmasTags, getChristmasType } from './ChristmasDesign';
+import HolidayLightRating from './HolidayLightRating';
 
 export const christmasDate=value=>value?new Date(value+'T12:00:00').toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'}):'TBD';
 export const christmasTime=value=>value?new Date('2000-01-01T'+value).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'TBD';
@@ -14,7 +15,7 @@ export default function HolidayLightsSummary({spot,now=new Date(),compact=false,
  const state=holidayLightState(spot,now);
  const start=holidayDate(spot,'start_date_time'), end=holidayDate(spot,'end_date_time');
  const address=spot.address||[spot.street_address,spot.city,spot.state,spot.zip_code].filter(Boolean).join(', ');
- return <section className={(embedded?'text-holiday-snow ':'overflow-hidden rounded-2xl border border-holiday-gold/60 bg-gradient-to-br from-christmas-red to-christmas-green text-holiday-snow shadow-xl ')+(compact?'p-2.5':'p-5 sm:p-7')}>
+ return <section className={(embedded?'text-holiday-snow ':'overflow-hidden rounded-2xl border border-holiday-gold/60 bg-[#123f30] text-holiday-snow shadow-xl ')+(compact?'p-2.5':'p-5 sm:p-7')}>
    <div className="relative flex items-center gap-3">
     <ChristmasIcon type={type.value} size={compact?50:105}/>
     <div className="min-w-0 flex-1">
@@ -27,6 +28,7 @@ export default function HolidayLightsSummary({spot,now=new Date(),compact=false,
    {spot.christmas_featured_badge==='must_see' && <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-400 px-2 py-1 text-xs font-bold text-emerald-950"><Star className="h-3 w-3"/>Yardit Must See</div>}
    <div className="mt-3 inline-flex rounded-full border border-amber-300/30 bg-emerald-800/60 px-3 py-1 text-xs font-bold text-amber-100">{state}</div>
    {!compact && <FounderBadge userId={spot.owner_user_id}/>}
+   {!compact && <div className="mt-3"><HolidayLightRating locationId={spot.id} displayActive={spot.display_active}/></div>}
    {spot.description && <p className={'mt-3 text-sm leading-relaxed text-holiday-snow '+(compact?'line-clamp-2':'whitespace-pre-wrap')}>{spot.description}</p>}
    {!compact && spot.photos?.length>0 && <div className="mt-4 grid gap-2 sm:grid-cols-3">{spot.photos.slice(0,3).map((url,i)=><img key={url} src={url} alt={title+' photo '+(i+1)} className="h-48 w-full rounded-xl border border-white/20 object-cover"/>)}</div>}
    <div className={'rounded-xl border border-white/10 bg-white/5 text-xs text-holiday-snow '+(compact?'mt-2 space-y-1 p-2':'mt-3 space-y-2 p-3')}>

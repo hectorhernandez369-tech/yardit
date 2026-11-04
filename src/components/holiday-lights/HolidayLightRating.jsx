@@ -1,159 +1,51 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Star, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { isHolidayLightsSeason, getCurrentSeasonYear } from "./SeasonalCheck";
+import React, {useState} from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
+import { Star, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
-export default function HolidayLightRating({ locationId, displayActive }) {
-  const [user, setUser] = useState(null);
-  const [selectedRating, setSelectedRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const queryClient = useQueryClient();
-  const seasonYear = getCurrentSeasonYear();
-  const inSeason = isHolidayLightsSeason();
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const currentUser = await base44.auth.me();
-        setUser(currentUser);
-      } catch (error) {
-        console.error("Error fetching user:", error);
-      }
-    };
-    fetchUser();
-  }, []);
-
-  const { data: existingRating } = useQuery({
-    queryKey: ["lightRating", locationId, user?.email, seasonYear],
-    queryFn: async () => {
-      const ratings = await base44.entities.LightRating.filter({
-        listing_id: locationId,
-        user_email: user.email,
-        season_year: seasonYear,
-      });
-      return ratings[0] || null;
-    },
-    enabled: !!user?.email,
+export default function HolidayLightRating({locationId, displayActive=true, compact=false, onSaved}) {
+  const { user, isAuthenticated } = useAuth();
+  const [hover, setHover] = useState(0);
+  const client = useQueryClient();
+  const ratingQuery = useQuery({
+    queryKey: ['christmasVote', locationId, user?.id],
+    enabled: !!locationId && !!user?.id,
+    queryFn: async () => (await base44.functions.invoke('manageChristmasRating', {action:'read', location_id:locationId})).data,
+    retry: false,
   });
-
-  const submitRatingMutation = useMutation({
-    mutationFn: async (ratingValue) => {
-      if (existingRating) {
-        await base44.entities.LightRating.update(existingRating.id, {
-          rating_value: ratingValue,
-        });
-      } else {
-        await base44.entities.LightRating.create({
-          listing_id: locationId,
-          user_email: user.email,
-          rating_value: ratingValue,
-          season_year: seasonYear,
-        });
-      }
-
-      // Recalculate aggregate ratings through the protected server action.
-      await base44.functions.invoke("manageSeasonalLocation", {
-        action: "recalculate_holiday_rating",
-        location_id: locationId,
-        season_year: seasonYear,
-      });
+  const mutation = useMutation({
+    mutationFn: async value => (await base44.functions.invoke('manageChristmasRating', {action:'rate', location_id:locationId, rating:value})).data,
+    onSuccess: data => {
+      client.setQueryData(['christmasVote', locationId, user?.id], data);
+      client.invalidateQueries({queryKey:['holidayLeaderboardLocations']});
+      client.invalidateQueries({queryKey:['holidayLights']});
+      client.invalidateQueries({queryKey:['holidayLights','map']});
+      onSaved?.(data);
+      toast.success('Your Christmas rating was saved.');
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["lightRating"] });
-      queryClient.invalidateQueries({ queryKey: ["locations"] });
-      toast.success(existingRating ? "Rating updated!" : "Rating submitted!");
-      setSelectedRating(0);
-    },
+    onError: err => toast.error(err?.response?.data?.error || 'Could not save your rating.'),
   });
-
-  if (!user) return null;
-
-  if (!inSeason || !displayActive) {
-    return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
-        Ratings are only available during the holiday season (Nov 1 - Jan 2) when the display is active.
-      </div>
-    );
-  }
-
-  if (existingRating) {
-    return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-        <p className="text-sm text-green-800 mb-2">
-          Your rating: <span className="font-bold">{existingRating.rating_value}/10</span>
-        </p>
-        <p className="text-xs text-green-700">
-          You can update your rating by selecting a new score below:
-        </p>
-        <div className="flex gap-1 mt-3">
-          {[5, 6, 7, 8, 9, 10].map((rating) => (
-            <button
-              key={rating}
-              onClick={() => {
-                setSelectedRating(rating);
-                submitRatingMutation.mutate(rating);
-              }}
-              onMouseEnter={() => setHoverRating(rating)}
-              onMouseLeave={() => setHoverRating(0)}
-              disabled={submitRatingMutation.isPending}
-              className="flex-1 py-2 px-1 text-sm font-semibold rounded transition-all disabled:opacity-50"
-              style={{
-                backgroundColor: (hoverRating || existingRating.rating_value) >= rating ? '#fbbf24' : '#f3f4f6',
-                color: (hoverRating || existingRating.rating_value) >= rating ? 'white' : '#6b7280',
-              }}
-            >
-              {rating}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-sm font-medium mb-2">Rate this display (5-10):</p>
-        <p className="text-xs text-gray-600 mb-3">
-          Only rate displays you enjoyed! We only accept positive ratings (5-10).
-        </p>
-        <div className="flex gap-1">
-          {[5, 6, 7, 8, 9, 10].map((rating) => (
-            <button
-              key={rating}
-              onClick={() => setSelectedRating(rating)}
-              onMouseEnter={() => setHoverRating(rating)}
-              onMouseLeave={() => setHoverRating(0)}
-              className="flex-1 py-3 px-1 text-lg font-bold rounded transition-all"
-              style={{
-                backgroundColor: (hoverRating || selectedRating) >= rating ? '#fbbf24' : '#f3f4f6',
-                color: (hoverRating || selectedRating) >= rating ? 'white' : '#6b7280',
-              }}
-            >
-              {rating}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <Button
-        onClick={() => submitRatingMutation.mutate(selectedRating)}
-        disabled={submitRatingMutation.isPending || selectedRating === 0}
-        className="w-full"
-        size="sm"
-      >
-        {submitRatingMutation.isPending ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Submitting...
-          </>
-        ) : (
-          "Submit Rating"
-        )}
-      </Button>
+  const saved = Number(ratingQuery.data?.my_rating || 0);
+  const selected = hover || saved;
+  return <div className={'rounded-xl border border-amber-300/35 bg-[#123f30] text-white '+(compact?'px-2 py-2':'p-3')}>
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-[11px] font-semibold">{saved ? 'Your rating (tap to change)' : 'Rate this display'}</span>
+      {ratingQuery.isLoading && isAuthenticated && <Loader2 size={13} className="animate-spin" />}
     </div>
-  );
+    <div role="group" aria-label="Rate this Christmas display one to five stars" className="mt-1 flex items-center gap-1">
+      {[1,2,3,4,5].map(value=><button key={value} type="button"
+        aria-label={value+' star'+(value===1?'':'s')} aria-pressed={saved===value}
+        title={!isAuthenticated?'Sign in to rate':value+' stars'}
+        disabled={!displayActive || !isAuthenticated || ratingQuery.isLoading || mutation.isPending}
+        onClick={e=>{e.stopPropagation();mutation.mutate(value);}}
+        onMouseEnter={()=>setHover(value)} onMouseLeave={()=>setHover(0)}
+        className="flex min-h-8 min-w-8 items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 disabled:opacity-70"
+      ><Star size={compact?20:25} className={value<=selected?'fill-amber-400 text-amber-400':'fill-transparent text-amber-200/70'}/></button>)}
+      {mutation.isPending && <Loader2 size={15} className="animate-spin text-amber-200"/>}
+    </div>
+    {!isAuthenticated && <p className="mt-1 text-[10px] text-amber-100/90">Sign in to leave a rating.</p>}
+    {ratingQuery.isError && isAuthenticated && <p className="mt-1 text-[10px] text-amber-100">Rating unavailable right now.</p>}
+  </div>;
 }
