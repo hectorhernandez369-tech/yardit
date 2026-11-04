@@ -5,9 +5,28 @@ import { useAuth } from '@/lib/AuthContext';
 import { Star, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const PREVIEW_EMAIL = 'hectorhernandez369@gmail.com';
+function getFreshPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Location services are unavailable. Enable precise location to vote.'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({coords, timestamp}) => resolve({
+        latitude: coords.latitude, longitude: coords.longitude,
+        accuracy_meters: coords.accuracy, sampled_at: timestamp,
+      }),
+      () => reject(new Error('Enable precise location in your phone settings to rate this home.')),
+      {enableHighAccuracy: true, maximumAge: 0, timeout: 15000}
+    );
+  });
+}
+
 export default function HolidayLightRating({locationId, displayActive=true, compact=false, onSaved=()=>{}}) {
   const { user, isAuthenticated } = useAuth();
   const [hover, setHover] = useState(0);
+  const [locationMessage, setLocationMessage] = useState('');
   const client = useQueryClient();
   const ratingQuery = useQuery({
     queryKey: ['christmasVote', locationId, user?.id],
@@ -16,16 +35,27 @@ export default function HolidayLightRating({locationId, displayActive=true, comp
     retry: false,
   });
   const mutation = useMutation({
-    mutationFn: async (value = 0) => (await base44.functions.invoke('manageChristmasRating', {action:'rate', location_id:locationId, rating:value})).data,
+    mutationFn: async (value = 0) => {
+      const exempt = String(user?.email || '').trim().toLowerCase() === PREVIEW_EMAIL;
+      setLocationMessage(exempt ? 'Saving rating…' : 'Checking your location…');
+      const geo = exempt ? null : await getFreshPosition();
+      setLocationMessage('Saving rating…');
+      return (await base44.functions.invoke('manageChristmasRating',
+        {action:'rate', location_id:locationId, rating:value, ...(geo ? {geo} : {})})).data;
+    },
     onSuccess: data => {
       client.setQueryData(['christmasVote', locationId, user?.id], data);
       client.invalidateQueries({queryKey:['holidayLeaderboardLocations']});
       client.invalidateQueries({queryKey:['holidayLights']});
       client.invalidateQueries({queryKey:['holidayLights','map']});
       onSaved?.(data);
+      setLocationMessage('');
       toast.success('Your Christmas rating was saved.');
     },
-    onError: err => toast.error(err?.message || 'Could not save your rating.'),
+    onError: err => {
+      setLocationMessage('');
+      toast.error(err?.response?.data?.error || err?.message || 'Could not save your rating.');
+    },
   });
   const saved = Number(ratingQuery.data?.my_rating || 0);
   const selected = hover || saved;
@@ -45,6 +75,8 @@ export default function HolidayLightRating({locationId, displayActive=true, comp
       ><Star size={compact?20:25} className={value<=selected?'fill-amber-400 text-amber-400':'fill-transparent text-amber-200/70'}/></button>)}
       {mutation.isPending && <Loader2 size={15} className="animate-spin text-amber-200"/>}
     </div>
+    {locationMessage && <p className="mt-1 text-[10px] text-amber-100" role="status">{locationMessage}</p>}
+    {isAuthenticated && user?.email?.toLowerCase() !== PREVIEW_EMAIL && <p className="mt-1 text-[10px] text-amber-100/90">Vote while within 150 feet of this home. Precise location required.</p>}
     {!isAuthenticated && <p className="mt-1 text-[10px] text-amber-100/90">Sign in to leave a rating.</p>}
     {ratingQuery.isError && isAuthenticated && <p className="mt-1 text-[10px] text-amber-100">Rating unavailable right now.</p>}
   </div>;

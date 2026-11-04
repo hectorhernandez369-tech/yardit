@@ -7,7 +7,7 @@ import { isHolidaySeason, getCurrentSeasonYear } from '@/components/holidays/Sea
 import { CHRISTMAS_SPOT_TYPES } from '@/components/holiday-lights/ChristmasDesign';
 import useLeaderboardZip from '@/hooks/useLeaderboardZip';
 
-const MIN_RATINGS = 5;
+const MIN_RATINGS = 1;
 const MILES = [0, 1, 5, 10, 25, 50];
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 
@@ -49,7 +49,9 @@ export default function LeaderboardPage(){
         return loc.latitude!=null&&loc.longitude!=null&&Number.isFinite(a)&&Number.isFinite(b)&&
           milesBetween(zipQuery.data.lat,zipQuery.data.lng,a,b)<=radius;
       })
-      .sort((a,b)=>Number(b.average_rating||0)-Number(a.average_rating||0)||
+      .sort((a,b)=>Number(b.christmas_points||0)-Number(a.christmas_points||0)||
+        Number(b.five_star_votes||0)-Number(a.five_star_votes||0)||
+        Number(b.average_rating||0)-Number(a.average_rating||0)||
         Number(b.ratings_count||0)-Number(a.ratings_count||0)||
         String(a.display_title||a.title||'').localeCompare(String(b.display_title||b.title||'')));
   },[locations,searchedZip,radius,zipQuery.data,type]);
@@ -99,12 +101,13 @@ export default function LeaderboardPage(){
               <p className="text-xs text-gray-600">{loc.address||[loc.street_address,loc.city,loc.zip_code].filter(Boolean).join(', ')}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-sm font-bold text-[#6d5100]"><Star size={15} className="fill-amber-400 text-amber-500"/>{Number(loc.average_rating||0).toFixed(1)}/5</span>
+                <span className="rounded-full bg-[#123f30] px-2 py-1 text-xs font-bold text-white">{Number(loc.christmas_points||0)} pts</span>
                 <span className="text-xs text-gray-600">{loc.ratings_count} ratings</span>
                 <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">{CHRISTMAS_SPOT_TYPES.find(t=>t.value===loc.christmas_spot_type)?.label||'Christmas display'}</span>
               </div>
             </div>
           </Link>)}</div>}
-          <p className="mt-4 text-center text-xs text-gray-500">Sorted by average stars, then rating count. Each user counts once per display per season. Minimum {MIN_RATINGS} ratings to qualify.</p>
+          <p className="mt-4 text-center text-xs text-gray-500">Sorted by weighted points (5★ = 5, 4★ = 3, 3★ = 1, 2★ and 1★ = 0), then five-star vote count and average stars. Each user counts once per display per season. Minimum {MIN_RATINGS} ratings to qualify.</p>
         </section>}
       </>}
     </div>
