@@ -48,7 +48,7 @@ export default function HolidayLightsActions({ spot, user }) {
       />
     </div>
 
-    {(HUNT_ENABLED && hunt || isOwner || true) && <div className="mt-3 border-t border-white/20 pt-2">
+    <div className="mt-3 border-t border-white/20 pt-2">
       <button
         type="button"
         aria-expanded={moreOpen}
@@ -73,7 +73,7 @@ export default function HolidayLightsActions({ spot, user }) {
           <Flag className="mr-1.5 h-4 w-4" />Report Display
         </Button>
       </div>}
-    </div>}
+    </div>
     {reportOpen && <ReportModal listingId={spot.id} targetType="location" onClose={() => setReportOpen(false)} />}
     <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} {...modalProps} />
   </section>;
