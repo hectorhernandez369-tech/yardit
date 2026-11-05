@@ -153,7 +153,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
   };
 
   const handleChangeTier = async (tierKey) => {
-    if (!account?.id) return;
+    if (!account?.id || tierKey === "event_organizer") return;
     if (tierKey === account.vendor_tier) {
       await base44.entities.VendorAccount.update(account.id, { setup_tier_confirmed: true, vendor_setup_status: "in_progress" });
       toast.success(`${VENDOR_TIERS[tierKey].label} plan confirmed`);
@@ -216,7 +216,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
       {/* Collapsed Tier Cards */}
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 px-1">Choose a Plan</p>
-        {VENDOR_TIER_ORDER.map((key) => {
+        {VENDOR_TIER_ORDER.filter((key) => key !== "event_organizer" || account?.vendor_tier === "event_organizer").map((key) => {
           const tier = VENDOR_TIERS[key];
           const isOrganizer = key === "event_organizer";
           const isPopular = key === "pro";
