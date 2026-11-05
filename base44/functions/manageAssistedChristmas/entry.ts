@@ -43,10 +43,13 @@ function validate(raw:any) {
 }
 async function eligible(base44:any,user:any) {
  if(!user)return false;
- if(String(user.id)===LOUIS_ID||normalize(user.email)===PREVIEW_ADMIN_EMAIL)return true;
- if(['master','super_master'].includes(user.role))return true;
  const profiles=await base44.asServiceRole.entities.AdminProfile.filter({user_id:user.id}).catch(()=>[]);
- return profiles.some((p:any)=>p.is_active===true&&['master','super_master'].includes(p.role_label));
+ const active=profiles.filter((p:any)=>p.is_active===true);
+ // Big Louie's existing supervisor access must remain active; do not
+ // grant access merely because his user ID exists.
+ if(String(user.id)===LOUIS_ID)return active.some((p:any)=>['supervisor','master','super_master'].includes(p.role_label));
+ if(normalize(user.email)===PREVIEW_ADMIN_EMAIL)return active.some((p:any)=>['master','super_master'].includes(p.role_label));
+ return active.some((p:any)=>['master','super_master'].includes(p.role_label));
 }
 Deno.serve(async req=>{
  try {
