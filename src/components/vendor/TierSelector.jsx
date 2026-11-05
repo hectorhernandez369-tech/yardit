@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { VENDOR_TIERS, VENDOR_TIER_ORDER } from "@/lib/vendorTiers";
 import TierFeatureSummary from "@/components/vendor/TierFeatureSummary";
 
-const tiers = VENDOR_TIER_ORDER.filter((tier) => tier !== "free").map((id) => ({ id, ...VENDOR_TIERS[id] }));
+const tiers = VENDOR_TIER_ORDER.filter((tier) => tier !== "free" && tier !== "event_organizer").map((id) => ({ id, ...VENDOR_TIERS[id] }));
 
 export default function TierSelector({ currentTier, onSelect, isSaving }) {
   return (
