@@ -1,0 +1,26 @@
+{
+  "name":"AssistedChristmas",
+  "type":"object",
+  "properties":{
+    "location_id":{"type":"string"},
+    "admin_creator_id":{"type":"string"},
+    "admin_creator_email":{"type":"string"},
+    "homeowner_email":{"type":"string"},
+    "homeowner_name":{"type":"string"},
+    "token":{"type":"string"},
+    "expires_at":{"type":"string"},
+    "status":{"type":"string","enum":["pending","approved","claimed","declined","expired"],"default":"pending"},
+    "approved_at":{"type":"string"},
+    "claimed_at":{"type":"string"},
+    "claimed_by_user_id":{"type":"string"},
+    "data_json":{"type":"string"},
+    "created_at":{"type":"string"}
+  },
+  "required":["admin_creator_id","token","status","data_json"],
+  "rls":{
+    "read":{"user_condition":{"role":"admin"}},
+    "create":{"user_condition":{"role":"admin"}},
+    "update":{"user_condition":{"role":"admin"}},
+    "delete":{"user_condition":{"role":"admin"}}
+  }
+}
