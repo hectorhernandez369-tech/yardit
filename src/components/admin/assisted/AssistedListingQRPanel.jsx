@@ -15,6 +15,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   const qrUrl = approvalUrl ? (created.qrImageUrl || `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`) : null;
 
   const isHalloween = created.kind === "halloween";
+  const isChristmas = created.kind === "christmas";
   const qrLabel = created.saleAddress || created.address || created.display_address || created.title || "Listing QR";
 
   const buildFilename = () => {
@@ -75,8 +76,8 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
         .url { font-size: 11px; color: #999; word-break: break-all; max-width: 400px; margin: 0 auto; }
       </style>
       </head><body>
-        <h2>${isHalloween ? "Yardit – Your Halloween Spot Is Ready!" : "Yardit – Your Yard Sale Is Listed!"}</h2>
-        <p>Scan this QR code to approve your ${isHalloween ? "Halloween Spot" : "free listing"}:<br/><strong>${created.title}</strong></p>
+        <h2>${isChristmas ? "Yardit – Christmas Display Approval" : isHalloween ? "Yardit – Your Halloween Spot Is Ready!" : "Yardit – Your Yard Sale Is Listed!"}</h2>
+        <p>Scan this QR code to approve your ${isChristmas ? "Christmas display" : isHalloween ? "Halloween Spot" : "free listing"}:<br/><strong>${created.title}</strong></p>
         <p style="color:#888;font-size:12px;">${qrLabel}</p>
         <img src="${qrUrl}" width="220" height="220" />
         <p class="url">${approvalUrl}</p>
@@ -91,7 +92,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
     <div className="max-w-md mx-auto text-center space-y-6 py-4">
       <div className="flex items-center justify-center gap-2 text-green-700">
         <CheckCircle className="w-6 h-6" />
-        <h3 className="text-lg font-bold">{isHalloween ? "Halloween Spot Created!" : "Listing Created!"}</h3>
+        <h3 className="text-lg font-bold">{isChristmas ? "Christmas Approval QR Ready!" : isHalloween ? "Halloween Spot Created!" : "Listing Created!"}</h3>
       </div>
 
       <div className="bg-white border-2 border-[#2C4F4E] rounded-2xl p-6 shadow-sm">
@@ -115,7 +116,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
       </div>
 
       <p className="text-sm text-gray-600">
-        {isHalloween ? "Show or print this QR code for the homeowner to scan, approve, and take over their Halloween Spot." : "Show or print this QR code for the seller to scan and approve their listing."}
+        {isChristmas ? "Show this QR code to the homeowner. They must approve before the Christmas listing is created." : isHalloween ? "Show or print this QR code for the homeowner to scan, approve, and take over their Halloween Spot." : "Show or print this QR code for the seller to scan and approve their listing."}
       </p>
 
       <div className="flex flex-col gap-3">
@@ -126,7 +127,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
           <Printer className="w-4 h-4" /> Print QR Code
         </Button>
         <Button variant="ghost" onClick={onCreateAnother} className="w-full gap-2 text-[#2C4F4E]">
-          <Plus className="w-4 h-4" /> {isHalloween ? "Create Another Halloween Spot" : "Create Another Listing"}
+          <Plus className="w-4 h-4" /> {isChristmas ? "Create Another Christmas Display" : isHalloween ? "Create Another Halloween Spot" : "Create Another Listing"}
         </Button>
       </div>
     </div>

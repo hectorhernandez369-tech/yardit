@@ -17,10 +17,12 @@ export default function AdminAssistedListingsTab({ adminUser }) {
         <TabsList className="mb-6">
           <TabsTrigger value="create">Create Assisted Listing</TabsTrigger>
           <TabsTrigger value="history">Listing History</TabsTrigger>
+          <TabsTrigger value="christmas">Christmas Displays</TabsTrigger>
         </TabsList>
         <TabsContent value="create">
           <AdminAssistedListingForm adminUser={adminUser} />
         </TabsContent>
+        <TabsContent value="christmas"><AdminAssistedChristmasForm /></TabsContent>
         <TabsContent value="history">
           <AdminAssistedListingHistory adminUser={adminUser} />
         </TabsContent>

@@ -13,6 +13,7 @@ import ComingSoon from './pages/ComingSoon';
 import VendorDashboard from './pages/VendorDashboard';
 import AssistedListingApproval from './pages/AssistedListingApproval';
 import AssistedHalloweenApproval from './pages/AssistedHalloweenApproval';
+import AssistedChristmasApproval from './pages/AssistedChristmasApproval';
 import HalloweenClaimLanding from './pages/HalloweenClaimLanding';
 import CreateListingUpgradeReturn from './pages/CreateListingUpgradeReturn';
 import PrintableChecklist from './pages/PrintableChecklist';
@@ -102,6 +103,7 @@ const AuthenticatedApp = () => {
       <Route path="/spooky" element={<HalloweenClaimLanding />} />
       <Route path="/Halloween" element={<HalloweenClaimLanding />} />
       <Route path="/assisted-halloween" element={<AssistedHalloweenApproval />} />
+      <Route path="/assisted-christmas" element={<AssistedChristmasApproval />} />
       <Route path="/assisted-listing" element={<AssistedListingApproval />} />
       <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
     </Routes>;
@@ -144,6 +146,7 @@ const AuthenticatedApp = () => {
       <Route path="/spooky" element={<HalloweenClaimLanding />} />
       <Route path="/Halloween" element={<HalloweenClaimLanding />} />
       <Route path="/assisted-halloween" element={<AssistedHalloweenApproval />} />
+      <Route path="/assisted-christmas" element={<AssistedChristmasApproval />} />
     <Route path="/LeagueEventMap" element={<LeagueEventMap />} />
     <Route path="/events" element={<Events />} />
     <Route path="/PaymentAudit" element={<LayoutWrapper currentPageName="PaymentAudit"><PaymentAudit /></LayoutWrapper>} />
