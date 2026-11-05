@@ -166,7 +166,15 @@ export default async function(req) {
 
     // Holiday Lights are separate Location records; Halloween and assisted QR flows stay unchanged.
     // Private Christmas preview: reject map and direct-detail requests for all other users.
-    const christmasPreviewAllowed = String(currentUser?.email || '').trim().toLowerCase() === 'hectorhernandez369@gmail.com';
+    const louiePreviewId = '69d0704643057b42958d2749';
+    let louiePreviewAllowed = false;
+    if (String(currentUser?.id || '') === louiePreviewId) {
+      const profiles = await base44.asServiceRole.entities.AdminProfile.filter({ user_id: louiePreviewId }).catch(() => []);
+      louiePreviewAllowed = profiles.some(profile => profile.is_active === true && ['supervisor', 'master', 'super_master'].includes(profile.role_label));
+    }
+    const christmasPreviewAllowed =
+      String(currentUser?.email || '').trim().toLowerCase() === 'hectorhernandez369@gmail.com' ||
+      louiePreviewAllowed;
     if ((body.holidayLights === true || Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) && !christmasPreviewAllowed) {
       return Object.prototype.hasOwnProperty.call(body, 'holidayLightId')
         ? Response.json({ location: null })

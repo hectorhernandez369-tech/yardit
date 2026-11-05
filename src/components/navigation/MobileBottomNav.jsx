@@ -10,13 +10,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { isHolidayLightsSeason } from "@/lib/holidayLights";
+import { canPreviewChristmas } from "@/lib/christmasPreviewAccess";
 
 export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccount, hasAdminProfile, showVendorHomeButton, navigateToLogin, onPostSale, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isMapActive = location.pathname === createPageUrl("Home") || location.pathname === "/";
   const isVendorDashboardActive = location.pathname === "/VendorDashboard";
-  const isChristmasSeason = user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com' && isHolidayLightsSeason();
+  const isChristmasSeason = canPreviewChristmas(user) && isHolidayLightsSeason();
   const handleMapClick = () => {
     window.dispatchEvent(new CustomEvent("yardit:show-map-view"));
     navigate(createPageUrl("Home"));

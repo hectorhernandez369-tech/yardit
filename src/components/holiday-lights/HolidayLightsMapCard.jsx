@@ -1,8 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { TreePine, Star } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
+import { CHRISTMAS_ASSISTED_USER_ID } from '@/lib/christmasPreviewAccess';
 
 export default function HolidayLightsMapCard({ enabled, query }) {
+  const {user} = useAuth();
+  const isAssistedUser = String(user?.id || '') === CHRISTMAS_ASSISTED_USER_ID;
   return (
     <div className="absolute right-3 top-[4rem] z-[1000] w-auto max-w-[56%] rounded-full border border-holiday-gold bg-[#fff8e7] px-2.5 py-1.5 text-[#123f30] shadow-md sm:top-3 sm:max-w-[65%] sm:rounded-xl sm:bg-holiday-night sm:p-2 sm:text-holiday-snow">
       <div aria-hidden="true" className="hidden pointer-events-none absolute inset-x-0 top-0 h-4">
@@ -13,12 +17,12 @@ export default function HolidayLightsMapCard({ enabled, query }) {
           ))}
         </div>
       </div>
-      <Link to="/CreateHolidayLights" className="flex items-center gap-1 text-[10px] font-bold leading-none sm:gap-2 sm:text-xs">
+      <Link to={isAssistedUser ? "/AdminLite?liteTab=assisted" : "/CreateHolidayLights"} className="flex items-center gap-1 text-[10px] font-bold leading-none sm:gap-2 sm:text-xs">
         <span className="relative flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#123f30] sm:h-auto sm:w-auto sm:rounded-none sm:bg-transparent">
           <TreePine className="h-3 w-3 text-holiday-gold sm:h-4 sm:w-4" />
           <Star aria-hidden="true" className="hidden" />
         </span>
-        <span className="text-[11px] font-bold sm:text-xs sm:font-semibold">Post Holiday Lights</span>
+        <span className="text-[11px] font-bold sm:text-xs sm:font-semibold">{isAssistedUser ? "Assist Holiday Lights" : "Post Holiday Lights"}</span>
       </Link>
       <div className="hidden sm:block sm:mt-0 sm:text-xs sm:leading-normal" aria-live="polite">
         {enabled && query.isPending && <p className="mt-1 opacity-75">Finding displays…</p>}
