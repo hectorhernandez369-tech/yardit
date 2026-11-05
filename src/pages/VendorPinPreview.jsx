@@ -106,7 +106,7 @@ export default function VendorPinPreview() {
   const [iconStyle, setIconStyle] = useState("default");
   const [animationEnabled, setAnimationEnabled] = useState(false);
   const [selectedAnimation, setSelectedAnimation] = useState("pulse");
-  const [upgradingGrowth, setUpgradingGrowth] = useState(false);
+
 
   useEffect(() => {
     const loadData = async () => {
@@ -241,13 +241,8 @@ export default function VendorPinPreview() {
     updatePinWithGeocode(clamped);
   };
 
-  const upgradeToGrowth = async () => {
-    if (!account?.id) return;
-    setUpgradingGrowth(true);
-    await base44.entities.VendorAccount.update(account.id, { vendor_tier: "growth" });
-    setAccount({ ...account, vendor_tier: "growth" });
-    toast.success("Upgraded to Growth");
-    setUpgradingGrowth(false);
+  const upgradeToGrowth = () => {
+    navigate("/VendorDashboard?tab=tier");
   };
 
   const startCheckIn = async () => {
@@ -362,8 +357,8 @@ export default function VendorPinPreview() {
                 <Switch checked={animationEnabled} disabled={!isGrowthPlan} onCheckedChange={setAnimationEnabled} />
               </div>
               {!isGrowthPlan ? (
-                <Button type="button" onClick={upgradeToGrowth} disabled={upgradingGrowth} className="w-full rounded-xl bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
-                  {upgradingGrowth ? "Upgrading..." : "Upgrade to Growth"}
+                <Button type="button" onClick={upgradeToGrowth} className="w-full rounded-xl bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
+                  Upgrade to Growth
                 </Button>
               ) : animationEnabled && (
                 <div className="grid grid-cols-2 gap-2">
