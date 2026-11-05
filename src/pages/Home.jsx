@@ -526,7 +526,7 @@ export default function HomePage() {
   const [mapCenter, setMapCenter] = useState(getSavedLocation);
   const [mapZoom, setMapZoom] = useState(getSavedZoom);
   const [showControls, setShowControls] = useState(false);
-  const [quickMapFilters, setQuickMapFilters] = useState({ yardSales: true, neighborhoodSales: true, events: true, vendors: true, halloween: true });
+  const [quickMapFilters, setQuickMapFilters] = useState({ yardSales: true, neighborhoodSales: true, events: true, vendors: true, halloween: false });
   const controlsPanelRef = useRef(null);
   const controlsBtnRef = useRef(null);
   const mapAreaRef = useRef(null);

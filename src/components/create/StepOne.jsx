@@ -13,6 +13,7 @@ import { RESIDENTIAL_CATEGORY_GROUPS } from "@/lib/residentialCategories";
 import { HALLOWEEN_ICON_ASSETS } from "@/lib/halloweenMapIcons";
 import { isHolidayLightsSeason } from "@/lib/holidayLights";
 import ChristmasListingChoice from "@/components/create/ChristmasListingChoice";
+import { isHalloweenSeasonActive } from "@/lib/halloweenSpots";
 import { useAuth } from "@/lib/AuthContext";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
@@ -105,6 +106,7 @@ export default function StepOne({ formData, setFormData }) {
   const isNeighborhood = listingType === "neighborhood_sale";
   const isHalloween = listingType === "halloween_spot";
   const showChristmasChoice = christmasPreviewAllowed && isHolidayLightsSeason() && !formData.assisted_post && !isHalloween;
+  const allowHalloween = isHalloweenSeasonActive();
   const descriptionLimit = getResidentialDescriptionLimit(listingType);
   const [expandedLocked, setExpandedLocked] = useState(null);
 
@@ -153,7 +155,7 @@ export default function StepOne({ formData, setFormData }) {
           onValueChange={handleListingTypeSelect}
           className="space-y-2.5"
         >
-          {LISTING_TYPES.map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor }) => {
+          {LISTING_TYPES.filter(item => item.value !== "halloween_spot" || allowHalloween || showChristmasChoice || isHalloween).map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor }) => {
             if (value === "halloween_spot" && showChristmasChoice) return <ChristmasListingChoice key="holiday_lights" />;
             const isLocked = LOCKED_LISTING_TYPES.includes(value);
             const isSelected = formData.listingType === value && !isLocked;

@@ -63,7 +63,7 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
         <span>Alerts</span>
       </div>
 
-      <button onClick={onPostSale} className={`yardit-mobile-nav-item yardit-mobile-nav-primary ${isChristmasSeason ? "yardit-mobile-nav-christmas-post" : "yardit-mobile-nav-halloween-post"}`}>
+      <button onClick={onPostSale} className={`yardit-mobile-nav-item yardit-mobile-nav-primary ${isChristmasSeason ? "yardit-mobile-nav-christmas-post" : ""}`}>
         <Plus className="w-5 h-5" />
         <span>Post</span>
       </button>
