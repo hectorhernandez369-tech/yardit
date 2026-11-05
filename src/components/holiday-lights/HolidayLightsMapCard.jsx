@@ -4,7 +4,7 @@ import { TreePine, Star } from 'lucide-react';
 
 export default function HolidayLightsMapCard({ enabled, query }) {
   return (
-    <div className="absolute right-3 top-3 z-[1000] max-w-[65%] overflow-hidden rounded-xl bg-holiday-snow px-2 pb-1.5 pt-4 text-xs text-holiday-night shadow-lg sm:overflow-visible sm:rounded-xl sm:border sm:border-holiday-gold/50 sm:bg-holiday-night sm:p-2 sm:text-holiday-snow">
+    <div className="absolute right-3 top-[4.25rem] z-[1000] max-w-[65%] sm:top-3 overflow-hidden rounded-xl bg-holiday-snow px-2 pb-1.5 pt-4 text-xs text-holiday-night shadow-lg sm:overflow-visible sm:rounded-xl sm:border sm:border-holiday-gold/50 sm:bg-holiday-night sm:p-2 sm:text-holiday-snow">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-4 sm:hidden">
         <div className="absolute inset-x-0 top-0 h-2 rounded-b-[50%] border-b border-holiday-night/30" />
         <div className="absolute inset-x-2 top-1 flex justify-between">
