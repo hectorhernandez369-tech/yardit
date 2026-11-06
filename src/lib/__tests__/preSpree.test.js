@@ -91,3 +91,79 @@ test("OPEN NOW follows local sale hours while pins remain visible overnight", ()
   assert.equal(visibility.isPubliclyVisibleListing(published, { now: new Date("2026-11-22T04:00:00Z") }), true);
   assert.equal(ui.isPreSpreeOpenNow(published, new Date("2026-11-22T16:00:00Z")), true);
 });
+
+test("editing sale hours updates the expiration time", () => {
+  const schedule = server.getPreSpreeSchedule({ ...published, closeTime: "18:00" });
+  assert.equal(schedule.endDateTime, "2026-11-23T02:00:00.000Z");
+});
+test("a campaign marker cannot carry its free entitlement to another weekend", () => {
+  const moved = { ...published, selectedRangeStartDate: "2026-11-28", selectedRangeEndDate: "2026-11-29" };
+  assert.equal(visibility.isPubliclyVisibleListing(moved, { now: new Date("2026-11-28T18:00:00Z") }), false);
+});
+
+const handlerBundle = await build({
+  entryPoints: ["base44/functions/saveResidentialListing/entry.ts"], bundle: true, write: false, format: "esm", platform: "node",
+  plugins: [{ name: "mock-boundaries", setup(builder) {
+    builder.onResolve({ filter: /^npm:@base44\/sdk/ }, () => ({ path: "sdk", namespace: "test-mock" }));
+    builder.onResolve({ filter: /^npm:tz-lookup/ }, () => ({ path: "timezone", namespace: "test-mock" }));
+    builder.onResolve({ filter: /shared\/(demoMode|founderVip|developerListings)\.ts$/ }, args => ({ path: args.path, namespace: "test-mock" }));
+    builder.onLoad({ filter: /.*/, namespace: "test-mock" }, ({ path }) => {
+      let contents = "";
+      if (path === "sdk") contents = "export const createClientFromRequest = () => globalThis.__preSpreeTestSdk;";
+      else if (path === "timezone") contents = 'export default () => "America/Los_Angeles";';
+      else if (path.includes("demoMode")) contents = "export const getDemoAuthorization = async () => ({canUseDemoMode:false}); export const hasDemoBypassRequest = () => false; export const sanitizeDemoFields = data => data;";
+      else if (path.includes("founderVip")) contents = "export const hasResidentialVip = async () => false; export const eligibleFounderListing = () => false; export const founderWaiver = {};";
+      else contents = "export const createDeveloperListing = async () => Response.json({}, {status:403});";
+      return { contents };
+    });
+  }}],
+});
+const { default: handler } = await import("data:text/javascript;base64," + Buffer.from(handlerBundle.outputFiles[0].text).toString("base64"));
+const realDate = Date;
+async function invoke(body, currentUser = user, existing = null) {
+  const writes = [];
+  globalThis.__preSpreeTestSdk = {
+    auth: { me: async () => currentUser },
+    asServiceRole: { entities: {
+      Listing: { filter: async query => query.id && existing ? [existing] : [], create: async data => { writes.push(data); return {id:"new", ...data}; }, update: async (id, data) => { writes.push(data); return {id, ...data}; } },
+      User: { filter: async () => [] },
+      ResidentialListingAccessRequest: { filter: async () => [] },
+    } },
+  };
+  globalThis.Date = class extends realDate { constructor(...args) { super(...(args.length ? args : [now.getTime()])); } static now() { return now.getTime(); } };
+  try {
+    const response = await handler(new Request("https://example.invalid/test", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) }));
+    return { status: response.status, body: await response.json(), writes };
+  } finally { globalThis.Date = realDate; delete globalThis.__preSpreeTestSdk; }
+}
+test("publish endpoint creates one free scheduled sale without checkout", async () => {
+  const result = await invoke({ action: "pre_spree_create", data: {...form, payment_status:"paid", pricePaid:4.99} });
+  assert.equal(result.status, 200);
+  assert.equal(result.writes.length, 1);
+  assert.equal(result.body.listing.payment_status, "waived");
+  assert.equal(result.body.listing.pricePaid, 0);
+  assert.equal(result.body.listing.pre_spree_campaign, ui.PRE_SPREE_CAMPAIGN);
+});
+test("publish endpoint rejects anonymous and ineligible requests before writing", async () => {
+  assert.equal((await invoke({ action: "pre_spree_create", data: form }, null)).status, 401);
+  const result = await invoke({ action: "pre_spree_create", data: {...form, tier:"premium"} });
+  assert.equal(result.status, 400);
+  assert.equal(result.writes.length, 0);
+});
+test("ordinary create cannot supply its own campaign marker", async () => {
+  const result = await invoke({ action: "create", data: {...form, pre_spree_campaign:ui.PRE_SPREE_CAMPAIGN, pre_spree_published_at:now.toISOString()} });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.listing.pre_spree_campaign, undefined);
+  assert.equal(result.body.listing.pre_spree_published_at, undefined);
+});
+test("update endpoint rejects moving a free campaign sale outside its dates", async () => {
+  const result = await invoke({ action:"update", listing_id:"sale", data:{selectedRangeEndDate:"2026-11-29"} }, user, {...published,id:"sale"});
+  assert.equal(result.status, 400);
+  assert.equal(result.writes.length, 0);
+});
+test("update endpoint preserves campaign publication and recomputes closing time", async () => {
+  const result = await invoke({ action:"update", listing_id:"sale", data:{closeTime:"18:00",pre_spree_published_at:"2099-01-01"} }, user, {...published,id:"sale"});
+  assert.equal(result.status, 200);
+  assert.equal(result.writes[0].endDateTime, "2026-11-23T02:00:00.000Z");
+  assert.equal(result.writes[0].pre_spree_published_at, undefined);
+});
