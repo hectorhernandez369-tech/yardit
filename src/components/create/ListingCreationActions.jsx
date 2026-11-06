@@ -15,6 +15,7 @@ export default function ListingCreationActions({ step, setStep, paymentStepNumbe
     : listingType === "halloween_spot" ? "Publish Halloween Spot 🎃"
     : listingType === "neighborhood_sale" ? "Continue to Payment Setup →"
     : preSpreeEligible ? "Publish Free Pre-Spree Sale"
+    : listingType === "yard_sale" && tier === "featured" ? "Continue to Payment · $4.99 →"
     : ["featured", "premium"].includes(tier) ? "Continue to Payment →" : "Publish Listing 🎉";
   const publish = () => {
     if (isAdminCreate && step === paymentStepNumber) {

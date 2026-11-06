@@ -1,7 +1,7 @@
 import { ensureCheckoutCanStart, invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { isPreSpreeEligible } from "@/lib/preSpree";
+import { getFeaturedPricing } from "@/lib/featuredPricing";
 import useFounderMembership from '@/components/founder/useFounderMembership';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -1943,7 +1943,7 @@ export default function CreateListingPage() {
       setStep(entryStepNumber + 1);
       return;
     }
-    if (!isAdminDemoMode && isPreSpreeEligible(formData)) {
+    if (getFeaturedPricing(formData, { enabled: !isAdminCreate && !isAdminDemoMode && !isAssistedPost && !isDeveloperMode }).isFree) {
       executeSubmit("pre_spree");
       return;
     }
@@ -2414,7 +2414,7 @@ export default function CreateListingPage() {
               step={step} setStep={setStep} paymentStepNumber={paymentStepNumber} entryStepNumber={entryStepNumber}
               isAdminCreate={isAdminCreate} isAssistedPost={isAssistedPost} isDeveloperMode={isDeveloperMode}
               listingType={formData.listingType} tier={formData.tier} regularAddressIncomplete={regularAddressIncomplete}
-              preSpreeEligible={!isAdminCreate && !isAdminDemoMode && !isAssistedPost && !isDeveloperMode && isPreSpreeEligible(formData)}
+              preSpreeEligible={getFeaturedPricing(formData, { enabled: !isAdminCreate && !isAdminDemoMode && !isAssistedPost && !isDeveloperMode }).isFree}
               userHasVerifiedPrimaryAddress={userHasVerifiedPrimaryAddress} isStartingPayment={isStartingPayment}
               isCreating={createListingMutation.isPending} selectedUserForAdmin={selectedUserForAdmin}
               onNext={handleNext} onSubmit={() => handleSubmit({ userInitiated: true })} onAdminCreate={() => executeSubmit("admin_create")}
