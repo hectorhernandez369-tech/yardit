@@ -178,15 +178,15 @@ test("Featured starts at $4.99 until complete qualifying dates are selected", as
 });
 test("changing weekends recalculates price and checkout eligibility in both directions", async () => {
   const { getFeaturedPricing } = await import("../featuredPricing.js");
-  const regular = { ...form, selectedRangeStartDate: "2026-11-28", selectedRangeEndDate: "2026-11-29" };
-  const free = getFeaturedPricing(form, { now });
+  const regular = { ...form, listing_offer: ui.PRE_SPREE_CAMPAIGN, selectedRangeStartDate: "2026-11-28", selectedRangeEndDate: "2026-11-29" };
+  const free = getFeaturedPricing({ ...form, listing_offer: ui.PRE_SPREE_CAMPAIGN }, { now });
   assert.equal(free.amountCents, 0);
   assert.equal(free.isFree, true);
   const paid = getFeaturedPricing(regular, { now });
   assert.equal(paid.amountCents, 499);
   assert.equal(paid.isFree, false);
   assert.match(paid.scheduleMessage, /These dates aren’t included in Pre-Spree/);
-  assert.equal(getFeaturedPricing(form, { now }).amountCents, 0);
+  assert.equal(getFeaturedPricing({ ...form, listing_offer: ui.PRE_SPREE_CAMPAIGN }, { now }).amountCents, 0);
 });
 test("partial overlap with Pre-Spree is regular Featured pricing", async () => {
   const { getFeaturedPricing } = await import("../featuredPricing.js");
@@ -197,13 +197,13 @@ test("partial overlap with Pre-Spree is regular Featured pricing", async () => {
 });
 test("expired promotions and excluded creation modes cannot advertise free checkout", async () => {
   const { getFeaturedPricing } = await import("../featuredPricing.js");
-  assert.equal(getFeaturedPricing(form, {now,enabled:false}).isFree, false);
-  assert.equal(getFeaturedPricing(form, {now:new Date("2026-11-24T18:00:00Z")}).showPromotion, false);
+  assert.equal(getFeaturedPricing({ ...form, listing_offer: ui.PRE_SPREE_CAMPAIGN }, {now,enabled:false}).isFree, false);
+  assert.equal(getFeaturedPricing({ ...form, listing_offer: ui.PRE_SPREE_CAMPAIGN }, {now:new Date("2026-11-24T18:00:00Z")}).showPromotion, false);
 });
 
 test("Friday through Sunday receives free pricing, all three active dates, and immediate visibility", async () => {
   const { getFeaturedPricing } = await import("../featuredPricing.js");
-  const data = { ...form, selectedRangeStartDate: "2026-11-20" };
+  const data = { ...form, listing_offer: ui.PRE_SPREE_CAMPAIGN, selectedRangeStartDate: "2026-11-20" };
   assert.equal(getFeaturedPricing(data, { now }).amountCents, 0);
   const result = await invoke({ action: "pre_spree_create", data });
   assert.equal(result.status, 200);
@@ -212,4 +212,41 @@ test("Friday through Sunday receives free pricing, all three active dates, and i
   assert.equal(listing.startDateTime, "2026-11-20T16:00:00.000Z");
   assert.equal(visibility.getListingMapVisibilityState(listing, null, { now }), "pre_spree");
   assert.equal(ui.isPreSpreeOpenNow(listing, new Date("2026-11-20T16:00:00Z")), true);
+});
+
+test("ordinary Featured never becomes free just because the dates match Pre-Spree", async () => {
+  const { getFeaturedPricing } = await import("../featuredPricing.js");
+  const { canPublishPreSpree } = await import("../preSpreeSelection.js");
+  assert.equal(getFeaturedPricing(form, { now }).amountCents, 499);
+  assert.equal(canPublishPreSpree(form, { now }), false);
+});
+
+test("selecting the separate promo card enables free publishing and sets the weekend", async () => {
+  const { selectPreSpreeOffer, isPreSpreeSelected, canPublishPreSpree } = await import("../preSpreeSelection.js");
+  const selected = selectPreSpreeOffer({ ...form, selectedRangeStartDate: "2026-11-28" }, now);
+  assert.equal(isPreSpreeSelected(selected), true);
+  assert.equal(canPublishPreSpree(selected, { now }), true);
+  assert.equal(selected.selectedRangeStartDate, "2026-11-20");
+  assert.equal(selected.selectedRangeEndDate, "2026-11-22");
+  assert.equal(selected.tier, "featured");
+});
+
+test("switching back to Featured clears the promo even on the same weekend", async () => {
+  const { selectPreSpreeOffer, selectStandardTier, isPreSpreeSelected, canPublishPreSpree } = await import("../preSpreeSelection.js");
+  const { getFeaturedPricing } = await import("../featuredPricing.js");
+  const promo = selectPreSpreeOffer(form, now);
+  for (const tier of ["free", "featured", "premium"]) {
+    const standard = selectStandardTier(promo, tier);
+    assert.equal(isPreSpreeSelected(standard), false);
+    assert.equal(canPublishPreSpree(standard, { now }), false);
+    if (tier === "featured") assert.equal(getFeaturedPricing(standard, { now }).amountCents, 499);
+  }
+});
+
+test("invalid promo dates and expired drafts cannot publish free", async () => {
+  const { selectPreSpreeOffer, canPublishPreSpree } = await import("../preSpreeSelection.js");
+  const promo = selectPreSpreeOffer(form, now);
+  assert.equal(canPublishPreSpree({ ...promo, selectedRangeEndDate: "2026-11-23" }, { now }), false);
+  assert.equal(canPublishPreSpree(promo, { now: new Date("2026-11-24T18:00:00Z") }), false);
+  assert.equal(canPublishPreSpree(promo, { now, enabled: false }), false);
 });

@@ -1382,7 +1382,7 @@ export default function CreateListingPage() {
       payload.pending_checkout_session_id = sourceFormData.pending_checkout_session_id || "";
       payload.payment_intent_status = sourceFormData.payment_intent_status || "hold_requested";
     }
-    if (actionStr === "pre_spree") payload.pre_spree_requested = true;
+    payload.pre_spree_requested = actionStr === "pre_spree";
     if (actionStr === "founder_vip") {
       payload.founder_vip_requested = true;
       payload.pricePaid = 0;
