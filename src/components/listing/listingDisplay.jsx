@@ -38,6 +38,8 @@ export function getListingDisplayStatus(listing) {
     return "canceled";
   }
 
+  if (isPreSpreePublished(listing)) return isPreSpreeOpenNow(listing) ? "active" : "scheduled";
+
   if (listing?.listingType === "neighborhood_sale") {
     const neighborhoodState = deriveNeighborhoodEventState(listing) || "pending_activation";
     if (neighborhoodState === "coming_soon" || neighborhoodState === "activated" || neighborhoodState === "activated_locked") return "coming_soon";
