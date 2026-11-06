@@ -13,18 +13,19 @@ const server = await loadModule("base44/shared/preSpree.ts");
 const visibility = await loadModule("src/lib/listingVisibility.js");
 const now = new Date("2026-11-06T18:00:00Z");
 const user = { id: "owner", primary_address_verified: true, street_address: "Test address", city: "Test City", state: "CA", zip_code: "00000", address_lat: 36.1, address_lng: -119.0 };
-const form = { ownerUserId: user.id, listingType: "yard_sale", tier: "featured", title: "Test sale", selectedRangeStartDate: "2026-11-21", selectedRangeEndDate: "2026-11-22", openTime: "08:00", closeTime: "16:00", photoUrls: [], lat: 36.1, lng: -119.0, timeZoneId: "America/Los_Angeles" };
+const form = { ownerUserId: user.id, listingType: "yard_sale", tier: "featured", title: "Test sale", selectedRangeStartDate: "2026-11-20", selectedRangeEndDate: "2026-11-22", openTime: "08:00", closeTime: "16:00", photoUrls: [], lat: 36.1, lng: -119.0, timeZoneId: "America/Los_Angeles" };
 const prepare = (patch = {}, at = now, owner = user) => server.preparePreSpreeListing({ ...form, ...patch }, owner, "America/Los_Angeles", at);
 const published = prepare().data;
 
 test("client and server eligibility rules remain identical", async () => {
   assert.equal(await readFile("src/lib/preSpree.js", "utf8"), await readFile("base44/shared/preSpreeRules.ts", "utf8"));
 });
-test("any consecutive range within Friday through Sunday qualifies", () => {
+test("only the full locked Friday through Sunday range qualifies", () => {
   for (const range of [["2026-11-20", "2026-11-20"], ["2026-11-20", "2026-11-21"], ["2026-11-20", "2026-11-22"], ["2026-11-21", "2026-11-22"], ["2026-11-21", "2026-11-21"], ["2026-11-22", "2026-11-22"]]) {
     const data = { ...form, selectedRangeStartDate: range[0], selectedRangeEndDate: range[1] };
-    assert.equal(ui.isPreSpreeEligible(data, now), true);
-    assert.ok(prepare(data).data);
+    const fullWeekend = range[0] === ui.PRE_SPREE_START && range[1] === ui.PRE_SPREE_END;
+    assert.equal(ui.isPreSpreeEligible(data, now), fullWeekend);
+    assert.equal(Boolean(prepare(data).data), fullWeekend);
   }
 });
 test("dates outside the promotion, reversed dates, other tiers, events and demos do not qualify", () => {
@@ -50,7 +51,7 @@ test("server sets zero payment and scheduled state, ignoring caller payment valu
   assert.equal(data.pricePaid, 0);
   assert.equal(data.payment_status, "waived");
   assert.equal(data.status, "scheduled");
-  assert.equal(data.startDateTime, "2026-11-21T16:00:00.000Z");
+  assert.equal(data.startDateTime, "2026-11-20T16:00:00.000Z");
   assert.equal(data.endDateTime, "2026-11-23T00:00:00.000Z");
   assert.equal(data.early_visibility_enabled, false);
   assert.equal(data.pre_spree_published_at, now.toISOString());
@@ -63,7 +64,7 @@ test("server requires own account, verified home, valid hours, and at most ten p
   assert.ok(prepare({ photoUrls: Array(10).fill("https://example.com/photo.jpg") }).data);
 });
 test("sale cannot publish after its closing time", () => {
-  assert.ok(prepare({ selectedRangeEndDate: "2026-11-21" }, new Date("2026-11-22T00:00:00Z")).error);
+  assert.ok(prepare({}, new Date("2026-11-23T00:00:00Z")).error);
 });
 test("public visitor sees the pin at publication without a coming-soon package", () => {
   assert.equal(visibility.getListingMapVisibilityState(published, null, { now }), "pre_spree");
@@ -249,4 +250,31 @@ test("invalid promo dates and expired drafts cannot publish free", async () => {
   assert.equal(canPublishPreSpree({ ...promo, selectedRangeEndDate: "2026-11-23" }, { now }), false);
   assert.equal(canPublishPreSpree(promo, { now: new Date("2026-11-24T18:00:00Z") }), false);
   assert.equal(canPublishPreSpree(promo, { now, enabled: false }), false);
+});
+
+test("publish endpoint rejects shortened promo dates without writing", async () => {
+  for (const dates of [{ selectedRangeStartDate: "2026-11-21" }, { selectedRangeEndDate: "2026-11-21" }]) {
+    const result = await invoke({ action: "pre_spree_create", data: { ...form, ...dates } });
+    assert.equal(result.status, 400);
+    assert.equal(result.writes.length, 0);
+  }
+});
+
+test("update endpoint rejects shortening either locked date", async () => {
+  for (const data of [{ selectedRangeStartDate: "2026-11-21" }, { selectedRangeEndDate: "2026-11-21" }]) {
+    const result = await invoke({ action: "update", listing_id: "sale", data }, user, { ...published, id: "sale" });
+    assert.equal(result.status, 400);
+    assert.equal(result.writes.length, 0);
+  }
+});
+
+test("joining during the weekend keeps fixed dates and can publish before closing", async () => {
+  const { selectPreSpreeOffer, canPublishPreSpree } = await import("../preSpreeSelection.js");
+  for (const at of [new Date("2026-11-21T18:00:00Z"), new Date("2026-11-22T18:00:00Z")]) {
+    const selected = selectPreSpreeOffer(form, at);
+    assert.equal(selected.selectedRangeStartDate, ui.PRE_SPREE_START);
+    assert.equal(selected.selectedRangeEndDate, ui.PRE_SPREE_END);
+    assert.equal(canPublishPreSpree(selected, { now: at }), true);
+    assert.ok(prepare(selected, at).data);
+  }
 });
