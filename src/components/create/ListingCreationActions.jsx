@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export default function ListingCreationActions({ step, setStep, paymentStepNumber, entryStepNumber, isAdminCreate, isAssistedPost, isDeveloperMode, listingType, tier, regularAddressIncomplete, userHasVerifiedPrimaryAddress, isStartingPayment, isCreating, selectedUserForAdmin, onNext, onSubmit, onAdminCreate }) {
+export default function ListingCreationActions({ step, setStep, paymentStepNumber, entryStepNumber, isAdminCreate, isAssistedPost, isDeveloperMode, listingType, tier, preSpreeSelected = false, regularAddressIncomplete, userHasVerifiedPrimaryAddress, isStartingPayment, isCreating, selectedUserForAdmin, onNext, onSubmit, onAdminCreate }) {
   const continuing = isAdminCreate ? step < paymentStepNumber : step < entryStepNumber;
   const nextDisabled = !isDeveloperMode && step === 2 && listingType !== "neighborhood_sale" && listingType !== "event" && (isAssistedPost ? regularAddressIncomplete : regularAddressIncomplete && !userHasVerifiedPrimaryAddress);
   const publishLabel = isStartingPayment ? (listingType === "neighborhood_sale" ? "Saving Payment Method..." : "Starting Payment...")
@@ -14,6 +14,7 @@ export default function ListingCreationActions({ step, setStep, paymentStepNumbe
     : listingType === "event" ? "Continue to Payment →"
     : listingType === "halloween_spot" ? "Publish Halloween Spot 🎃"
     : listingType === "neighborhood_sale" ? "Continue to Payment Setup →"
+    : preSpreeSelected ? "Publish Free Pre-Spree Sale"
     : ["featured", "premium"].includes(tier) ? "Continue to Payment →" : "Publish Listing 🎉";
   const publish = () => {
     if (isAdminCreate && step === paymentStepNumber) {

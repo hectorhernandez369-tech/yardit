@@ -47,6 +47,7 @@ export default function CreateListingResidential({
         reservedDates={reservedDates}
         onResidentialConflictInteraction={onResidentialConflictInteraction}
         isDeveloperMode={isDeveloperMode}
+        allowPreSpree={!isAdminCreate && !isAdminDemoMode && !isAssistedPost}
       />
     );
   }

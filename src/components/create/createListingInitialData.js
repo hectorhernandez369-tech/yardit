@@ -1,6 +1,6 @@
 export default function createListingInitialData() {
   return {
-    listingType: "yard_sale", tier: "featured", event_tier: "event", event_add_ons: {},
+    listingType: "yard_sale", tier: "featured", listing_offer: "", event_tier: "event", event_add_ons: {},
     event_animation: "", event_flyer_url: "", event_photo_gallery_count: 0, coming_soon_package: "",
     event_name: "", event_description: "", event_category: "", event_icon: "calendar", event_photos: [],
     halloween_icon_key: "halloween_decorations", halloween_spot_type: "halloween_decorations",

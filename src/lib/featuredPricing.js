@@ -1,11 +1,12 @@
-import { isPreSpreeEligible, isPreSpreeOfferOpen } from "./preSpree.js";
+import { isPreSpreeOfferOpen } from "./preSpree.js";
+import { canPublishPreSpree } from "./preSpreeSelection.js";
 
 export const FEATURED_PRICE_CENTS = 499;
 
 export function getFeaturedPricing(listing, { enabled = true, now = new Date() } = {}) {
   const showPromotion = enabled && listing?.listingType === "yard_sale" &&
     isPreSpreeOfferOpen(now, listing?.timeZoneId);
-  const isFree = showPromotion && isPreSpreeEligible(listing, now);
+  const isFree = canPublishPreSpree(listing, { enabled, now });
   const hasDates = Boolean(listing?.selectedRangeStartDate && listing?.selectedRangeEndDate);
   const scheduleMessage = isFree
     ? "Pre-Spree applied: Featured is FREE for these dates. Publish without payment."
