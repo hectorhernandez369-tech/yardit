@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { isPreSpreeListing, isPreSpreePublished, isPreSpreeOpenNow } from "@/lib/preSpree";
 import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import { getUserDisplayName } from "@/lib/userIdentity";
 import { getStateAbbreviation } from "@/lib/listingLocation";
@@ -152,6 +153,10 @@ export function formatListingDateTimeDisplay(listing) {
 export const formatListingScheduleText = formatListingDateTimeDisplay;
 
 export function getListingStatusUi(listing) {
+  if (isPreSpreePublished(listing)) {
+    const isActive = isPreSpreeOpenNow(listing);
+    return { status: isActive ? "active" : "scheduled", isPreview: false, isComingSoon: false, isActive, label: isActive ? "OPEN NOW" : "Scheduled" };
+  }
   const derivedStatus = getListingDisplayStatus(listing);
   const status =
     listing?.mapState === "preview" || listing?.mapState === "daily_preview"
@@ -192,6 +197,7 @@ export function getListingTypeBadgeLabel(listing) {
 }
 
 export function getListingSecondaryBadgeLabel(listing) {
+  if (isPreSpreeListing(listing)) return "Pre-Spree Weekend";
   if (listing?.listingType === "event") {
     return listing?.event_category || formatListingTierLabel(listing?.event_tier || listing?.tier);
   }

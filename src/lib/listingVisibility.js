@@ -1,5 +1,6 @@
 import { shouldShowListingOnMainMap, normalizeNeighborhoodJoinStatus, deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
 import { isDeveloperListing } from "@/lib/createListingHelpers";
+import { isPreSpreePublished } from "@/lib/preSpree";
 
 const TERMINAL_HIDDEN_STATUSES = new Set([
   "expired",
@@ -307,6 +308,10 @@ export function getListingPublicVisibilityDecision(listing, context = {}) {
   if (isNeighborhoodParticipant(listing)) return { ...base, reason: "neighborhood_participant_hidden_as_standalone" };
   if (!hasPublicPayment(listing)) return { ...base, reason: "payment_not_publicly_valid" };
 
+  if (isPreSpreePublished(listing, now)) {
+    return { ...base, passedPublicVisibility: true, reason: "public_pre_spree_visible" };
+  }
+
   if (isPremiumComingSoonPublicListing(listing, now)) {
     return { ...base, passedPublicVisibility: true, reason: "public_coming_soon_visible" };
   }
@@ -386,6 +391,7 @@ export function getListingMapVisibilityState(listing, currentUser, context = {})
   const now = context.now instanceof Date ? context.now : new Date();
   const publicDecision = getListingPublicVisibilityDecision(listing, { ...context, now, currentUser });
   if (publicDecision.passedPublicVisibility) {
+    if (publicDecision.reason === "public_pre_spree_visible") return "pre_spree";
     if (publicDecision.reason === "public_daily_preview_visible") return "daily_preview";
     if (listing?.listingType === "neighborhood_sale") {
       return deriveNeighborhoodEventState(listing, now) === "coming_soon" ? "coming_soon" : "active";

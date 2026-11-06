@@ -29,6 +29,8 @@ import {
   shouldShowListingInNeighborhoodParticipantView } from
 "@/lib/neighborhoodSaleState";
 import { getListingMapVisibilityState, debugListingVisibility, getListingOwnerId } from "@/lib/listingVisibility";
+import { isPreSpreePublished } from "@/lib/preSpree";
+import { buildPreSpreePinSvg } from "@/lib/preSpreePin";
 
 const UPCOMING_PREVIEW_LABEL = "COMING SOON";
 import CheckInButton from "../components/map/CheckInButton";
@@ -185,6 +187,10 @@ function getChestIcon(size, count = 0, isSelected = false, faded = false) {
 
 // Custom marker icons based on tier
 const createIcon = (type, tier, isSelected, location, zoom = 13, halloweenSizeOverride = null) => {
+  if (isPreSpreePublished(location)) {
+    const size = isSelected ? 28 : 25;
+    return getCachedIcon(`pre_spree_${size}`, buildPreSpreePinSvg(size), size);
+  }
   const preAct = isPreActivated(location);
   const isPreviewState = location?.mapState === "preview" || location?.mapState === "daily_preview" || location?.ownerUpcomingPreview === true;
   const normalOpacity = isPreviewState ? 0.35 : preAct ? 0.6 : 1.0;
@@ -872,7 +878,11 @@ export default function HomePage() {
   const isLoading = (isPublicHomeMode ? isLoadingPublicMapData : isLoadingPrivateListings) || isLoadingHalloweenLocations;
 
   useEffect(() => {
-    if (isPublicHomeMode) return () => {};
+    if (isPublicHomeMode) {
+      return base44.entities.Listing.subscribe(() => {
+        queryClient.invalidateQueries({ queryKey: ["publicMapData"] });
+      });
+    }
     const unsubscribeListings = base44.entities.Listing.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ["listings", "private"] });
     });
@@ -1370,7 +1380,7 @@ export default function HomePage() {
       const isPreview = listing.mapState === "preview";
       const isDailyPreview = listing.mapState === "daily_preview";
       const isComingSoon = listing.mapState === "coming_soon";
-      const isActive = listing.mapState === "active";
+      const isActive = listing.mapState === "active" || listing.mapState === "pre_spree";
       const isMarquee = isMarqueeListing(listing);
       const isFireworksEvent = listing.listingType === "event" && listing.event_icon === "fireworks";
 
@@ -1944,6 +1954,8 @@ export default function HomePage() {
               return (
                 <Marker
                   key={listing.id}
+                  title={isPreSpreePublished(listing) ? `Pre-Spree Weekend · ${formatListingScheduleText(listing)}` : undefined}
+                  alt={isPreSpreePublished(listing) ? "Pre-Spree yard sale" : "Map marker"}
                   ref={(ref) => {if (ref) markerRefsMap.current[listing.id] = ref;}}
                   position={[listing.lat, listing.lng]}
                   zIndexOffset={isFireworksEvent ? 10000 : 0}

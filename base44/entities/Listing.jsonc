@@ -636,6 +636,29 @@
     "specialty_marquee_headline": {
       "type": "string",
       "description": "Short marquee headline"
+    },
+    "pre_spree_campaign": {
+      "type": "string",
+      "description": "Server-assigned Pre-Spree promotion identifier",
+      "rls": {
+        "update": {
+          "user_condition": {
+            "collaborator_role": "editor"
+          }
+        }
+      }
+    },
+    "pre_spree_published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Server-assigned publication time for immediate Pre-Spree map visibility",
+      "rls": {
+        "update": {
+          "user_condition": {
+            "collaborator_role": "editor"
+          }
+        }
+      }
     }
   },
   "required": [
