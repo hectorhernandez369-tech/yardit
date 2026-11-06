@@ -164,7 +164,7 @@ export default function CreateListingPage() {
       setIsAssistedPost(restoredFormData.assisted_post === true);
       setFormData((prev) => developerDraft ? { ...prev, ...restoredFormData } : normalizeResidentialEventSingleDay({ ...prev, ...restoredFormData }));
       localStorage.removeItem(DRAFT_RESUME_STORAGE_KEY);
-      if (!developerDraft && hasPastSelectedDates(draft.formData)) {
+      if (!developerDraft && hasPastSelectedDates(draft.formData) && !canPublishPreSpree(restoredFormData)) {
         setStep(draft.formData.listingType === "event" ? 3 : 3);
         toast.warning("This draft has dates that have already passed. Please choose new dates before continuing.");
       } else {
@@ -1752,7 +1752,7 @@ export default function CreateListingPage() {
       setStep(2);
       return;
     }
-    if (["yard_sale", "neighborhood_sale"].includes(formData.listingType) && hasPastSelectedDates(formData)) {
+    if (["yard_sale", "neighborhood_sale"].includes(formData.listingType) && hasPastSelectedDates(formData) && !canPublishPreSpree(formData)) {
       setStep(3);
       toast.error("The selected dates have already passed. Please choose new dates before continuing.");
       return;
@@ -1946,7 +1946,7 @@ export default function CreateListingPage() {
     }
     if (isPreSpreeSelected(formData)) {
       if (!canPublishPreSpree(formData, { enabled: !isAdminCreate && !isAdminDemoMode && !isAssistedPost && !isDeveloperMode })) {
-        toast.error("Pre-Spree is available only for November 20–22, 2026. Choose eligible dates or select a regular tier.");
+        toast.error("Pre-Spree requires the locked November 20–22, 2026 dates. Reselect the promo or choose a regular tier.");
         setStep(3);
         return;
       }

@@ -26,12 +26,15 @@ export function hasPreSpreeDates(listing) {
     PRE_SPREE_DATES.includes(end) && start <= end;
 }
 
+export function hasFixedPreSpreeDates(listing) {
+  return listing?.selectedRangeStartDate === PRE_SPREE_START && listing?.selectedRangeEndDate === PRE_SPREE_END;
+}
 export function isPreSpreeEligible(listing, now = new Date()) {
   const { date } = preSpreeLocalParts(now, listing?.timeZoneId);
   return listing?.listingType === "yard_sale" && listing?.tier === "featured" &&
     !listing?.is_demo_listing && !listing?.developer_schedule_override &&
     !listing?.neighborhood_sale_id && ["", "none"].includes(listing?.neighborhood_join_status || "") &&
-    hasPreSpreeDates(listing) && isPreSpreeOfferOpen(now, listing?.timeZoneId) &&
+    hasFixedPreSpreeDates(listing) && isPreSpreeOfferOpen(now, listing?.timeZoneId) &&
     date <= listing.selectedRangeEndDate;
 }
 

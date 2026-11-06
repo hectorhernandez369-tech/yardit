@@ -13,7 +13,7 @@ import OpenHoursFields from "./OpenHoursFields";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
 import DeveloperScheduleFields from "@/components/developer/DeveloperScheduleFields";
 import PreSpreeTierCard from "./PreSpreeTierCard";
-import { PRE_SPREE_START, PRE_SPREE_END, hasPreSpreeDates, isPreSpreeOfferOpen, preSpreeLocalParts } from "@/lib/preSpree";
+import { PRE_SPREE_START, PRE_SPREE_END, hasFixedPreSpreeDates, isPreSpreeOfferOpen } from "@/lib/preSpree";
 import { isPreSpreeSelected, selectPreSpreeOffer, selectStandardTier } from "@/lib/preSpreeSelection";
 
 const FREE_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/9568bdd43_Screenshot_20260706_105625_Yardit.jpg";
@@ -88,7 +88,15 @@ export default function StepThree({
   const preSpreeSelected = isPreSpreeSelected(formData);
   const showPreSpree = allowPreSpree && !isDeveloperMode && formData.listingType === "yard_sale" && (isPreSpreeOfferOpen(new Date(), formData.timeZoneId) || preSpreeSelected);
   const selectedTier = preSpreeSelected ? "pre_spree" : tier;
-  const promoMinDate = [PRE_SPREE_START, preSpreeLocalParts(new Date(), formData.timeZoneId).date].sort().at(-1);
+  useEffect(() => {
+    if (preSpreeSelected && !hasFixedPreSpreeDates(formData)) {
+      setFormData((current) => isPreSpreeSelected(current) ? {
+        ...current,
+        selectedRangeStartDate: PRE_SPREE_START,
+        selectedRangeEndDate: PRE_SPREE_END,
+      } : current);
+    }
+  }, [preSpreeSelected, formData.selectedRangeStartDate, formData.selectedRangeEndDate, setFormData]);
   const [nearbyNeighborhoodSales, setNearbyNeighborhoodSales] = useState([]);
   const [areNeighborhoodSalesCollapsed, setAreNeighborhoodSalesCollapsed] = useState(false);
   const [pendingPromoChange, setPendingPromoChange] = useState(null);
@@ -100,8 +108,8 @@ export default function StepThree({
   };
 
   const applyPromoAwareFormData = (nextData) => {
-    if (isPreSpreeSelected(nextData) && nextData.selectedRangeStartDate && nextData.selectedRangeEndDate && !hasPreSpreeDates(nextData)) {
-      toast.error("Pre-Spree dates must stay within November 20–22. Choose Featured for other dates.");
+    if (isPreSpreeSelected(nextData) && !hasFixedPreSpreeDates(nextData)) {
+      toast.error("Pre-Spree dates are locked to November 20–22. Choose Featured for other dates.");
       return;
     }
     if (!isDeveloperMode && isOutsidePromoWindow(nextData)) {
@@ -434,7 +442,7 @@ export default function StepThree({
                 <h3 className="text-[#2C4F4E] font-semibold">Live Event / Sale Schedule</h3>
                 <p className="text-sm text-[#1F2937] opacity-80">
                   {preSpreeSelected
-                    ? "Pre-Spree: choose 1–3 consecutive days within November 20–22. FREE, with no payment required."
+                    ? "Pre-Spree: November 20–22, 2026. Dates are automatically filled and locked. FREE, with no payment required."
                     : tier === "featured"
                     ? "Featured listings can run up to 3 consecutive days." 
                     : "Premium listings can run up to 5 consecutive days."}
@@ -462,9 +470,10 @@ export default function StepThree({
                   <Label className="text-[#2C4F4E]">Start Date *</Label>
                   <Input
                     type="date"
-                    min={preSpreeSelected ? promoMinDate : new Date().toISOString().split('T')[0]}
+                    disabled={preSpreeSelected}
+                    min={preSpreeSelected ? PRE_SPREE_START : new Date().toISOString().split('T')[0]}
                     max={preSpreeSelected ? PRE_SPREE_END : undefined}
-                    value={formData.selectedRangeStartDate || ""}
+                    value={preSpreeSelected ? PRE_SPREE_START : formData.selectedRangeStartDate || ""}
                     onChange={(e) => {
                       markResidentialConflictInteraction();
                       const newStart = e.target.value;
@@ -472,9 +481,7 @@ export default function StepThree({
                       
                       if (newStart) {
                         const d = new Date(`${newStart}T00:00:00`);
-                        if (preSpreeSelected) {
-                          if (!nextState.selectedRangeEndDate || nextState.selectedRangeEndDate < newStart || nextState.selectedRangeEndDate > PRE_SPREE_END) nextState.selectedRangeEndDate = newStart;
-                        } else if (tier === "featured") {
+                        if (tier === "featured") {
                           if (!nextState.selectedRangeEndDate) {
                             nextState.selectedRangeEndDate = newStart;
                           } else {
@@ -508,14 +515,15 @@ export default function StepThree({
                   <Label className="text-[#2C4F4E]">End Date *</Label>
                   <Input
                     type="date"
-                    min={formData.selectedRangeStartDate || (preSpreeSelected ? promoMinDate : new Date().toISOString().split('T')[0])}
+                    disabled={preSpreeSelected}
+                    min={preSpreeSelected ? PRE_SPREE_END : formData.selectedRangeStartDate || new Date().toISOString().split('T')[0]}
                     max={preSpreeSelected ? PRE_SPREE_END : (tier === "premium" || tier === "featured") && formData.selectedRangeStartDate ? (() => {
                       const d = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
                       d.setDate(d.getDate() + (tier === "featured" ? 2 : 4));
                       const pad = (n) => String(n).padStart(2, "0");
                       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
                     })() : undefined}
-                    value={formData.selectedRangeEndDate || ""}
+                    value={preSpreeSelected ? PRE_SPREE_END : formData.selectedRangeEndDate || ""}
                     onChange={(e) => {
                        markResidentialConflictInteraction();
                        if (tier === "featured") {

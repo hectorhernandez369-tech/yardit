@@ -243,8 +243,8 @@ export default async function(req) {
       if (!(await canManageListing(base44, user, existing))) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
       const nextData = normalizeResidentialEventSingleDay({ ...existing, ...data, listingType: data.listingType || existing.listingType });
-      if (isPreSpreeListing(existing) && (nextData.tier !== 'featured' || nextData.listingType !== 'yard_sale' || !hasPreSpreeDates(nextData))) {
-        return Response.json({ error: 'Pre-Spree sales must stay on November 20–22. Create a separate listing for other dates or tiers.' }, { status: 400 });
+      if (isPreSpreeListing(existing) && (nextData.tier !== 'featured' || nextData.listingType !== 'yard_sale' || !hasPreSpreeDates(nextData) || nextData.selectedRangeStartDate !== existing.selectedRangeStartDate || nextData.selectedRangeEndDate !== existing.selectedRangeEndDate)) {
+        return Response.json({ error: 'Pre-Spree dates are locked. Create a separate listing for other dates or tiers.' }, { status: 400 });
       }
       if (isPreSpreeListing(existing)) {
         const schedule = getPreSpreeSchedule(nextData);

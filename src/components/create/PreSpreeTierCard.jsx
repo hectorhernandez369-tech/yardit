@@ -19,7 +19,7 @@ export default function PreSpreeTierCard({ selected, onSelect }) {
         <div className="shrink-0 text-right"><s className="block text-sm text-slate-400">$4.99</s><span className="text-xl font-extrabold text-amber-300">FREE</span></div>
       </div>
       <p className="mt-3 text-sm text-slate-200">Featured benefits · Up to 10 photos · Special map pin visible immediately</p>
-      <p className="mt-1 text-xs text-slate-300">Choose 1–3 consecutive days within November 20–22. No payment required.</p>
+      <p className="mt-1 text-xs text-slate-300">November 20–22 dates are automatically filled and locked. No payment required.</p>
     </button>
   );
 }
