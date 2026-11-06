@@ -1,4 +1,4 @@
-import { PRE_SPREE_CAMPAIGN, isPreSpreeEligible, preSpreeLocalParts } from "./preSpreeRules.ts";
+import { PRE_SPREE_CAMPAIGN, isPreSpreeEligible, preSpreeLocalParts, hasPreSpreeDates } from "./preSpreeRules.ts";
 
 function utcForLocal(date, time, timeZoneId) {
   const wall = Date.parse(`${date}T${time}:00Z`);
@@ -8,6 +8,21 @@ function utcForLocal(date, time, timeZoneId) {
     guess += wall - Date.parse(`${parts.date}T${parts.time}:00Z`);
   }
   return new Date(guess).toISOString();
+}
+
+export function getPreSpreeSchedule(data) {
+  if (!hasPreSpreeDates(data)) return { error: "Pre-Spree dates must stay within November 21–22, 2026." };
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(data.openTime || "") ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.closeTime || "") ||
+      data.openTime < "05:00" || data.closeTime > "22:00" || data.openTime >= data.closeTime) {
+    return { error: "Choose opening and closing times between 5 AM and 10 PM." };
+  }
+  if (!Array.isArray(data.photoUrls) || data.photoUrls.length > 10 || data.photoUrls.some(url => typeof url !== "string")) {
+    return { error: "Featured includes up to 10 photos." };
+  }
+  const startDateTime = utcForLocal(data.selectedRangeStartDate, data.openTime, data.timeZoneId);
+  const endDateTime = utcForLocal(data.selectedRangeEndDate, data.closeTime, data.timeZoneId);
+  return { startDateTime, endDateTime };
 }
 
 export function preparePreSpreeListing(data, user, timeZoneId, now = new Date()) {
@@ -22,16 +37,9 @@ export function preparePreSpreeListing(data, user, timeZoneId, now = new Date())
     return { error: "Please confirm your home address before publishing." };
   }
   if (!String(data.title || "").trim()) return { error: "Please name your yard sale." };
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(data.openTime || "") ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.closeTime || "") ||
-      data.openTime < "05:00" || data.closeTime > "22:00" || data.openTime >= data.closeTime) {
-    return { error: "Choose opening and closing times between 5 AM and 10 PM." };
-  }
-  if (!Array.isArray(data.photoUrls) || data.photoUrls.length > 10 || data.photoUrls.some(url => typeof url !== "string")) {
-    return { error: "Featured includes up to 10 photos." };
-  }
-  const startDateTime = utcForLocal(data.selectedRangeStartDate, data.openTime, timeZoneId);
-  const endDateTime = utcForLocal(data.selectedRangeEndDate, data.closeTime, timeZoneId);
+  const schedule = getPreSpreeSchedule(safe);
+  if (schedule.error) return schedule;
+  const { startDateTime, endDateTime } = schedule;
   if (now >= new Date(endDateTime)) return { error: "This sale's closing time has passed." };
   const selectedLat = Number.isFinite(data.lat) ? data.lat : lat;
   const selectedLng = Number.isFinite(data.lng) ? data.lng : lng;

@@ -3,7 +3,7 @@ import { getDemoAuthorization, hasDemoBypassRequest, sanitizeDemoFields } from '
 import { hasResidentialVip, eligibleFounderListing, founderWaiver } from '../../shared/founderVip.ts';
 import { createDeveloperListing } from '../../shared/developerListings.ts';
 import tzLookup from 'npm:tz-lookup@6.1.25';
-import { preparePreSpreeListing } from '../../shared/preSpree.ts';
+import { preparePreSpreeListing, getPreSpreeSchedule } from '../../shared/preSpree.ts';
 import { isPreSpreeListing, hasPreSpreeDates } from '../../shared/preSpreeRules.ts';
 
 const DESCRIPTION_LIMITS = {
@@ -245,6 +245,11 @@ export default async function(req) {
       const nextData = normalizeResidentialEventSingleDay({ ...existing, ...data, listingType: data.listingType || existing.listingType });
       if (isPreSpreeListing(existing) && (nextData.tier !== 'featured' || nextData.listingType !== 'yard_sale' || !hasPreSpreeDates(nextData))) {
         return Response.json({ error: 'Pre-Spree sales must stay on November 21–22. Create a separate listing for other dates or tiers.' }, { status: 400 });
+      }
+      if (isPreSpreeListing(existing)) {
+        const schedule = getPreSpreeSchedule(nextData);
+        if (schedule.error) return Response.json({ error: schedule.error }, { status: 400 });
+        data = { ...data, ...schedule };
       }
       const validation = validateDescription(nextData);
       if (!validation.ok) return Response.json({ error: validation.error }, { status: 400 });

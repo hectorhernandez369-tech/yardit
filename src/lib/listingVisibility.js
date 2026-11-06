@@ -1,6 +1,6 @@
 import { shouldShowListingOnMainMap, normalizeNeighborhoodJoinStatus, deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
 import { isDeveloperListing } from "@/lib/createListingHelpers";
-import { isPreSpreePublished } from "@/lib/preSpree";
+import { isPreSpreePublished, isPreSpreeListing, PRE_SPREE_CAMPAIGN } from "@/lib/preSpree";
 
 const TERMINAL_HIDDEN_STATUSES = new Set([
   "expired",
@@ -89,6 +89,7 @@ function isTerminalHidden(listing, now = new Date()) {
 }
 
 function hasPublicPayment(listing) {
+  if (listing?.pre_spree_campaign === PRE_SPREE_CAMPAIGN && !isPreSpreeListing(listing)) return false;
   if (listing?.listingType === "event") return true;
   const tier = getEffectiveTier(listing);
   if (!PAID_TIERS.has(tier)) return true;

@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
 import tzLookup from 'npm:tz-lookup@6.1.25';
 import { isDeveloperListing } from '../../shared/developerAccess.ts';
+import { isPreSpreeListing, PRE_SPREE_CAMPAIGN } from '../../shared/preSpreeRules.ts';
 
 const PUBLIC_LISTING_STATUSES = new Set(['active', 'scheduled', 'coming_soon', 'activated', 'activated_locked']);
 const HIDDEN_STATUSES = new Set(['draft', 'hidden', 'under_review', 'suspended', 'completed', 'expired', 'closed', 'cancelled', 'canceled', 'deleted', 'removed', 'payment_pending', 'pending_payment']);
@@ -21,6 +22,7 @@ function isValidCoordinate(value) {
 }
 
 function hasPublicPayment(listing) {
+  if (listing?.pre_spree_campaign === PRE_SPREE_CAMPAIGN && !isPreSpreeListing(listing)) return false;
   if (listing?.listingType === 'event') return true;
   const tier = listing?.tier;
   if (!PAID_TIERS.has(tier)) return true;
