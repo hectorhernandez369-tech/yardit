@@ -347,11 +347,11 @@ export default function StepThree({
                     <div className="font-semibold text-[#2C4F4E] flex flex-wrap items-center gap-2 text-base">
                       Featured
                       {showPreSpree
-                        ? <span className="text-[10px] bg-slate-950 text-amber-300 px-2 py-0.5 rounded-full font-bold tracking-wide">PRE-SPREE SPECIAL · NOV 21–22</span>
+                        ? <span className="text-[10px] bg-slate-950 text-amber-300 px-2 py-0.5 rounded-full font-bold tracking-wide">PRE-SPREE SPECIAL · NOV 20–22</span>
                         : <span className="text-[10px] bg-[#5DADA5] text-white px-2 py-0.5 rounded-full font-bold tracking-wide">RECOMMENDED</span>}
                       {tier === "featured" && <span className="text-xs bg-[#2C4F4E] text-white px-2 py-0.5 rounded-full">Selected</span>}
                     </div>
-                    {showPreSpree && <p className="mt-2 text-sm font-medium text-[#2C4F4E]">Pre-Spree Special: FREE November 21–22, 2026.</p>}
+                    {showPreSpree && <p className="mt-2 text-sm font-medium text-[#2C4F4E]">Pre-Spree Special: FREE November 20–22, 2026.</p>}
                     <div className="mt-3 overflow-hidden rounded-xl border border-[#2C4F4E]/20 bg-white">
                       <img
                         src={FEATURED_TIER_SCREENSHOT_URL}
@@ -375,9 +375,9 @@ export default function StepThree({
 
               {showPreSpree && (
                 <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-[#2C4F4E]">
-                  <p className="font-bold">Pre-Spree Weekend · November 21–22</p>
+                  <p className="font-bold">Pre-Spree Weekend · November 20–22</p>
                   <p>Clear out before you check out. Free Featured listing, up to 10 photos, and your special map pin appears as soon as you publish.</p>
-                  <p className="mt-1 text-xs">For sales held November 21 and/or 22, 2026. Other dates are $4.99.</p>
+                  <p className="mt-1 text-xs">For sales held any 1–3 consecutive days within November 20–22, 2026. Other dates are $4.99.</p>
                   {(tier !== "featured" || !preSpreeEligible) && <Button type="button" variant="outline" className="mt-2" onClick={() => {
                     markResidentialConflictInteraction();
                     applyPromoAwareFormData({ ...formData, tier: "featured", selectedRangeStartDate: PRE_SPREE_START, selectedRangeEndDate: PRE_SPREE_END, earlyVisibilityDays: 0, photoUrls: (formData.photoUrls || []).slice(0, 10) });

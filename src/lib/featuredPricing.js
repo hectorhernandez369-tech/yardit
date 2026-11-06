@@ -12,7 +12,7 @@ export function getFeaturedPricing(listing, { enabled = true, now = new Date() }
     : showPromotion && hasDates
       ? "These dates aren’t included in Pre-Spree. Featured costs $4.99."
       : showPromotion
-        ? "Featured costs $4.99. Select November 21 and/or 22, 2026 to get it FREE."
+        ? "Featured costs $4.99. Select any 1–3 consecutive days within November 20–22, 2026 to get it FREE."
         : "Featured costs $4.99 for your selected dates.";
   return { showPromotion, isFree, hasDates, amountCents: isFree ? 0 : FEATURED_PRICE_CENTS, scheduleMessage };
 }

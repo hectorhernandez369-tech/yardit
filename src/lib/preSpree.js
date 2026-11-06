@@ -1,7 +1,8 @@
 // Keep campaign rules aligned with the server; tests verify this contract.
 export const PRE_SPREE_CAMPAIGN = "pre_spree_2026";
-export const PRE_SPREE_START = "2026-11-21";
+export const PRE_SPREE_START = "2026-11-20";
 export const PRE_SPREE_END = "2026-11-22";
+export const PRE_SPREE_DATES = [PRE_SPREE_START, "2026-11-21", PRE_SPREE_END];
 
 export function preSpreeLocalParts(now = new Date(), timeZone = "America/Los_Angeles") {
   try {
@@ -21,8 +22,8 @@ export function isPreSpreeOfferOpen(now = new Date(), timeZone) {
 export function hasPreSpreeDates(listing) {
   const start = listing?.selectedRangeStartDate;
   const end = listing?.selectedRangeEndDate;
-  return [PRE_SPREE_START, PRE_SPREE_END].includes(start) &&
-    [PRE_SPREE_START, PRE_SPREE_END].includes(end) && start <= end;
+  return PRE_SPREE_DATES.includes(start) &&
+    PRE_SPREE_DATES.includes(end) && start <= end;
 }
 
 export function isPreSpreeEligible(listing, now = new Date()) {

@@ -244,7 +244,7 @@ export default async function(req) {
 
       const nextData = normalizeResidentialEventSingleDay({ ...existing, ...data, listingType: data.listingType || existing.listingType });
       if (isPreSpreeListing(existing) && (nextData.tier !== 'featured' || nextData.listingType !== 'yard_sale' || !hasPreSpreeDates(nextData))) {
-        return Response.json({ error: 'Pre-Spree sales must stay on November 21–22. Create a separate listing for other dates or tiers.' }, { status: 400 });
+        return Response.json({ error: 'Pre-Spree sales must stay on November 20–22. Create a separate listing for other dates or tiers.' }, { status: 400 });
       }
       if (isPreSpreeListing(existing)) {
         const schedule = getPreSpreeSchedule(nextData);

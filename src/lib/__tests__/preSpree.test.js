@@ -20,8 +20,8 @@ const published = prepare().data;
 test("client and server eligibility rules remain identical", async () => {
   assert.equal(await readFile("src/lib/preSpree.js", "utf8"), await readFile("base44/shared/preSpreeRules.ts", "utf8"));
 });
-test("both days or either individual day qualify", () => {
-  for (const range of [["2026-11-21", "2026-11-22"], ["2026-11-21", "2026-11-21"], ["2026-11-22", "2026-11-22"]]) {
+test("any consecutive range within Friday through Sunday qualifies", () => {
+  for (const range of [["2026-11-20", "2026-11-20"], ["2026-11-20", "2026-11-21"], ["2026-11-20", "2026-11-22"], ["2026-11-21", "2026-11-22"], ["2026-11-21", "2026-11-21"], ["2026-11-22", "2026-11-22"]]) {
     const data = { ...form, selectedRangeStartDate: range[0], selectedRangeEndDate: range[1] };
     assert.equal(ui.isPreSpreeEligible(data, now), true);
     assert.ok(prepare(data).data);
@@ -29,7 +29,7 @@ test("both days or either individual day qualify", () => {
 });
 test("dates outside the promotion, reversed dates, other tiers, events and demos do not qualify", () => {
   for (const patch of [
-    { selectedRangeStartDate: "2026-11-20" }, { selectedRangeEndDate: "2026-11-23" },
+    { selectedRangeStartDate: "2026-11-19" }, { selectedRangeEndDate: "2026-11-23" },
     { selectedRangeStartDate: "2026-11-22", selectedRangeEndDate: "2026-11-21" },
     { selectedRangeStartDate: "" }, { tier: "premium" }, { tier: "free" },
     { listingType: "event" }, { is_demo_listing: true }, { developer_schedule_override: true },
@@ -191,7 +191,7 @@ test("changing weekends recalculates price and checkout eligibility in both dire
 test("partial overlap with Pre-Spree is regular Featured pricing", async () => {
   const { getFeaturedPricing } = await import("../featuredPricing.js");
   for (const dates of [
-    {selectedRangeStartDate:"2026-11-20",selectedRangeEndDate:"2026-11-22"},
+    {selectedRangeStartDate:"2026-11-19",selectedRangeEndDate:"2026-11-21"},
     {selectedRangeStartDate:"2026-11-21",selectedRangeEndDate:"2026-11-23"},
   ]) assert.equal(getFeaturedPricing({...form,...dates}, {now}).amountCents, 499);
 });
@@ -199,4 +199,17 @@ test("expired promotions and excluded creation modes cannot advertise free check
   const { getFeaturedPricing } = await import("../featuredPricing.js");
   assert.equal(getFeaturedPricing(form, {now,enabled:false}).isFree, false);
   assert.equal(getFeaturedPricing(form, {now:new Date("2026-11-24T18:00:00Z")}).showPromotion, false);
+});
+
+test("Friday through Sunday receives free pricing, all three active dates, and immediate visibility", async () => {
+  const { getFeaturedPricing } = await import("../featuredPricing.js");
+  const data = { ...form, selectedRangeStartDate: "2026-11-20" };
+  assert.equal(getFeaturedPricing(data, { now }).amountCents, 0);
+  const result = await invoke({ action: "pre_spree_create", data });
+  assert.equal(result.status, 200);
+  const listing = result.body.listing;
+  assert.deepEqual(listing.activeDates, ["2026-11-20", "2026-11-21", "2026-11-22"]);
+  assert.equal(listing.startDateTime, "2026-11-20T16:00:00.000Z");
+  assert.equal(visibility.getListingMapVisibilityState(listing, null, { now }), "pre_spree");
+  assert.equal(ui.isPreSpreeOpenNow(listing, new Date("2026-11-20T16:00:00Z")), true);
 });

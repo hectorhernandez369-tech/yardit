@@ -1,4 +1,4 @@
-import { PRE_SPREE_CAMPAIGN, isPreSpreeEligible, preSpreeLocalParts, hasPreSpreeDates } from "./preSpreeRules.ts";
+import { PRE_SPREE_CAMPAIGN, PRE_SPREE_DATES, isPreSpreeEligible, preSpreeLocalParts, hasPreSpreeDates } from "./preSpreeRules.ts";
 
 function utcForLocal(date, time, timeZoneId) {
   const wall = Date.parse(`${date}T${time}:00Z`);
@@ -11,7 +11,7 @@ function utcForLocal(date, time, timeZoneId) {
 }
 
 export function getPreSpreeSchedule(data) {
-  if (!hasPreSpreeDates(data)) return { error: "Pre-Spree dates must stay within November 21–22, 2026." };
+  if (!hasPreSpreeDates(data)) return { error: "Pre-Spree dates must stay within November 20–22, 2026." };
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(data.openTime || "") ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.closeTime || "") ||
       data.openTime < "05:00" || data.closeTime > "22:00" || data.openTime >= data.closeTime) {
@@ -27,7 +27,7 @@ export function getPreSpreeSchedule(data) {
 
 export function preparePreSpreeListing(data, user, timeZoneId, now = new Date()) {
   const safe = { ...data, timeZoneId };
-  if (!isPreSpreeEligible(safe, now)) return { error: "Pre-Spree is available for Featured yard sales on November 21–22, 2026 only." };
+  if (!isPreSpreeEligible(safe, now)) return { error: "Pre-Spree is available for Featured yard sales on November 20–22, 2026 only." };
   if (data.ownerUserId && data.ownerUserId !== user.id) return { error: "Publish your Pre-Spree sale from your own account." };
   const lat = user.primary_latitude ?? user.address_lat;
   const lng = user.primary_longitude ?? user.address_lng;
@@ -55,7 +55,7 @@ export function preparePreSpreeListing(data, user, timeZoneId, now = new Date())
     status: now < new Date(startDateTime) ? "scheduled" : "active",
     activation_status: now < new Date(startDateTime) ? "pending" : "active",
     startDateTime, endDateTime,
-    activeDates: ["2026-11-21", "2026-11-22"].filter(date => date >= data.selectedRangeStartDate && date <= data.selectedRangeEndDate),
+    activeDates: PRE_SPREE_DATES.filter(date => date >= data.selectedRangeStartDate && date <= data.selectedRangeEndDate),
     earlyVisibilityDays: 0, earlyVisibilityDates: [], early_visibility_enabled: false,
     early_visibility_days: 0, visibility_start_date: "", early_visibility_promo_code: "",
     pending_checkout_session_id: "", stripe_checkout_session_id: "",
