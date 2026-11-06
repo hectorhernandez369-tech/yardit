@@ -2,6 +2,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { getDemoAuthorization, hasDemoBypassRequest, sanitizeDemoFields } from '../../shared/demoMode.ts';
 import { hasResidentialVip, eligibleFounderListing, founderWaiver } from '../../shared/founderVip.ts';
 import { createDeveloperListing } from '../../shared/developerListings.ts';
+import tzLookup from 'npm:tz-lookup@6.1.25';
+import { preparePreSpreeListing } from '../../shared/preSpree.ts';
+import { isPreSpreeListing, hasPreSpreeDates } from '../../shared/preSpreeRules.ts';
 
 const DESCRIPTION_LIMITS = {
   yard_sale: 500,
@@ -183,7 +186,21 @@ export default async function(req) {
     }
     if (!demoAuthorization.canUseDemoMode) data = sanitizeDemoFields(data);
 
-    if (action === 'create' || action === 'founder_create') {
+    // Campaign entitlement is assigned only by the validated server action.
+    delete data.pre_spree_campaign;
+    delete data.pre_spree_published_at;
+    if (action === 'pre_spree_create') {
+      const lat = user.primary_latitude ?? user.address_lat;
+      const lng = user.primary_longitude ?? user.address_lng;
+      if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180) {
+        return Response.json({ error: 'Please confirm your home address before publishing.' }, { status: 400 });
+      }
+      const prepared = preparePreSpreeListing(data, user, tzLookup(lat, lng));
+      if (prepared.error) return Response.json({ error: prepared.error }, { status: 400 });
+      data = prepared.data;
+    }
+
+    if (action === 'create' || action === 'founder_create' || action === 'pre_spree_create') {
       const founderVip = await hasResidentialVip(base44, user.id);
       if (action === 'founder_create' && (!founderVip || !eligibleFounderListing(data) || data.is_demo_listing || (data.ownerUserId && data.ownerUserId !== user.id))) {
         return Response.json({ error: 'Founder VIP is required for this complimentary listing.' }, { status: 403 });
@@ -208,7 +225,7 @@ export default async function(req) {
       const conflict = await findResidentialConflict(base44, data, user);
       if (conflict) return Response.json({ error: CONFLICT_MESSAGE, conflict }, { status: 409 });
 
-      if (ownerUserId === user.id && eligibleFounderListing(data) && !data.is_demo_listing && founderVip) {
+      if (action !== 'pre_spree_create' && ownerUserId === user.id && eligibleFounderListing(data) && !data.is_demo_listing && founderVip) {
         data = { ...data, ...founderWaiver };
         if (['payment_pending', 'pending_payment'].includes(data.status)) data.status = 'active';
       }
@@ -226,6 +243,9 @@ export default async function(req) {
       if (!(await canManageListing(base44, user, existing))) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
       const nextData = normalizeResidentialEventSingleDay({ ...existing, ...data, listingType: data.listingType || existing.listingType });
+      if (isPreSpreeListing(existing) && (nextData.tier !== 'featured' || nextData.listingType !== 'yard_sale' || !hasPreSpreeDates(nextData))) {
+        return Response.json({ error: 'Pre-Spree sales must stay on November 21–22. Create a separate listing for other dates or tiers.' }, { status: 400 });
+      }
       const validation = validateDescription(nextData);
       if (!validation.ok) return Response.json({ error: validation.error }, { status: 400 });
 

@@ -12,6 +12,7 @@ import NeighborhoodSaleNoticeCard from "./NeighborhoodSaleNoticeCard";
 import OpenHoursFields from "./OpenHoursFields";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
 import DeveloperScheduleFields from "@/components/developer/DeveloperScheduleFields";
+import { isPreSpreeOfferOpen, isPreSpreeEligible, PRE_SPREE_START, PRE_SPREE_END } from "@/lib/preSpree";
 
 const FREE_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/9568bdd43_Screenshot_20260706_105625_Yardit.jpg";
 const FEATURED_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/a448d42b2_Screenshot_20260706_105638_Yardit.jpg";
@@ -78,9 +79,13 @@ export default function StepThree({
   reservedDates = new Set(),
   onResidentialConflictInteraction,
   isDeveloperMode = false,
+  allowPreSpree = true,
 }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
+  const showPreSpree = allowPreSpree && !isDeveloperMode && formData.listingType === "yard_sale" && isPreSpreeOfferOpen(new Date(), formData.timeZoneId);
+  const preSpreeEligible = showPreSpree && isPreSpreeEligible({ ...formData, tier: "featured" });
+  const showPreSpreePrice = showPreSpree && (preSpreeEligible || (!formData.selectedRangeStartDate && !formData.selectedRangeEndDate));
   const [nearbyNeighborhoodSales, setNearbyNeighborhoodSales] = useState([]);
   const [areNeighborhoodSalesCollapsed, setAreNeighborhoodSalesCollapsed] = useState(false);
   const [pendingPromoChange, setPendingPromoChange] = useState(null);
@@ -336,7 +341,9 @@ export default function StepThree({
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-[#2C4F4E] flex flex-wrap items-center gap-2 text-base">
                       Featured
-                      <span className="text-[10px] bg-[#5DADA5] text-white px-2 py-0.5 rounded-full font-bold tracking-wide">RECOMMENDED</span>
+                      {showPreSpree
+                        ? <span className="text-[10px] bg-slate-950 text-amber-300 px-2 py-0.5 rounded-full font-bold tracking-wide">PRE-SPREE PROMO</span>
+                        : <span className="text-[10px] bg-[#5DADA5] text-white px-2 py-0.5 rounded-full font-bold tracking-wide">RECOMMENDED</span>}
                       {tier === "featured" && <span className="text-xs bg-[#2C4F4E] text-white px-2 py-0.5 rounded-full">Selected</span>}
                     </div>
                     <div className="mt-3 overflow-hidden rounded-xl border border-[#2C4F4E]/20 bg-white">
@@ -354,9 +361,23 @@ export default function StepThree({
                       </ul>
                     )}
                   </div>
-                  <div className="text-sm font-semibold text-[#2C4F4E] shrink-0">$4.99</div>
+                  <div className="text-sm font-semibold text-[#2C4F4E] shrink-0 text-right">
+                    {showPreSpreePrice ? <><s className="block text-slate-500">$4.99</s><span className="text-lg font-extrabold">FREE</span></> : "$4.99"}
+                  </div>
                 </div>
               </Card>
+
+              {showPreSpree && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-[#2C4F4E]">
+                  <p className="font-bold">Pre-Spree Weekend · November 21–22</p>
+                  <p>Clear out before you check out. Free Featured listing, up to 10 photos, and your special map pin appears as soon as you publish.</p>
+                  <p className="mt-1 text-xs">For sales held November 21 and/or 22, 2026. Other dates are $4.99.</p>
+                  {!preSpreeEligible && <Button type="button" variant="outline" className="mt-2" onClick={() => {
+                    markResidentialConflictInteraction();
+                    applyPromoAwareFormData({ ...formData, tier: "featured", selectedRangeStartDate: PRE_SPREE_START, selectedRangeEndDate: PRE_SPREE_END, earlyVisibilityDays: 0, photoUrls: (formData.photoUrls || []).slice(0, 10) });
+                  }}>Choose Pre-Spree Weekend</Button>}
+                </div>
+              )}
 
               <Card
                 className={`p-4 cursor-pointer transition-all ${tier === "premium" ? "border-[3px] border-[#F4A849] bg-white shadow-lg" : "border border-[#2C4F4E]/20 bg-[#F3E6CF]/70 shadow-none hover:border-[#2C4F4E]/40"}`}
