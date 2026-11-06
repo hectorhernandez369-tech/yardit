@@ -1,7 +1,6 @@
 import { ensureCheckoutCanStart, invokeCheckout, openCheckout } from "@/lib/websiteCheckout";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { getFeaturedPricing } from "@/lib/featuredPricing";
 import useFounderMembership from '@/components/founder/useFounderMembership';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -738,8 +737,6 @@ export default function CreateListingPage() {
         const response = await base44.functions.invoke("saveResidentialListing", { action: "developer_create", data: listingData });
         return response.data.listing;
       }
-      const preSpreeCreate = data.pre_spree_requested === true;
-      delete data.pre_spree_requested;
       const founderCreate = data.founder_vip_requested === true;
       delete data.founder_vip_requested;
       if (!isAdminCreate && data.listingType === "yard_sale" && data.selectedRangeStartDate && data.selectedRangeEndDate) {
@@ -756,7 +753,7 @@ export default function CreateListingPage() {
       for (let i = 0; i < 5; i++) rand5 += chars[Math.floor(Math.random() * chars.length)];
       const listingNumber = `${stateCode}${zipLast4}-${rand5}`;
       const response = await base44.functions.invoke("saveResidentialListing", {
-        action: preSpreeCreate ? "pre_spree_create" : founderCreate ? "founder_create" : "create",
+        action: founderCreate ? "founder_create" : "create",
         data: {
           ...data,
           title: data.title,
@@ -1381,7 +1378,6 @@ export default function CreateListingPage() {
       payload.pending_checkout_session_id = sourceFormData.pending_checkout_session_id || "";
       payload.payment_intent_status = sourceFormData.payment_intent_status || "hold_requested";
     }
-    if (actionStr === "pre_spree") payload.pre_spree_requested = true;
     if (actionStr === "founder_vip") {
       payload.founder_vip_requested = true;
       payload.pricePaid = 0;
@@ -1943,10 +1939,6 @@ export default function CreateListingPage() {
       setStep(entryStepNumber + 1);
       return;
     }
-    if (getFeaturedPricing(formData, { enabled: !isAdminCreate && !isAdminDemoMode && !isAssistedPost && !isDeveloperMode }).isFree) {
-      executeSubmit("pre_spree");
-      return;
-    }
     if (formData.listingType !== "neighborhood_sale" && ["featured", "premium"].includes(formData.tier)) {
       setPaymentError("");
       setStep(4);
@@ -2414,7 +2406,6 @@ export default function CreateListingPage() {
               step={step} setStep={setStep} paymentStepNumber={paymentStepNumber} entryStepNumber={entryStepNumber}
               isAdminCreate={isAdminCreate} isAssistedPost={isAssistedPost} isDeveloperMode={isDeveloperMode}
               listingType={formData.listingType} tier={formData.tier} regularAddressIncomplete={regularAddressIncomplete}
-              preSpreeEligible={getFeaturedPricing(formData, { enabled: !isAdminCreate && !isAdminDemoMode && !isAssistedPost && !isDeveloperMode }).isFree}
               userHasVerifiedPrimaryAddress={userHasVerifiedPrimaryAddress} isStartingPayment={isStartingPayment}
               isCreating={createListingMutation.isPending} selectedUserForAdmin={selectedUserForAdmin}
               onNext={handleNext} onSubmit={() => handleSubmit({ userInitiated: true })} onAdminCreate={() => executeSubmit("admin_create")}

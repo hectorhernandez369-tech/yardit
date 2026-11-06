@@ -12,8 +12,6 @@ import NeighborhoodSaleNoticeCard from "./NeighborhoodSaleNoticeCard";
 import OpenHoursFields from "./OpenHoursFields";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
 import DeveloperScheduleFields from "@/components/developer/DeveloperScheduleFields";
-import { PRE_SPREE_START, PRE_SPREE_END } from "@/lib/preSpree";
-import { getFeaturedPricing } from "@/lib/featuredPricing";
 
 const FREE_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/9568bdd43_Screenshot_20260706_105625_Yardit.jpg";
 const FEATURED_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/a448d42b2_Screenshot_20260706_105638_Yardit.jpg";
@@ -80,13 +78,9 @@ export default function StepThree({
   reservedDates = new Set(),
   onResidentialConflictInteraction,
   isDeveloperMode = false,
-  allowPreSpree = true,
 }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
-  const featuredPricing = getFeaturedPricing({ ...formData, tier: "featured" }, { enabled: allowPreSpree && !isDeveloperMode });
-  const showPreSpree = featuredPricing.showPromotion;
-  const preSpreeEligible = featuredPricing.isFree;
   const [nearbyNeighborhoodSales, setNearbyNeighborhoodSales] = useState([]);
   const [areNeighborhoodSalesCollapsed, setAreNeighborhoodSalesCollapsed] = useState(false);
   const [pendingPromoChange, setPendingPromoChange] = useState(null);
@@ -101,10 +95,6 @@ export default function StepThree({
     if (!isDeveloperMode && isOutsidePromoWindow(nextData)) {
       setPendingPromoChange(nextData);
       return;
-    }
-    const nextPricing = getFeaturedPricing(nextData, { enabled: allowPreSpree && !isDeveloperMode });
-    if (tier === "featured" && preSpreeEligible && nextData.tier === "featured" && nextPricing.hasDates && !nextPricing.isFree) {
-      toast.info(nextPricing.scheduleMessage);
     }
     setFormData(nextData);
   };
@@ -346,12 +336,9 @@ export default function StepThree({
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-[#2C4F4E] flex flex-wrap items-center gap-2 text-base">
                       Featured
-                      {showPreSpree
-                        ? <span className="text-[10px] bg-slate-950 text-amber-300 px-2 py-0.5 rounded-full font-bold tracking-wide">PRE-SPREE SPECIAL · NOV 20–22</span>
-                        : <span className="text-[10px] bg-[#5DADA5] text-white px-2 py-0.5 rounded-full font-bold tracking-wide">RECOMMENDED</span>}
+                      <span className="text-[10px] bg-[#5DADA5] text-white px-2 py-0.5 rounded-full font-bold tracking-wide">RECOMMENDED</span>
                       {tier === "featured" && <span className="text-xs bg-[#2C4F4E] text-white px-2 py-0.5 rounded-full">Selected</span>}
                     </div>
-                    {showPreSpree && <p className="mt-2 text-sm font-medium text-[#2C4F4E]">Pre-Spree Special: FREE November 20–22, 2026.</p>}
                     <div className="mt-3 overflow-hidden rounded-xl border border-[#2C4F4E]/20 bg-white">
                       <img
                         src={FEATURED_TIER_SCREENSHOT_URL}
@@ -367,23 +354,9 @@ export default function StepThree({
                       </ul>
                     )}
                   </div>
-                  <div className="text-sm font-semibold text-[#2C4F4E] shrink-0 text-right">
-                    {preSpreeEligible ? <><s className="block text-slate-500">$4.99</s><span className="text-lg font-extrabold">FREE</span></> : "$4.99"}
-                  </div>
+                  <div className="text-sm font-semibold text-[#2C4F4E] shrink-0">$4.99</div>
                 </div>
               </Card>
-
-              {showPreSpree && (
-                <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-[#2C4F4E]">
-                  <p className="font-bold">Pre-Spree Weekend · November 20–22</p>
-                  <p>Clear out before you check out. Free Featured listing, up to 10 photos, and your special map pin appears as soon as you publish.</p>
-                  <p className="mt-1 text-xs">For sales held any 1–3 consecutive days within November 20–22, 2026. Other dates are $4.99.</p>
-                  {(tier !== "featured" || !preSpreeEligible) && <Button type="button" variant="outline" className="mt-2" onClick={() => {
-                    markResidentialConflictInteraction();
-                    applyPromoAwareFormData({ ...formData, tier: "featured", selectedRangeStartDate: PRE_SPREE_START, selectedRangeEndDate: PRE_SPREE_END, earlyVisibilityDays: 0, photoUrls: (formData.photoUrls || []).slice(0, 10) });
-                  }}>Choose Pre-Spree Weekend</Button>}
-                </div>
-              )}
 
               <Card
                 className={`p-4 cursor-pointer transition-all ${tier === "premium" ? "border-[3px] border-[#F4A849] bg-white shadow-lg" : "border border-[#2C4F4E]/20 bg-[#F3E6CF]/70 shadow-none hover:border-[#2C4F4E]/40"}`}
@@ -453,12 +426,6 @@ export default function StepThree({
                   </p>
                 )}
               </div>
-
-              {tier === "featured" && formData.listingType === "yard_sale" && (
-                <div role="status" aria-live="polite" className={`mb-4 rounded-xl border p-3 text-sm font-medium ${preSpreeEligible ? "border-teal-300 bg-teal-50 text-teal-900" : "border-amber-300 bg-amber-50 text-amber-900"}`}>
-                  {featuredPricing.scheduleMessage}
-                </div>
-              )}
 
               {dateConflict && (
                 <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700 font-medium">
