@@ -167,3 +167,36 @@ test("update endpoint preserves campaign publication and recomputes closing time
   assert.equal(result.writes[0].endDateTime, "2026-11-23T02:00:00.000Z");
   assert.equal(result.writes[0].pre_spree_published_at, undefined);
 });
+
+test("Featured starts at $4.99 until complete qualifying dates are selected", async () => {
+  const { getFeaturedPricing } = await import("../featuredPricing.js");
+  for (const dates of [{ selectedRangeStartDate: "", selectedRangeEndDate: "" }, { selectedRangeStartDate: "2026-11-21", selectedRangeEndDate: "" }]) {
+    const price = getFeaturedPricing({ ...form, ...dates }, { now });
+    assert.equal(price.amountCents, 499);
+    assert.equal(price.isFree, false);
+  }
+});
+test("changing weekends recalculates price and checkout eligibility in both directions", async () => {
+  const { getFeaturedPricing } = await import("../featuredPricing.js");
+  const regular = { ...form, selectedRangeStartDate: "2026-11-28", selectedRangeEndDate: "2026-11-29" };
+  const free = getFeaturedPricing(form, { now });
+  assert.equal(free.amountCents, 0);
+  assert.equal(free.isFree, true);
+  const paid = getFeaturedPricing(regular, { now });
+  assert.equal(paid.amountCents, 499);
+  assert.equal(paid.isFree, false);
+  assert.match(paid.scheduleMessage, /These dates aren’t included in Pre-Spree/);
+  assert.equal(getFeaturedPricing(form, { now }).amountCents, 0);
+});
+test("partial overlap with Pre-Spree is regular Featured pricing", async () => {
+  const { getFeaturedPricing } = await import("../featuredPricing.js");
+  for (const dates of [
+    {selectedRangeStartDate:"2026-11-20",selectedRangeEndDate:"2026-11-22"},
+    {selectedRangeStartDate:"2026-11-21",selectedRangeEndDate:"2026-11-23"},
+  ]) assert.equal(getFeaturedPricing({...form,...dates}, {now}).amountCents, 499);
+});
+test("expired promotions and excluded creation modes cannot advertise free checkout", async () => {
+  const { getFeaturedPricing } = await import("../featuredPricing.js");
+  assert.equal(getFeaturedPricing(form, {now,enabled:false}).isFree, false);
+  assert.equal(getFeaturedPricing(form, {now:new Date("2026-11-24T18:00:00Z")}).showPromotion, false);
+});
