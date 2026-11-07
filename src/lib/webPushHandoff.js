@@ -1,29 +1,13 @@
 import { base44 } from "@/api/base44Client";
-
-const PLAY_WRAPPER_KEY = "yardit_play_wrapper_detected_v1";
+import { isAndroidAppRuntime, isNativeAppRuntime } from "@/lib/runtimeEnvironment";
 const WEB_PUSH_SETUP_URL = "https://yardit.app/PushSetup";
 
-function rememberWrapper() {
-  try {
-    sessionStorage.setItem(PLAY_WRAPPER_KEY, "true");
-    localStorage.setItem(PLAY_WRAPPER_KEY, "true");
-  } catch {}
+export function isPlayStoreWebWrapper() {
+  return isAndroidAppRuntime();
 }
 
-export function isPlayStoreWebWrapper() {
-  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
-  const androidReferrer = document.referrer?.startsWith("android-app://");
-  const userAgent = navigator.userAgent || "";
-  const androidWebView = /Android/i.test(userAgent) && (/;\s*wv\)/i.test(userAgent) || /\bwv\b/i.test(userAgent));
-  if (androidReferrer || androidWebView) {
-    rememberWrapper();
-    return true;
-  }
-  try {
-    return sessionStorage.getItem(PLAY_WRAPPER_KEY) === "true" || localStorage.getItem(PLAY_WRAPPER_KEY) === "true";
-  } catch {
-    return false;
-  }
+export function isAppStoreWrapper() {
+  return isNativeAppRuntime();
 }
 
 export function getWebPushSetupUrl(token) {
