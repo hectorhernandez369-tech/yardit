@@ -11,6 +11,7 @@ export default function AssistedChristmasApproval(){
  const {search}=useLocation();
  const token=new URLSearchParams(search).get('token')||'';
  const {user}=useAuth();
+ const signIn=()=>base44.auth.redirectToLogin(window.location.href);
  const [result,setResult]=useState(null);
  const client=useQueryClient();
  const query=useQuery({
@@ -36,13 +37,18 @@ export default function AssistedChristmasApproval(){
      <p className="text-sm text-gray-700">Viewing hours: {record?.viewing_start_time} – {record?.viewing_end_time}</p>
      <p className="text-sm text-gray-700">Status: {status}</p>
      {status==='pending'&&<div className="space-y-3">
-       <p className="text-sm">Approve only if you own or are authorized to list this decorated property. Approval creates the Christmas listing. Public visibility remains subject to Yardit's launch settings.</p>
-       <Button disabled={mutation.isPending} className="w-full bg-[#123f30] text-white" onClick={()=>mutation.mutate('approve')}>Approve My Christmas Display</Button>
-       <Button disabled={mutation.isPending} variant="outline" className="w-full" onClick={()=>mutation.mutate('decline')}>Decline Listing</Button>
+       <p className="text-sm">Only the homeowner may approve or decline this display. Sign in using the same email provided to the Yardit representative. Approval creates the Christmas listing; public visibility remains subject to Yardit's launch settings.</p>
+       {!user
+         ? <Button className="w-full bg-[#123f30] text-white" onClick={signIn}>Sign In to Review This Display</Button>
+         : <>
+           <p className="text-xs text-gray-600">Signed in as {user.email}. The listing's homeowner email must match this account.</p>
+           <Button disabled={mutation.isPending} className="w-full bg-[#123f30] text-white" onClick={()=>mutation.mutate('approve')}>Approve My Christmas Display</Button>
+           <Button disabled={mutation.isPending} variant="outline" className="w-full" onClick={()=>mutation.mutate('decline')}>Decline Listing</Button>
+         </>}
      </div>}
      {status==='approved'&&<div className="space-y-3">
-       <p className="text-sm">Approved. You may claim ownership with a Yardit account using the homeowner email or a verified matching address.</p>
-       {user?<Button disabled={mutation.isPending} className="w-full bg-[#123f30] text-white" onClick={()=>mutation.mutate('claim')}>Claim This Display</Button>:<p className="text-sm">Sign in to Yardit, then reopen this QR link to claim the display.</p>}
+       <p className="text-sm">Approved. You may claim ownership with a Yardit account using the same homeowner email entered when the QR was created.</p>
+        {user?<Button disabled={mutation.isPending} className="w-full bg-[#123f30] text-white" onClick={()=>mutation.mutate('claim')}>Claim This Display</Button>:<Button onClick={signIn} className="w-full bg-[#123f30] text-white">Sign In to Claim This Display</Button>}
      </div>}
      {status==='claimed'&&<p className="text-sm font-semibold text-emerald-700">Your Christmas display has been claimed.</p>}
      {status==='declined'&&<p className="text-sm">This listing has been declined.</p>}

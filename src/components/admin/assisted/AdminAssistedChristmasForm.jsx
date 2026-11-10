@@ -25,6 +25,9 @@ export default function AdminAssistedChristmasForm() {
       toast.error('Select a complete homeowner street address from the address search.');return;
     }
     if(!permission){toast.error('Homeowner permission is required.');return;}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(homeownerEmail.trim())){
+      toast.error('Enter the homeowner email. They must sign in with this email to approve the QR.');return;
+    }
     if(form.start>form.end){toast.error('The last night must be after the first night.');return;}
     setSaving(true);
     try {
@@ -60,7 +63,7 @@ export default function AdminAssistedChristmasForm() {
   if(created)return <AssistedListingQRPanel created={created} onCreateAnother={reset}/>;
   return <form onSubmit={submit} className="space-y-5">
     <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-      Assisted Christmas display — fill in the homeowner's address. The listing stays pending until the homeowner approves the QR link. Christmas public-preview restrictions remain in effect.
+      Assisted Christmas display — fill in the homeowner's address. The listing stays pending until the homeowner approves the QR link. The homeowner must sign in with their matching email before approving or declining. Christmas public-preview restrictions remain in effect.
     </div>
     <div className="space-y-2"><Label>Homeowner display address *</Label>
       <AdminAddressSearch selectedAddress={address} onAddressSelected={setAddress}/>
@@ -69,13 +72,13 @@ export default function AdminAssistedChristmasForm() {
     <HolidayLightsFields form={form} setForm={setForm}/>
     <div className="grid gap-3 sm:grid-cols-2">
       <div><Label>Homeowner name (optional)</Label><Input value={homeownerName} onChange={e=>setHomeownerName(e.target.value)}/></div>
-      <div><Label>Homeowner email (for later claiming)</Label><Input type="email" value={homeownerEmail} onChange={e=>setHomeownerEmail(e.target.value)} placeholder="name@example.com"/></div>
+      <div><Label>Homeowner email (required for approval) *</Label><Input required type="email" value={homeownerEmail} onChange={e=>setHomeownerEmail(e.target.value)} placeholder="name@example.com"/></div>
     </div>
     <label className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
       <Checkbox checked={permission} onCheckedChange={value=>setPermission(value===true)}/>
       <span>I confirm the homeowner gave permission to add their Christmas display and understands they must approve it using the QR link.</span>
     </label>
-    <Button type="submit" disabled={saving||!permission||!address} className="w-full bg-[#123f30] text-white">
+    <Button type="submit" disabled={saving||!permission||!address||!homeownerEmail.trim()} className="w-full bg-[#123f30] text-white">
       {saving&&<Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Create Christmas Listing & Approval QR
     </Button>
   </form>;

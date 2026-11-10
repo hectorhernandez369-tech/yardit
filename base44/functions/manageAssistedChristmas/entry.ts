@@ -5,6 +5,13 @@ const TYPES = new Set(['christmas_decorations','christmas_lights','light_show','
 const PREVIEW_ADMIN_EMAIL = 'hectorhernandez369@gmail.com';
 const fail = (message: string, status=400) => Response.json({error:message},{status});
 function normalize(value:any){return String(value||'').trim().toLowerCase();}
+function canActAsHomeowner(user:any, homeownerEmail:string) {
+  // The QR token is only a lookup capability, not proof of homeowner identity.
+  // Require an authenticated account with the email entered by the field representative.
+  return Boolean(user?.id && user?.email && user?.email_verified !== false &&
+    homeownerEmail && normalize(user.email) === normalize(homeownerEmail));
+}
+
 function verifyAddress(user:any, data:any) {
  const u=user?.data||{}, field=(k:string)=>user?.[k]??u?.[k];
  const verified=field('primary_address_verified')===true||field('address_verified')===true||field('address_confirmation_status')==='confirmed';
@@ -62,6 +69,9 @@ Deno.serve(async req=>{
    const raw=body.display||{},message=validate(raw);
    if(message)return fail(message);
    if(body.homeowner_permission!==true)return fail('Homeowner permission must be confirmed.');
+   const homeownerEmail=normalize(body.homeowner_email);
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(homeownerEmail) || homeownerEmail.length>254)
+     return fail('A valid homeowner email is required for secure QR approval.');
    const pending=await records.filter({status:'pending'},'-created_date',500).catch(()=>[]);
    const duplicates=(pending||[]).some((entry:any)=>{
      const previous=JSON.parse(entry.data_json||'{}');
@@ -91,7 +101,7 @@ Deno.serve(async req=>{
    };
    const row=await records.create({
      admin_creator_id:user.id,admin_creator_email:normalize(user.email),
-     homeowner_email:normalize(body.homeowner_email),
+     homeowner_email:homeownerEmail,
      homeowner_name:String(body.homeowner_name||'').slice(0,120),
      token,status:'pending',created_at:now.toISOString(),expires_at:expires.toISOString(),
      data_json:JSON.stringify(display),
@@ -107,12 +117,13 @@ Deno.serve(async req=>{
   const row=matches[0],data=JSON.parse(row.data_json||'{}');
   if(action==='read')return Response.json({ok:true,display:publicPreview(row)});
   if(!['approve','decline','claim'].includes(action))return fail('Unsupported action.');
+  if(!user?.id)return fail('Sign in with the homeowner account to approve, decline, or claim this display.',401);
+  if(!canActAsHomeowner(user,row.homeowner_email))
+    return fail('Only the signed-in homeowner with the matching verified email can manage this display.',403);
   if(action==='claim') {
     if(!user)return fail('Sign in to claim your Christmas display.',401);
     if(!['approved','claimed'].includes(row.status)||!row.location_id)return fail('Approve the display before claiming it.',409);
     if(row.status==='claimed')return fail('This display has already been claimed.',409);
-    if(normalize(row.homeowner_email)!==normalize(user.email)&&!verifyAddress(user,data))
-      return fail('To claim, sign in with the homeowner email or verify this address on your account.',403);
     await base44.asServiceRole.entities.Location.update(row.location_id,{owner_user_id:user.id});
     await records.update(row.id,{status:'claimed',claimed_at:new Date().toISOString(),claimed_by_user_id:user.id,token:'__claimed__'+row.id});
     return Response.json({ok:true,status:'claimed',location_id:row.location_id});
