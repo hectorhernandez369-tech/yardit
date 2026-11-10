@@ -13,6 +13,9 @@ import { RESIDENTIAL_CATEGORY_GROUPS } from "@/lib/residentialCategories";
 import { HALLOWEEN_ICON_ASSETS } from "@/lib/halloweenMapIcons";
 import { isHolidayLightsSeason } from "@/lib/holidayLights";
 import ChristmasListingChoice from "@/components/create/ChristmasListingChoice";
+import { isPreSpreeOfferOpen } from "@/lib/preSpree";
+import { isPreSpreeSelected, selectPreSpreeOffer } from "@/lib/preSpreeSelection";
+import { buildPreSpreePinSvg } from "@/lib/preSpreePin";
 import { isHalloweenSeasonActive } from "@/lib/halloweenSpots";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -107,6 +110,21 @@ export default function StepOne({ formData, setFormData }) {
   const isHalloween = listingType === "halloween_spot";
   const showChristmasChoice = christmasPreviewAllowed && isHolidayLightsSeason() && !formData.assisted_post && !isHalloween;
   const allowHalloween = isHalloweenSeasonActive();
+  // This is a Step One invitation to the existing Step Three promo tier,
+  // not a replacement for Featured or a second promo checkout path.
+  const showPreSpreePromo = !formData.assisted_post && !formData.is_demo_listing &&
+    isPreSpreeOfferOpen(new Date(), formData.timeZoneId);
+  const preSpreeSelected = isPreSpreeSelected(formData);
+  const choosePreSpree = () => {
+    setFormData(previous => selectPreSpreeOffer({
+      ...previous,
+      listingType: "yard_sale",
+      category: "Yard Sale",
+      categories: previous.listingType === "yard_sale" ? previous.categories : [],
+      neighborhood_sale_id: "",
+      neighborhood_join_status: "none",
+    }));
+  };
   const descriptionLimit = getResidentialDescriptionLimit(listingType);
   const [expandedLocked, setExpandedLocked] = useState(null);
 
@@ -147,6 +165,30 @@ export default function StepOne({ formData, setFormData }) {
         <Sparkles className="h-6 w-6 shrink-0 text-holiday-gold" />
         <span><strong className="block text-sm">Holiday Lights</strong><span className="text-xs opacity-80">Share your festive display, viewing dates, and nightly hours</span></span>
       </button>}
+      {showPreSpreePromo && (
+        <section aria-label="Pre-Spree Weekend promotion" className="overflow-hidden rounded-2xl border-2 border-[#d6a845] bg-[#162f2b] p-4 text-white shadow-lg">
+          <div className="flex items-start gap-3">
+            <img src={buildPreSpreePinSvg()} alt="" className="h-11 w-9 shrink-0 object-contain" />
+            <div className="min-w-0 flex-1">
+              <span className="inline-block rounded-full bg-[#f4a849] px-2 py-0.5 text-[10px] font-extrabold uppercase text-[#162f2b]">Limited-time promo</span>
+              <h2 className="mt-1 text-lg font-extrabold leading-tight">Pre-Spree Weekend</h2>
+              <p className="text-sm font-bold text-amber-200">November 20–22, 2026</p>
+              <p className="mt-1 text-xs text-white/85">Clear out before you check out. Get Featured benefits at no cost.</p>
+            </div>
+            <div className="shrink-0 text-right">
+              <s className="block text-xs text-white/65">$4.99</s>
+              <span className="text-xl font-extrabold text-amber-300">FREE</span>
+            </div>
+          </div>
+          <button type="button" onClick={choosePreSpree}
+            aria-pressed={preSpreeSelected}
+            className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl bg-[#f4a849] px-3 py-2 text-sm font-extrabold text-[#162f2b] hover:bg-[#ffbf62] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300">
+            {preSpreeSelected ? "✓ Pre-Spree selected" : "Choose Free Pre-Spree"}
+          </button>
+          <p className="mt-2 text-xs text-white/75">Selecting this promo sets your yard sale to November 20–22. Dates stay locked and payment is skipped when you publish. Normal Featured remains available for other weekends.</p>
+        </section>
+      )}
+
       {/* Listing type selector */}
       <div>
         <Label className="text-sm font-semibold text-slate-900 mb-3 block">What are you listing?</Label>
