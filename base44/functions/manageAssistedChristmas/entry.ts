@@ -12,13 +12,6 @@ function canActAsHomeowner(user:any, homeownerEmail:string) {
     homeownerEmail && normalize(user.email) === normalize(homeownerEmail));
 }
 
-function verifyAddress(user:any, data:any) {
- const u=user?.data||{}, field=(k:string)=>user?.[k]??u?.[k];
- const verified=field('primary_address_verified')===true||field('address_verified')===true||field('address_confirmation_status')==='confirmed';
- const street=normalize(field('street_address')||field('primary_address')||'');
- const target=normalize(data.address||[data.street_address,data.city,data.state,data.zip_code].join(' '));
- return !!verified && street.length>3 && target.includes(street);
-}
 function distanceFeet(a:number,b:number,c:number,d:number){
  const R=20902231,rad=Math.PI/180,lat=(c-a)*rad,lng=(d-b)*rad;
  const q=Math.sin(lat/2)**2+Math.cos(a*rad)*Math.cos(c*rad)*Math.sin(lng/2)**2;
@@ -119,7 +112,7 @@ Deno.serve(async req=>{
   if(!['approve','decline','claim'].includes(action))return fail('Unsupported action.');
   if(!user?.id)return fail('Sign in with the homeowner account to approve, decline, or claim this display.',401);
   if(!canActAsHomeowner(user,row.homeowner_email))
-    return fail('Only the signed-in homeowner with the matching verified email can manage this display.',403);
+    return fail('Only the signed-in homeowner with the matching account email can manage this display.',403);
   if(action==='claim') {
     if(!user)return fail('Sign in to claim your Christmas display.',401);
     if(!['approved','claimed'].includes(row.status)||!row.location_id)return fail('Approve the display before claiming it.',409);
