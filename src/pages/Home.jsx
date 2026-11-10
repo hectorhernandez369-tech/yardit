@@ -62,7 +62,6 @@ import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map
 import QuickMapFilters from "@/components/map/QuickMapFilters";
 import HalloweenMapFilterPill from "@/components/map/HalloweenMapFilterPill";
 import ChristmasMapFilterPill from "@/components/map/ChristmasMapFilterPill";
-import { canPreviewChristmas } from "@/lib/christmasPreviewAccess";
 import HolidayLightsMapLayer from "@/components/holiday-lights/HolidayLightsMapLayer";
 import { isHolidayLightsSeason } from "@/lib/holidayLights";
 import MapFilterModal from "@/components/map/MapFilterModal";
@@ -1867,9 +1866,9 @@ export default function HomePage() {
             zoomControl={false}>
             
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => {mapRef.current = map;}} />
-              <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} showHalloween={halloweenSeasonActive} showHolidayLights={canPreviewChristmas(user) && isHolidayLightsSeason(scheduleNow, { lat: mapCenter[0], lng: mapCenter[1] })} />
-              {canPreviewChristmas(user) && <HolidayLightsMapLayer enabled={quickMapFilters.holidayLights !== false} now={scheduleNow} targetId={new URLSearchParams(location.search).get('holidayLightId') || ''} />}
-              {canPreviewChristmas(user) && isHolidayLightsSeason(scheduleNow, { lat: mapCenter[0], lng: mapCenter[1] }) && <ChristmasMapFilterPill value={quickMapFilters} onChange={setQuickMapFilters} belowHalloween={halloweenSeasonActive} mapCenter={mapCenter} />}
+              <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} showHalloween={halloweenSeasonActive} showHolidayLights={isHolidayLightsSeason(scheduleNow, { lat: mapCenter[0], lng: mapCenter[1] })} />
+              {<HolidayLightsMapLayer enabled={quickMapFilters.holidayLights !== false} now={scheduleNow} targetId={new URLSearchParams(location.search).get('holidayLightId') || ''} />}
+              {isHolidayLightsSeason(scheduleNow, { lat: mapCenter[0], lng: mapCenter[1] }) && <ChristmasMapFilterPill value={quickMapFilters} onChange={setQuickMapFilters} belowHalloween={halloweenSeasonActive} mapCenter={mapCenter} />}
               {halloweenSeasonActive && (
                 <HalloweenMapFilterPill
                   enabled={quickMapFilters.halloween}

@@ -35,7 +35,7 @@ export default function LeaderboardPage(){
   const zipQuery=useQuery({queryKey:['christmasZipCenter',searchedZip],queryFn:()=>lookupZip(searchedZip),enabled:searchedZip.length===5 && radius>0,retry:false});
   const {data:locations=[],isLoading,isError}=useQuery({
     queryKey:['holidayLeaderboardLocations',seasonYear],
-    queryFn:()=>base44.entities.Location.filter({type:'holiday_lights'}),
+    queryFn:async()=>(await base44.functions.invoke('getPublicMapData',{holidayLeaderboard:true})).data.items || [],
     enabled:inSeason
   });
   const results=useMemo(()=>{

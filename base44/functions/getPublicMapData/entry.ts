@@ -167,22 +167,9 @@ export default async function(req) {
     const halloweenLocationId = typeof body?.halloweenLocationId === 'string' ? body.halloweenLocationId : '';
 
     // Holiday Lights are separate Location records; Halloween and assisted QR flows stay unchanged.
-    // Private Christmas preview: reject map and direct-detail requests for all other users.
-    const louiePreviewId = '69d0704643057b42958d2749';
-    let louiePreviewAllowed = false;
-    if (String(currentUser?.id || '') === louiePreviewId) {
-      const profiles = await base44.asServiceRole.entities.AdminProfile.filter({ user_id: louiePreviewId }).catch(() => []);
-      louiePreviewAllowed = profiles.some(profile => profile.is_active === true && ['supervisor', 'master', 'super_master'].includes(profile.role_label));
-    }
-    const christmasPreviewAllowed =
-      String(currentUser?.email || '').trim().toLowerCase() === 'hectorhernandez369@gmail.com' ||
-      louiePreviewAllowed;
-    if ((body.holidayLights === true || Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) && !christmasPreviewAllowed) {
-      return Object.prototype.hasOwnProperty.call(body, 'holidayLightId')
-        ? Response.json({ location: null })
-        : Response.json({ items: [], next_cursor: null, has_more: false });
-    }
-    if (body.holidayLights === true || Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) {
+    // Public Christmas launch: server filters live seasonal records; changes to
+    // homeowners' displays remain protected by manageChristmasListing.
+    if (body.holidayLights === true || body.holidayLeaderboard === true || Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) {
       const fields = ['id', 'owner_user_id', 'type', 'title', 'display_title', 'description', 'address', 'street_address', 'city', 'state', 'zip_code', 'latitude', 'longitude', 'start_date_time', 'end_date_time', 'viewing_start_time', 'viewing_end_time', 'display_active', 'status', 'photos', 'christmas_spot_type', 'christmas_tags', 'christmas_host_name', 'christmas_admission', 'christmas_parking_notes', 'christmas_activities', 'christmas_suggested_age', 'christmas_featured_badge', 'average_rating', 'ratings_count', 'holiday_score', 'christmas_points', 'five_star_votes'];
       const isPublicLight = (spot) => {
         if (!spot || spot.status !== 'active' || !isValidCoordinate(spot.latitude) || !isValidCoordinate(spot.longitude) || !canSeeAdDemo(spot, currentUser)) return false;
@@ -203,7 +190,15 @@ export default async function(req) {
       }
       // Base44 filter returns an array, not a cursor-page object. Avoid a broken map response.
       const locations = await base44.asServiceRole.entities.Location.filter(query, '-created_date', 500);
-      return Response.json({ items: (locations || []).filter(isPublicLight).map(spot => pick(spot, fields)), next_cursor: null, has_more: false });
+      const visible = (locations || []).filter(isPublicLight);
+      if (body.holidayLeaderboard === true) {
+        // Server-filtered public scores: never expose contact details or owner IDs.
+        const leaderboardFields = ['id', 'display_title', 'title', 'zip_code', 'latitude', 'longitude',
+          'christmas_spot_type', 'average_rating', 'ratings_count', 'christmas_points', 'five_star_votes',
+          'status', 'display_active', 'type'];
+        return Response.json({items: visible.map(spot => pick(spot, leaderboardFields))});
+      }
+      return Response.json({ items: visible.map(spot => pick(spot, fields)), next_cursor: null, has_more: false });
     }
 
     // Resolve a stable public pin, never a historical check-in's coordinates.

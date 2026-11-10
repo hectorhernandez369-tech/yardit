@@ -104,11 +104,10 @@ const COLLECTIBLE_TYPES = [
 export default function StepOne({ formData, setFormData }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const christmasPreviewAllowed = user?.email?.toLowerCase() === 'hectorhernandez369@gmail.com';
   const listingType = formData?.listingType || "yard_sale";
   const isNeighborhood = listingType === "neighborhood_sale";
   const isHalloween = listingType === "halloween_spot";
-  const showChristmasChoice = christmasPreviewAllowed && isHolidayLightsSeason() && !formData.assisted_post && !isHalloween;
+  const showChristmasChoice = isHolidayLightsSeason() && !formData.assisted_post;
   const allowHalloween = isHalloweenSeasonActive();
   // This is a Step One invitation to the existing Step Three promo tier,
   // not a replacement for Featured or a second promo checkout path.
@@ -161,7 +160,7 @@ export default function StepOne({ formData, setFormData }) {
   return (
     <div className="space-y-8">
 
-      {christmasPreviewAllowed && !showChristmasChoice && <button type="button" onClick={() => navigate('/CreateHolidayLights')} className="flex w-full items-center gap-3 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow">
+      {isHolidayLightsSeason() && !formData.assisted_post && !showChristmasChoice && <button type="button" onClick={() => navigate('/CreateHolidayLights')} className="flex w-full items-center gap-3 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow">
         <Sparkles className="h-6 w-6 shrink-0 text-holiday-gold" />
         <span><strong className="block text-sm">Holiday Lights</strong><span className="text-xs opacity-80">Share your festive display, viewing dates, and nightly hours</span></span>
       </button>}

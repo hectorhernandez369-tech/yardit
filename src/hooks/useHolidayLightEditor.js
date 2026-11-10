@@ -31,7 +31,6 @@ export default function useHolidayLightEditor(id) {
  },[record.data,user]);
  const save=useMutation({mutationFn:async()=>{
   if(!user)throw new Error('Please log in to post your display.');
-  if(user.email?.toLowerCase()!=='hectorhernandez369@gmail.com')throw new Error('Christmas listings are in private preview.');
   if(id && (!record.data||record.data.owner_user_id!==user.id))throw new Error('You can edit only your own Christmas display.');
   const verifiedLocation=holidayVerifiedLocation(user);
   if(!verifiedLocation)throw new Error('Verify your primary address in your profile before posting a display.');

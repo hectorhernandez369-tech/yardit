@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
 
-const PREVIEW_EMAIL = 'hectorhernandez369@gmail.com';
 const TYPES = new Set(['christmas_decorations', 'christmas_lights', 'light_show', 'christmas_experience']);
 const TAGS = new Set(['kid_friendly','walkthrough','music','santa','photo_op','synchronized_lights']);
 
@@ -33,7 +32,6 @@ Deno.serve(async req => {
   const base44=createClientFromRequest(req);
   const user=await base44.auth.me().catch(()=>null);
   if(!user)return fail('Login required.',401);
-  if(String(user.email||'').trim().toLowerCase()!==PREVIEW_EMAIL)return fail('Christmas listings are private until launch.',403);
   const body=await req.json().catch(()=>({}));
   const action=String(body.action||'save');
   const location=verifiedAddress(user);

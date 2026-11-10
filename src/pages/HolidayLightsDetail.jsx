@@ -7,7 +7,6 @@ import HolidayLightsSummary from '@/components/holiday-lights/HolidayLightsSumma
 import HolidayLightsActions from '@/components/holiday-lights/HolidayLightsActions';
 import HolidayLightsNotFound from '@/components/holiday-lights/HolidayLightsNotFound';
 import HolidayDetailSnow from '@/components/holiday-lights/HolidayDetailSnow';
-import { canPreviewChristmas } from '@/lib/christmasPreviewAccess';
 
 export default function HolidayLightsDetail() {
   const { search } = useLocation();
@@ -15,10 +14,9 @@ export default function HolidayLightsDetail() {
   const { user } = useAuth();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(timer); }, []);
-  const query = useQuery({ queryKey: ['holidayLights', 'detail', id, user?.id], enabled: !!id && canPreviewChristmas(user), 
+  const query = useQuery({ queryKey: ['holidayLights', 'detail', id, user?.id], enabled: !!id, 
     queryFn: async () => (await base44.functions.invoke('getPublicMapData', { holidayLightId: id })).data.location || null,
   });
-  if (!canPreviewChristmas(user)) return <div className="mx-auto max-w-lg p-8 text-center"><h1 className="text-2xl font-bold">Christmas Displays Coming Soon</h1><p>Displays aren't available yet.</p><Link to="/">Back to map</Link></div>;
   if (id && query.isPending) return <p className="p-8 text-center">Loading holiday display…</p>;
   if (query.isError) return <p role="alert" className="p-8 text-center text-destructive">Could not load this display. <button onClick={() => query.refetch()} className="underline">Retry</button></p>;
   if (!id || !query.data) return <HolidayLightsNotFound />;

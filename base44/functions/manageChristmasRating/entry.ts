@@ -55,7 +55,6 @@ Deno.serve(async req => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me().catch(() => null);
     if (!user?.id || !user?.email) return fail('Sign in to rate Christmas displays.', 401);
-    if (String(user.email).trim().toLowerCase() !== PREVIEW_EMAIL) return fail('Christmas ratings are not yet available to the public.', 403);
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || 'read');
     const locationId = String(body.location_id || '');
