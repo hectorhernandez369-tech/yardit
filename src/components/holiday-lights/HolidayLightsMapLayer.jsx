@@ -7,7 +7,6 @@ import HolidayLightsMapMarker from '@/components/holiday-lights/HolidayLightsMap
 import { base44 } from '@/api/base44Client';
 import { holidayLightState, isHolidayLightsSeason } from '@/lib/holidayLights';
 import { CHRISTMAS_SPOT_TYPES, ChristmasIcon } from './ChristmasDesign';
-import HolidayLightsMapCard from './HolidayLightsMapCard';
 import { Star } from 'lucide-react';
 
 const ICON_CACHE=new Map();
@@ -80,7 +79,6 @@ export default function HolidayLightsMapLayer({enabled=true,now,targetId=''}) {
  useEffect(()=>{if(!enabled) setSelectedSpot(null);},[enabled]);
  if(!season) return null;
  return <>
-  <HolidayLightsMapCard enabled={enabled} query={query}/>
   {enabled&&spots.map(spot=><HolidayLightsMapMarker key={spot.id} spot={spot} now={now} icon={getIcon(spot,holidayLightState(spot,now)==='Lights on now')} onSelect={setSelectedSpot} markerRef={spot.id===targetId?setTargetMarker:undefined}/>)}
  </>;
 }
