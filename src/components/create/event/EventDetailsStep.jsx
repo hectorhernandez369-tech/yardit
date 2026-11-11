@@ -1,4 +1,5 @@
 import React from "react";
+import AssistedAIPosting from "./AssistedAIPosting";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,6 +101,8 @@ export default function EventDetailsStep({
         </RadioGroup>
         {showHolidayLightsChoice && <div className="mt-2.5"><ChristmasListingChoice disabled={!christmasPreviewAllowed} /></div>}
       </div>
+
+      {isAssistedPost && <AssistedAIPosting setFormData={setFormData} />}
 
       {/* Event Name */}
       <div className="space-y-1.5">
