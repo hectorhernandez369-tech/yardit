@@ -47,11 +47,11 @@ export default async function(req) {
     const d=typeof result==='string'?JSON.parse(result):result;
     const s=(v,n=150)=>typeof v==='string'?v.trim().slice(0,n):'';
     const date=s(d.date,10);
-    const time=v=>/^([01]\\d|2[0-3]):[0-5]\\d$/.test(v)?v:'';
+    const time=v=>/^([01]\d|2[0-3]):[0-5]\d$/.test(v)?v:'';
     return Response.json({draft:{
       title:s(d.title,150),description:s(d.description,1000),
       category:CATEGORIES.includes(d.category)?d.category:'Other',
-      date:/^\\d{4}-\\d{2}-\\d{2}$/.test(date)&&!Number.isNaN(Date.parse(date+'T12:00:00Z'))?date:'',
+      date:/^\d{4}-\d{2}-\d{2}$/.test(date)&&!Number.isNaN(Date.parse(date+'T12:00:00Z'))?date:'',
       startTime:time(s(d.startTime,5)),endTime:time(s(d.endTime,5)),
       address:s(d.address,180),city:s(d.city,90),state:s(d.state,40),zip:s(d.zip,12)
     },followUp:s(d.followUp,250),warnings:Array.isArray(d.warnings)?d.warnings.filter(x=>typeof x==='string').slice(0,6):[]});
