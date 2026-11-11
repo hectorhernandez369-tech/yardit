@@ -2329,6 +2329,7 @@ export default function CreateListingPage() {
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
                 isAdminDemoMode={isAdminDemoMode}
                 isAssistedPost={isAssistedPost}
+                showAIAssistant={!!quickAssistAdminProfile || ['admin','master','supervisor','super_master'].includes(user?.role)}
                 specialtyEnabled={specialtyEnabled}
                 setSpecialtyEnabled={setSpecialtyEnabled}
                 specialtyColor={specialtyColor}
