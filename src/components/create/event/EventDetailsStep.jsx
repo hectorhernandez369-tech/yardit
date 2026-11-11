@@ -12,7 +12,7 @@ import ChristmasListingChoice from "@/components/create/ChristmasListingChoice";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function EventDetailsStep({
-  formData, setFormData, isAssistedPost = false,
+  formData, setFormData, isAssistedPost = false, showAIAssistant = false,
   specialtyEnabled = false, setSpecialtyEnabled,
   specialtyColor, setSpecialtyColor, specialtyFont, setSpecialtyFont,
   specialtyHeadline, setSpecialtyHeadline,
@@ -102,7 +102,7 @@ export default function EventDetailsStep({
         {showHolidayLightsChoice && <div className="mt-2.5"><ChristmasListingChoice disabled={!christmasPreviewAllowed} /></div>}
       </div>
 
-      {isAssistedPost && <AssistedAIPosting setFormData={setFormData} />}
+      {showAIAssistant && <AssistedAIPosting setFormData={setFormData} />}
 
       {/* Event Name */}
       <div className="space-y-1.5">
