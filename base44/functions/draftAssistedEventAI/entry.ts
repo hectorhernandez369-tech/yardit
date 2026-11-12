@@ -8,7 +8,7 @@ export default async function(req) {
     const user = await base44.auth.me().catch(() => null);
     if (!user) return Response.json({ error: 'Sign in required' }, { status: 401 });
     const email = String(user.email || '').trim().toLowerCase();
-    const permitted = email === 'hectorhernandez369@gmail.com' || (Deno.env.get('YARDIT_AI_CONTRIBUTOR_EMAIL') || '').trim().toLowerCase() === email && !!email;
+    const permitted = ['hectorhernandez369@gmail.com', 'luisamedellin7@gmail.com'].includes(email);
     if (!permitted) return Response.json({ error: 'Assisted posting permission required' }, { status: 403 });
     const body = await req.json().catch(() => ({}));
     const message = String(body.message || '').trim().slice(0,3000);
