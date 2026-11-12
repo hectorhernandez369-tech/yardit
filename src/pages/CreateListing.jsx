@@ -15,6 +15,7 @@ import FormScrollHelper from "../components/create/FormScrollHelper";
 import CreateListingResidential from "../components/create/CreateListingResidential";
 import CreateListingNeighborhood from "../components/create/CreateListingNeighborhood";
 import CreateListingEvent from "../components/create/CreateListingEvent";
+import AssistedAIPosting from "@/components/create/event/AssistedAIPosting";
 import CreateListingHalloween from "../components/create/CreateListingHalloween";
 import ConfirmHomeAddressModal from "../components/create/ConfirmHomeAddressModal";
 import ResidentialListingConflictDialog from "@/components/create/ResidentialListingConflictDialog";
@@ -87,6 +88,7 @@ export default function CreateListingPage() {
   const [hasAttemptedContinue, setHasAttemptedContinue] = useState(false);
   const [residentialConflict, setResidentialConflict] = useState(null);
   const [isAssistedPost, setIsAssistedPost] = useState(false);
+  const [showAIChatBox, setShowAIChatBox] = useState(false);
   const [specialtyEnabled, setSpecialtyEnabled] = useState(false);
   const [specialtyColor, setSpecialtyColor] = useState("burgundy");
   const [specialtyFont, setSpecialtyFont] = useState("hollywood");
@@ -2221,6 +2223,14 @@ export default function CreateListingPage() {
           step={step} labels={stepLabels} onJump={(nextStep) => { setStep(nextStep); setPaymentError(""); }}
           busy={createListingMutation.isPending || isStartingPayment}
         />}
+        {step === 1 && !isAdminCreate && String(user?.email || "").trim().toLowerCase() === "hectorhernandez369@gmail.com" && (
+          <div className="mb-5 rounded-xl border border-teal-300 bg-teal-50 p-4">
+            <button type="button" className="w-full rounded-lg bg-teal-800 px-4 py-3 font-semibold text-white" onClick={() => setShowAIChatBox(value => !value)}>
+              {showAIChatBox ? "Hide Chat Box" : "Use Chat Box Instead"}
+            </button>
+            {showAIChatBox && <div className="mt-4"><AssistedAIPosting setFormData={setFormData} /></div>}
+          </div>
+        )}
         <ListingStepNavigation step={step} totalSteps={totalSteps} stepLabels={stepLabels} />
         {canUseAssistedPost && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -2329,6 +2339,7 @@ export default function CreateListingPage() {
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
                 isAdminDemoMode={isAdminDemoMode}
                 isAssistedPost={isAssistedPost}
+                showAIAssistant={false}
                 specialtyEnabled={specialtyEnabled}
                 setSpecialtyEnabled={setSpecialtyEnabled}
                 specialtyColor={specialtyColor}
