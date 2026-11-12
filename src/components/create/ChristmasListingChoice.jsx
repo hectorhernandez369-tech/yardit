@@ -3,13 +3,13 @@ import { TreePine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HolidayHeaderDecorations from '@/components/holiday-lights/HolidayHeaderDecorations';
 
-export default function ChristmasListingChoice({ disabled = false }) {
+export default function ChristmasListingChoice({ disabled = false, assisted = false }) {
   const navigate = useNavigate();
   return (
     <button
       type="button"
       disabled={disabled}
-      onClick={() => navigate("/CreateHolidayLights")}
+      onClick={() => navigate(assisted ? "/CreateHolidayLights?assisted=1" : "/CreateHolidayLights")}
       className={`relative isolate flex w-full items-start gap-4 overflow-hidden rounded-xl border border-holiday-gold bg-gradient-to-br from-christmas-red via-christmas-red to-christmas-green p-4 text-left text-holiday-snow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-holiday-gold ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-holiday-snow'}`}
     >
       <HolidayHeaderDecorations />

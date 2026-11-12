@@ -107,7 +107,7 @@ export default function StepOne({ formData, setFormData }) {
   const listingType = formData?.listingType || "yard_sale";
   const isNeighborhood = listingType === "neighborhood_sale";
   const isHalloween = listingType === "halloween_spot";
-  const showChristmasChoice = isHolidayLightsSeason() && !formData.assisted_post;
+  const showChristmasChoice = isHolidayLightsSeason();
   const allowHalloween = isHalloweenSeasonActive();
   // This is a Step One invitation to the existing Step Three promo tier,
   // not a replacement for Featured or a second promo checkout path.
@@ -197,7 +197,7 @@ export default function StepOne({ formData, setFormData }) {
           className="space-y-2.5"
         >
           {LISTING_TYPES.filter(item => item.value !== "halloween_spot" || allowHalloween || showChristmasChoice || isHalloween).map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor }) => {
-            if (value === "halloween_spot" && showChristmasChoice) return <ChristmasListingChoice key="holiday_lights" />;
+            if (value === "halloween_spot" && showChristmasChoice) return <ChristmasListingChoice key="holiday_lights" assisted={formData.assisted_post === true} />;
             const isLocked = LOCKED_LISTING_TYPES.includes(value);
             const isSelected = formData.listingType === value && !isLocked;
             const isHalloweenOption = value === "halloween_spot";
