@@ -35,12 +35,14 @@ export default function AssistedAIPosting({ setFormData }) {
     if(!draft)return;
     setFormData(prev=>{
       const photos=flyerUrl?[...new Set([...(prev.event_photos||[]),flyerUrl])].slice(0,10):(prev.event_photos||[]);
-      return {...prev,listingType:"event",
+      return {...prev,listingType:draft.listingType||"event",
         event_name:draft.title||prev.event_name,title:draft.title||prev.title,
         event_description:draft.description||prev.event_description,description:draft.description||prev.description,
         event_category:draft.category||prev.event_category,category:draft.category||prev.category,
         event_icon:getDefaultEventIconForCategory(draft.category)||prev.event_icon,
         event_start_date:draft.date||prev.event_start_date,event_end_date:draft.date||prev.event_end_date,
+      selectedRangeStartDate:draft.date||prev.selectedRangeStartDate,selectedRangeEndDate:draft.date||prev.selectedRangeEndDate,
+      openTime:draft.startTime||prev.openTime,closeTime:draft.endTime||prev.closeTime,
         event_start_time:draft.startTime||prev.event_start_time,event_end_time:draft.endTime||prev.event_end_time,
         event_photos:photos,photoUrls:photos,
         event_add_ons:{...(prev.event_add_ons||{}),...(photos.length?{photo_gallery:true}:{})},
@@ -63,6 +65,7 @@ export default function AssistedAIPosting({ setFormData }) {
     {error&&<p role="alert" className="text-sm text-red-700">{error}</p>}
     {draft&&<div className="rounded-lg border bg-white p-3 space-y-2 text-sm">
       <strong>Draft for your review</strong>
+      <p><strong>Listing type:</strong> {draft.listingType||"Event"}</p>
       <p><strong>Title:</strong> {draft.title||"Missing"}</p><p><strong>Description:</strong> {draft.description||"Missing"}</p>
       <p><strong>Category:</strong> {draft.category}</p><p><strong>Date:</strong> {draft.date||"Missing"}</p>
       <p><strong>Hours:</strong> {draft.startTime||"Missing"} – {draft.endTime||"Missing"}</p>
