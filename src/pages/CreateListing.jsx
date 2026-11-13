@@ -15,7 +15,7 @@ import FormScrollHelper from "../components/create/FormScrollHelper";
 import CreateListingResidential from "../components/create/CreateListingResidential";
 import CreateListingNeighborhood from "../components/create/CreateListingNeighborhood";
 import CreateListingEvent from "../components/create/CreateListingEvent";
-import AssistedAIPosting from "@/components/create/event/AssistedAIPosting";
+import AIListingFlow from "@/components/create/AIListingFlow";
 import CreateListingHalloween from "../components/create/CreateListingHalloween";
 import ConfirmHomeAddressModal from "../components/create/ConfirmHomeAddressModal";
 import ResidentialListingConflictDialog from "@/components/create/ResidentialListingConflictDialog";
@@ -89,6 +89,7 @@ export default function CreateListingPage() {
   const [residentialConflict, setResidentialConflict] = useState(null);
   const [isAssistedPost, setIsAssistedPost] = useState(false);
   const [showAIChatBox, setShowAIChatBox] = useState(false);
+  const [aiFinal, setAiFinal] = useState(false);
   const [specialtyEnabled, setSpecialtyEnabled] = useState(false);
   const [specialtyColor, setSpecialtyColor] = useState("burgundy");
   const [specialtyFont, setSpecialtyFont] = useState("hollywood");
@@ -2228,7 +2229,7 @@ export default function CreateListingPage() {
             <button type="button" className="w-full rounded-lg bg-teal-800 px-4 py-3 font-semibold text-white" onClick={() => setShowAIChatBox(value => !value)}>
               {showAIChatBox ? "Hide Chat Box" : "Use Chat Box Instead"}
             </button>
-            {showAIChatBox && <div className="mt-4"><AssistedAIPosting setFormData={setFormData} /></div>}
+            
           </div>
         )}
         <ListingStepNavigation step={step} totalSteps={totalSteps} stepLabels={stepLabels} />
