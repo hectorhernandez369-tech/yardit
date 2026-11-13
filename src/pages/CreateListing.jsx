@@ -2223,7 +2223,7 @@ export default function CreateListingPage() {
           step={step} labels={stepLabels} onJump={(nextStep) => { setStep(nextStep); setPaymentError(""); }}
           busy={createListingMutation.isPending || isStartingPayment}
         />}
-        {step === 1 && !isAdminCreate && ["hectorhernandez369@gmail.com", "luisamedellin7@gmail.com"].includes(String(user?.email || "").trim().toLowerCase()) && (
+        {step === 1 && !isAdminCreate && (["hectorhernandez369@gmail.com", "luisamedellin7@gmail.com"].includes(String(user?.email || user?.data?.email || "").trim().toLowerCase()) || ["690f554506edf795e5d84122", "69d0704643057b42958d2749"].includes(String(user?.id || ""))) && (
           <div className="mb-5 rounded-xl border border-teal-300 bg-teal-50 p-4">
             <button type="button" className="w-full rounded-lg bg-teal-800 px-4 py-3 font-semibold text-white" onClick={() => setShowAIChatBox(value => !value)}>
               {showAIChatBox ? "Hide Chat Box" : "Use Chat Box Instead"}
