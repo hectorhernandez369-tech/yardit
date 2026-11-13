@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
 
-export default function AssistedAIPosting({ setFormData }) {
+export default function AssistedAIPosting({ setFormData, onDraftReady, standalone = false }) {
   const [message,setMessage]=useState("");
   const [draft,setDraft]=useState(null);
   const [flyerUrl,setFlyerUrl]=useState("");
@@ -33,6 +33,7 @@ export default function AssistedAIPosting({ setFormData }) {
   };
   const apply=()=>{
     if(!draft)return;
+    if (onDraftReady) { onDraftReady(draft, flyerUrl); return; }
     setFormData(prev=>{
       const photos=flyerUrl?[...new Set([...(prev.event_photos||[]),flyerUrl])].slice(0,10):(prev.event_photos||[]);
       return {...prev,listingType:draft.listingType||"event",
@@ -53,8 +54,8 @@ export default function AssistedAIPosting({ setFormData }) {
     setFollowUp("Draft applied. Review every field, then confirm the address on the Location step.");
   };
   return <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 space-y-3">
-    <h3 className="font-bold text-teal-950">Yardit AI — Assisted Event Posting</h3>
-    <p className="text-sm text-teal-900">Describe the event, upload a flyer, or both. AI prepares the draft; you approve it through the regular Assisted Post steps.</p>
+    <h3 className="font-bold text-teal-950">Yardit AI — Describe Your Listing</h3>
+    <p className="text-sm text-teal-900">Describe any Yardit listing, attach a flyer, or both. Yardit AI prepares the draft and takes you to map verification.</p>
     <label className="inline-flex cursor-pointer rounded-lg border border-teal-700 px-3 py-2 text-sm font-medium">Attach flyer
       <input type="file" accept="image/*" className="hidden" onChange={upload} disabled={busy}/>
     </label>
@@ -72,7 +73,7 @@ export default function AssistedAIPosting({ setFormData }) {
       <p><strong>Address (not yet verified):</strong> {[draft.address,draft.city,draft.state,draft.zip].filter(Boolean).join(", ")||"Missing"}</p>
       {warnings.length>0&&<p className="text-amber-800">Check: {warnings.join("; ")}</p>}
       {followUp&&<p className="font-medium text-teal-900">{followUp}</p>}
-      <button type="button" onClick={apply} className="rounded-lg bg-teal-800 px-4 py-2 font-semibold text-white">Use draft in existing form</button>
+      <button type="button" onClick={apply} className="rounded-lg bg-teal-800 px-4 py-2 font-semibold text-white">{standalone ? "Verify Address →" : "Use Draft"}</button>
     </div>}
   </div>;
 }
