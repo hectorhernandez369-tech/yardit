@@ -26,6 +26,7 @@ export default function AssistedAIPosting({ setFormData, onDraftReady, standalon
       const r=await base44.functions.invoke("draftAssistedEventAI",{message,flyerUrl,draft});
       if(!r?.data?.draft)throw new Error("No draft returned");
       setDraft(r.data.draft);setFollowUp(r.data.followUp||"");setWarnings(r.data.warnings||[]);
+      if (standalone && onDraftReady) { onDraftReady(r.data.draft, flyerUrl); return; }
       setHistory(p=>[...p,{message:message||"Uploaded flyer",response:r.data.followUp||"Draft updated"}].slice(-8));
       setMessage("");
     }catch(e){setError(e?.response?.data?.error||e?.message||"AI unavailable");}
