@@ -47,6 +47,7 @@ export default function AIListingFlow({formData,setFormData,user,onExit,onFinish
    if(!validLocation(formData)){setStage(2);setError("Confirm the map location first.");return;}
    if(type==="event" && (!formData.event_start_date||!formData.event_start_time||!formData.event_end_time)){setError("Enter the event date, start time and end time.");return;}
    if(type==="yard_sale" && (!formData.selectedRangeStartDate||!formData.openTime||!formData.closeTime)){setError("Enter the yard sale date and opening hours.");return;}
+   if(type==="neighborhood_sale" || type==="halloween_spot"){setError("This listing type has additional required posting rules. The AI draft is saved here, but automatic completion for this type is not ready yet.");return;}
    setError("");onFinish();
  };
  return <div className="min-h-[calc(100vh-140px)] bg-gradient-to-b from-slate-50 to-white">
@@ -64,10 +65,11 @@ export default function AIListingFlow({formData,setFormData,user,onExit,onFinish
        {stage===3&&<>
          <h2 className="text-lg font-bold">Review your {TYPES[type]||"listing"}</h2>
          <p className="text-sm text-slate-600">This is the final AI review. You do not need to return to the manual posting steps.</p>
-         <div className="space-y-1"><label className="text-sm font-semibold">Title</label><Input value={formData.title||""} onChange={e=>update("title",e.target.value)}/></div>
-         <div className="space-y-1"><label className="text-sm font-semibold">Description</label><Textarea rows={4} value={formData.description||""} onChange={e=>update("description",e.target.value)}/></div>
+         <div className="space-y-1"><label className="text-sm font-semibold">Title</label><Input value={formData.title||""} onChange={e=>setFormData(p=>({...p,title:e.target.value,event_name:e.target.value}))}/></div>
+         <div className="space-y-1"><label className="text-sm font-semibold">Description</label><Textarea rows={4} value={formData.description||""} onChange={e=>setFormData(p=>({...p,description:e.target.value,event_description:e.target.value}))}/></div>
          <div className="space-y-1"><label className="text-sm font-semibold">Category</label><Input value={formData.category||""} onChange={e=>{update("category",e.target.value); if(type==="event")update("event_category",e.target.value);}}/></div>
          <div className="rounded-lg bg-slate-50 p-3 text-sm"><strong>Verified map location:</strong> {formData.addressText||"Missing"}</div>
+         {type==="yard_sale" && <label className="block text-sm font-semibold">Listing option<select className="mt-1 w-full rounded-lg border p-3" value={formData.tier||"featured"} onChange={e=>update("tier",e.target.value)}><option value="free">Free (standard weekend rules)</option><option value="featured">Featured — $4.99</option><option value="premium">Premium — $7.99</option></select></label>}
          <div className="grid grid-cols-2 gap-3">
            <label className="text-sm">Date<Input type="date" value={type==="event"?formData.event_start_date||"":formData.selectedRangeStartDate||""} onChange={e=>setFormData(p=>({...p,event_start_date:e.target.value,event_end_date:e.target.value,selectedRangeStartDate:e.target.value,selectedRangeEndDate:e.target.value}))}/></label>
            <label className="text-sm">End date (if applicable)<Input type="date" disabled={type==="event"} value={type==="event"?formData.event_start_date||"":formData.selectedRangeEndDate||""} onChange={e=>update("selectedRangeEndDate",e.target.value)}/></label>
