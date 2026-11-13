@@ -11,6 +11,27 @@ export default function AssistedAIPosting({ setFormData, onDraftReady, standalon
   const [followUp,setFollowUp]=useState("");
   const [warnings,setWarnings]=useState([]);
   const [history,setHistory]=useState([]);
+  const missingFields = d => {
+    if (!d) return ["listing details"];
+    const missing=[];
+    if (!d.title) missing.push("listing title");
+    if (!d.description) missing.push("description");
+    if (!d.address || !d.city || !d.state || !d.zip) missing.push("complete street address, city, state and ZIP");
+    if (!d.date) missing.push("exact event or sale date, including year");
+    if (!d.startTime) missing.push("start time");
+    if (!d.endTime) missing.push("end time");
+    return missing;
+  };
+  const askNext = d => {
+    const missing=missingFields(d);
+    if (!missing.length) return "";
+    const key=missing[0];
+    return key==="complete street address, city, state and ZIP" ? "What's the exact street address, city, state and ZIP code?" :
+      key==="exact event or sale date, including year" ? "What is the exact date, including the year?" :
+      key==="start time" ? "What time does it start?" :
+      key==="end time" ? "What time does it end?" :
+      key==="listing title" ? "What would you like to call this listing?" : "What details should the description include?";
+  };
   const upload=async e=>{
     const file=e.target.files?.[0];if(!file)return;
     if(!file.type.startsWith('image/')||file.size>10*1024*1024){setError("Upload an image under 10 MB.");return;}
@@ -25,9 +46,12 @@ export default function AssistedAIPosting({ setFormData, onDraftReady, standalon
     try{
       const r=await base44.functions.invoke("draftAssistedEventAI",{message,flyerUrl,draft});
       if(!r?.data?.draft)throw new Error("No draft returned");
-      setDraft(r.data.draft);setFollowUp(r.data.followUp||"");setWarnings(r.data.warnings||[]);
-      if (standalone && onDraftReady) { onDraftReady(r.data.draft, flyerUrl); return; }
-      setHistory(p=>[...p,{message:message||"Uploaded flyer",response:r.data.followUp||"Draft updated"}].slice(-8));
+      const nextDraft = r.data.draft;
+      const question = askNext(nextDraft) || r.data.followUp || "";
+      setDraft(nextDraft);setFollowUp(question);setWarnings(r.data.warnings||[]);
+      setHistory(p=>[...p,{message:message||"Uploaded flyer",response:question||"All essential details collected. Ready to verify the address."}].slice(-12));
+      if (standalone && onDraftReady && missingFields(nextDraft).length===0) { onDraftReady(nextDraft, flyerUrl); return; }
+
       setMessage("");
     }catch(e){setError(e?.response?.data?.error||e?.message||"AI unavailable");}
     finally{setBusy(false);}
@@ -74,7 +98,8 @@ export default function AssistedAIPosting({ setFormData, onDraftReady, standalon
       <p><strong>Address (not yet verified):</strong> {[draft.address,draft.city,draft.state,draft.zip].filter(Boolean).join(", ")||"Missing"}</p>
       {warnings.length>0&&<p className="text-amber-800">Check: {warnings.join("; ")}</p>}
       {followUp&&<p className="font-medium text-teal-900">{followUp}</p>}
-      <button type="button" onClick={apply} className="rounded-lg bg-teal-800 px-4 py-2 font-semibold text-white">{standalone ? "Verify Address →" : "Use Draft"}</button>
+      {standalone && missingFields(draft).length>0 && <p className="text-xs text-amber-800">Answer the question above in the chat box, then tap Ask Yardit AI again.</p>}
+      <button type="button" disabled={standalone && missingFields(draft).length>0} onClick={apply} className="rounded-lg bg-teal-800 px-4 py-2 font-semibold text-white disabled:opacity-50">{standalone ? "Verify Address →" : "Use Draft"}</button>
     </div>}
   </div>;
 }
