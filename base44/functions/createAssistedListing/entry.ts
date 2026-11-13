@@ -112,10 +112,15 @@ Deno.serve(async (req) => {
       sellerEmail = '',
       adminNotes = '',
       sellerPermissionConfirmed = false,
+      bypassOwnerApproval = false,
       specialtyMarquee = null,
       appBaseUrl: clientAppBaseUrl = '',
     } = payload;
 
+    // Temporary AI-assisted publishing bypass, restricted to the two approved accounts.
+    // Owner consent and location verification are still required.
+    const approvedAiPoster = ['690f554506edf795e5d84122', '69d0704643057b42958d2749'].includes(String(user.id || ''));
+    const publishWithoutOwnerApproval = approvedAiPoster && bypassOwnerApproval === true;
     const isMapPin = location_source === 'map_pin';
 
     if (!sellerPermissionConfirmed) {
@@ -204,7 +209,7 @@ Deno.serve(async (req) => {
       selectedRangeStartDate: selectedRangeStartDate || startDateTime.slice(0, 10),
       selectedRangeEndDate: selectedRangeEndDate || endDateTime.slice(0, 10),
       category: 'Miscellaneous',
-      status: 'hidden', // hidden until seller approves
+      status: publishWithoutOwnerApproval ? 'active' : 'hidden', // AI-assisted authorized bypass; other assisted listings still await approval
       pricePaid: 0,
       listingNumber,
       // Admin-assisted metadata
@@ -222,7 +227,7 @@ Deno.serve(async (req) => {
       assisted = await base44.asServiceRole.entities.AssistedListing.create({
         listing_id: listing.id,
         listing_number: listingNumber,
-        assisted_status: 'pending_seller_approval',
+        assisted_status: publishWithoutOwnerApproval ? 'assisted_active_unclaimed' : 'pending_seller_approval',
         assisted_qr_token: token,
         approval_url: approvalUrl,
         qr_image_url: qrImageUrl,
@@ -255,6 +260,7 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Listing.update(listing.id, {
       assisted_listing_id: assisted.id,
+      assisted_status: publishWithoutOwnerApproval ? 'assisted_active_unclaimed' : 'pending_seller_approval',
       assisted_qr_token: token,
       assisted_approval_url: approvalUrl,
       assisted_qr_image_url: qrImageUrl,
@@ -285,6 +291,7 @@ Deno.serve(async (req) => {
         assisted_listing_id: assisted.id,
         listing_number: listingNumber,
         listing_type: listingType,
+        bypass_owner_approval: publishWithoutOwnerApproval,
         tier: listingTier,
         event_tier: eventTier || null,
         title,
@@ -307,6 +314,7 @@ Deno.serve(async (req) => {
       qrImageUrl,
       expiresAt: expiresAt.toISOString(),
       saleFormattedAddress,
+      publishedWithoutOwnerApproval: publishWithoutOwnerApproval,
     });
   } catch (error) {
     console.error('createAssistedListing error:', error?.message || error);
