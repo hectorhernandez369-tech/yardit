@@ -2209,6 +2209,31 @@ export default function CreateListingPage() {
     halloween_spot: { 1: "Choose your Halloween Spot",      2: "Confirm the spooky location",     3: "Review & publish" },
   };
   const currentMeta = stepMeta[formData.listingType]?.[step] || "";
+  if (showAIChatBox && !isAdminCreate) {
+    if (!aiFinal) return <AIListingFlow
+      formData={formData} setFormData={setFormData} user={user}
+      isAssistedPost={isAssistedPost} setIsAssistedPost={setIsAssistedPost}
+      canUseAssistedPost={canUseAssistedPost} setGeocodeRef={setGeocodeRef}
+      onExit={() => { setShowAIChatBox(false); setAiFinal(false); }}
+      onFinish={() => { setAiFinal(true); setStep(paymentStepNumber); }}
+    />;
+    return <div className="min-h-screen bg-slate-50"><div className="mx-auto max-w-2xl px-4 py-8 space-y-4">
+      <h1 className="text-2xl font-bold">Yardit AI — Final Confirmation</h1>
+      <p className="text-sm text-slate-600">Your AI listing is ready. Complete the secure posting process below.</p>
+      {isAssistedPost ? <>
+        <label className="flex gap-2 rounded-lg border bg-white p-4 text-sm">
+          <input type="checkbox" checked={assistedPermissionConfirmed} onChange={e => setAssistedPermissionConfirmed(e.target.checked)} />
+          I confirm I have permission to post this property on the owner's behalf.
+        </label>
+        <Button disabled={isStartingPayment || createListingMutation.isPending || !assistedPermissionConfirmed} onClick={() => handleSubmit({ userInitiated: true })}>Create Assisted Listing</Button>
+      </> : formData.listingType === "event" ?
+        <CreateListingEvent step={5} formData={formData} setFormData={setFormData} user={user} isAdminCreate={false} isAdminDemoMode={isAdminDemoMode} isDeveloperMode={false} isStartingPayment={isStartingPayment} paymentError={paymentError} setStep={setStep} handlePaymentStepSubmit={handlePaymentStepSubmit} onCancelPayment={() => setAiFinal(false)} /> :
+        formData.listingType === "yard_sale" && ["featured","premium"].includes(formData.tier) ?
+        <CreateListingResidential step={4} formData={formData} setFormData={setFormData} user={user} isAdminCreate={false} isAdminDemoMode={isAdminDemoMode} isDeveloperMode={false} isStartingPayment={isStartingPayment} paymentError={paymentError} paymentRetryReady={paymentRetryReady} handlePaymentStepSubmit={handlePaymentStepSubmit} residentialTierPrices={RESIDENTIAL_TIER_PRICES} onCancelPayment={() => setAiFinal(false)} /> :
+        <Button onClick={() => handleSubmit({ userInitiated: true })} disabled={isStartingPayment || createListingMutation.isPending}>Confirm Listing</Button>}
+      <Button variant="outline" onClick={() => setAiFinal(false)}>Back to AI Review</Button>
+    </div></div>;
+  }
   return (
     <div className="min-h-[calc(100vh-140px)] bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
