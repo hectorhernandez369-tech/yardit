@@ -8,7 +8,7 @@ export default async function(req) {
     const user = await base44.auth.me().catch(() => null);
     if (!user) return Response.json({ error: 'Sign in required' }, { status: 401 });
     const email = String(user.email || '').trim().toLowerCase();
-    const permitted = ['hectorhernandez369@gmail.com', 'luisamedellin7@gmail.com'].includes(email);
+    const permitted = ['hectorhernandez369@gmail.com', 'luisamedellin7@gmail.com'].includes(email) || ['690f554506edf795e5d84122', '69d0704643057b42958d2749'].includes(String(user.id || ''));
     if (!permitted) return Response.json({ error: 'Assisted posting permission required' }, { status: 403 });
     const body = await req.json().catch(() => ({}));
     const message = String(body.message || '').trim().slice(0,3000);
