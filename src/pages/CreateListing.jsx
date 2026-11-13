@@ -1680,9 +1680,11 @@ export default function CreateListingPage() {
           timeZoneId: formData.timeZoneId || "America/Los_Angeles",
           title: formData.event_name || formData.title, description: formData.event_description || formData.description || "",
           photoUrls: formData.event_photos || formData.photoUrls || [],
-          startDateTime, endDateTime, sellerPermissionConfirmed: true, appBaseUrl: window.location.origin,
+          startDateTime, endDateTime, sellerPermissionConfirmed: true,
+          bypassOwnerApproval: showAIChatBox === true,
+          appBaseUrl: window.location.origin,
         });
-        await finishAssistedPost({ ...response.data, kind: "event", saleAddress: response.data.saleFormattedAddress, title: formData.event_name || formData.title }, "Assisted Event created!");
+        await finishAssistedPost({ ...response.data, kind: "event", saleAddress: response.data.saleFormattedAddress, title: formData.event_name || formData.title }, "Assisted Event created — live without owner approval!");
         return true;
       }
       if (formData.listingType === "yard_sale") {
@@ -1712,9 +1714,9 @@ export default function CreateListingPage() {
           saleFormattedAddress: [formData.addressText, formData.city, getStateAbbreviation(formData.state || ""), formData.zip].filter(Boolean).join(", "),
           timeZoneId: tz, title: formData.title, description: formData.description || "", photoUrls: formData.photoUrls || [],
           startDateTime, endDateTime, selectedRangeStartDate: startDate, selectedRangeEndDate: endDate,
-          sellerPermissionConfirmed: true, appBaseUrl: window.location.origin,
+          sellerPermissionConfirmed: true, bypassOwnerApproval: showAIChatBox === true, appBaseUrl: window.location.origin,
         });
-        await finishAssistedPost({ ...response.data, kind: "yard_sale", saleAddress: response.data.saleFormattedAddress, title: formData.title }, "Assisted Yard Sale created!");
+        await finishAssistedPost({ ...response.data, kind: "yard_sale", saleAddress: response.data.saleFormattedAddress, title: formData.title }, "Assisted Yard Sale created — live without owner approval!");
         return true;
       }
     } catch (error) {
@@ -1733,7 +1735,7 @@ export default function CreateListingPage() {
     } catch (error) { setPaymentError(error.message); toast.error(error.message); }
   };
   const handleSubmit = async ({ userInitiated = false } = {}) => {
-    if (isDeveloperMode) {
+    if (isDeveloperMode && !isAssistedPost) {
       if (formData.listingType === "halloween_spot") handleDeveloperPublish();
       else { setPaymentError(""); setStep(paymentStepNumber); }
       return;
