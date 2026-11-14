@@ -15,7 +15,6 @@ import FormScrollHelper from "../components/create/FormScrollHelper";
 import CreateListingResidential from "../components/create/CreateListingResidential";
 import CreateListingNeighborhood from "../components/create/CreateListingNeighborhood";
 import CreateListingEvent from "../components/create/CreateListingEvent";
-import AIListingFlow from "@/components/create/AIListingFlow";
 import CreateListingHalloween from "../components/create/CreateListingHalloween";
 import ConfirmHomeAddressModal from "../components/create/ConfirmHomeAddressModal";
 import ResidentialListingConflictDialog from "@/components/create/ResidentialListingConflictDialog";
@@ -88,8 +87,6 @@ export default function CreateListingPage() {
   const [hasAttemptedContinue, setHasAttemptedContinue] = useState(false);
   const [residentialConflict, setResidentialConflict] = useState(null);
   const [isAssistedPost, setIsAssistedPost] = useState(false);
-  const [showAIChatBox, setShowAIChatBox] = useState(false);
-  const [aiFinal, setAiFinal] = useState(false);
   const [specialtyEnabled, setSpecialtyEnabled] = useState(false);
   const [specialtyColor, setSpecialtyColor] = useState("burgundy");
   const [specialtyFont, setSpecialtyFont] = useState("hollywood");
@@ -1681,10 +1678,9 @@ export default function CreateListingPage() {
           title: formData.event_name || formData.title, description: formData.event_description || formData.description || "",
           photoUrls: formData.event_photos || formData.photoUrls || [],
           startDateTime, endDateTime, sellerPermissionConfirmed: true,
-          bypassOwnerApproval: showAIChatBox === true,
           appBaseUrl: window.location.origin,
         });
-        await finishAssistedPost({ ...response.data, kind: "event", saleAddress: response.data.saleFormattedAddress, title: formData.event_name || formData.title }, "Assisted Event created — live without owner approval!");
+        await finishAssistedPost({ ...response.data, kind: "event", saleAddress: response.data.saleFormattedAddress, title: formData.event_name || formData.title }, "Assisted Event created!");
         return true;
       }
       if (formData.listingType === "yard_sale") {
@@ -1714,9 +1710,9 @@ export default function CreateListingPage() {
           saleFormattedAddress: [formData.addressText, formData.city, getStateAbbreviation(formData.state || ""), formData.zip].filter(Boolean).join(", "),
           timeZoneId: tz, title: formData.title, description: formData.description || "", photoUrls: formData.photoUrls || [],
           startDateTime, endDateTime, selectedRangeStartDate: startDate, selectedRangeEndDate: endDate,
-          sellerPermissionConfirmed: true, bypassOwnerApproval: showAIChatBox === true, appBaseUrl: window.location.origin,
+          sellerPermissionConfirmed: true, appBaseUrl: window.location.origin,
         });
-        await finishAssistedPost({ ...response.data, kind: "yard_sale", saleAddress: response.data.saleFormattedAddress, title: formData.title }, "Assisted Yard Sale created — live without owner approval!");
+        await finishAssistedPost({ ...response.data, kind: "yard_sale", saleAddress: response.data.saleFormattedAddress, title: formData.title }, "Assisted Yard Sale created!");
         return true;
       }
     } catch (error) {
@@ -1735,7 +1731,7 @@ export default function CreateListingPage() {
     } catch (error) { setPaymentError(error.message); toast.error(error.message); }
   };
   const handleSubmit = async ({ userInitiated = false } = {}) => {
-    if (isDeveloperMode && !isAssistedPost) {
+    if (isDeveloperMode) {
       if (formData.listingType === "halloween_spot") handleDeveloperPublish();
       else { setPaymentError(""); setStep(paymentStepNumber); }
       return;
