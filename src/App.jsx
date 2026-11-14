@@ -42,6 +42,7 @@ import CommunityGuidelines from './pages/CommunityGuidelines';
 import InstallYardit from './pages/InstallYardit';
 import PushSetup from './pages/PushSetup';
 import CreateListingEntry from './pages/CreateListingEntry';
+import CreateListingAI from '@/pages/CreateListingAI';
 import CreateHolidayLights from '@/pages/CreateHolidayLights';
 import HolidayLightsDetail from '@/pages/HolidayLightsDetail';
 import MapboxTest from './pages/MapboxTest';
@@ -112,6 +113,7 @@ const AuthenticatedApp = () => {
   return <Routes>
     <Route path="/" element={<LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>} />
     <Route path="/CreateListing" element={<LayoutWrapper currentPageName="CreateListing"><CreateListingEntry /></LayoutWrapper>} />
+    <Route path="/CreateListingAI" element={<LayoutWrapper currentPageName="CreateListingAI"><CreateListingAI /></LayoutWrapper>} />
     <Route path="/CreateHolidayLights" element={<LayoutWrapper currentPageName="CreateHolidayLights"><CreateHolidayLights /></LayoutWrapper>} />
     <Route path="/HolidayLightsDetail" element={<LayoutWrapper currentPageName="HolidayLightsDetail"><HolidayLightsDetail /></LayoutWrapper>} />
     {Object.entries(Pages).filter(([path]) => path !== "CreateListing").map(([path, Page]) => <Route key={path} path={`/${path}`} element={<LayoutWrapper currentPageName={path}><Page /></LayoutWrapper>} />)}

@@ -1,0 +1,106 @@
+{
+  "name": "AIListingDraft",
+  "type": "object",
+  "properties": {
+    "owner_user_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "facts": {
+      "type": "object"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "initial_message": {
+      "type": "string"
+    },
+    "initial_request_id": {
+      "type": "string"
+    },
+    "flyer": {
+      "type": "object"
+    },
+    "location": {
+      "type": "object"
+    },
+    "location_confirmed": {
+      "type": "boolean",
+      "default": false
+    },
+    "details_confirmed": {
+      "type": "boolean",
+      "default": false
+    },
+    "revision": {
+      "type": "integer",
+      "default": 0
+    },
+    "lock_token": {
+      "type": "string"
+    },
+    "lock_until": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "reviewed"
+      ],
+      "enumColors": [
+        "gray",
+        "blue"
+      ],
+      "default": "draft"
+    }
+  },
+  "required": [
+    "owner_user_id",
+    "revision",
+    "state"
+  ],
+  "rls": {
+    "read": {
+      "$and": [
+        {
+          "data.owner_user_id": "{{user.id}}"
+        },
+        {
+          "$or": [
+            {
+              "user_condition": {
+                "email": "hectorhernandez369@gmail.com"
+              }
+            },
+            {
+              "user_condition": {
+                "email": "luisamedellin7@gmail.com"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "collaborator_role": "editor"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "collaborator_role": "editor"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "collaborator_role": "editor"
+      }
+    }
+  }
+}

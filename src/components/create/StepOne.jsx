@@ -18,6 +18,7 @@ import { isPreSpreeSelected, selectPreSpreeOffer } from "@/lib/preSpreeSelection
 import { buildPreSpreePinSvg } from "@/lib/preSpreePin";
 import { isHalloweenSeasonActive } from "@/lib/halloweenSpots";
 import { useAuth } from "@/lib/AuthContext";
+import AIListingEntry from '@/components/create/ai/AIListingEntry';
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
 const LOCKED_LISTING_TYPES = [];
@@ -159,6 +160,7 @@ export default function StepOne({ formData, setFormData }) {
 
   return (
     <div className="space-y-8">
+      <AIListingEntry />
 
       {isHolidayLightsSeason() && !formData.assisted_post && !showChristmasChoice && <button type="button" onClick={() => navigate('/CreateHolidayLights')} className="flex w-full items-center gap-3 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow">
         <Sparkles className="h-6 w-6 shrink-0 text-holiday-gold" />

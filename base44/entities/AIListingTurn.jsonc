@@ -1,0 +1,79 @@
+{
+  "name": "AIListingTurn",
+  "type": "object",
+  "properties": {
+    "owner_user_id": {
+      "type": "string"
+    },
+    "draft_id": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "reply": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "answered",
+        "failed"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "red"
+      ]
+    }
+  },
+  "required": [
+    "owner_user_id",
+    "draft_id",
+    "request_id",
+    "message",
+    "state"
+  ],
+  "rls": {
+    "read": {
+      "$and": [
+        {
+          "data.owner_user_id": "{{user.id}}"
+        },
+        {
+          "$or": [
+            {
+              "user_condition": {
+                "email": "hectorhernandez369@gmail.com"
+              }
+            },
+            {
+              "user_condition": {
+                "email": "luisamedellin7@gmail.com"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "collaborator_role": "editor"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "collaborator_role": "editor"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "collaborator_role": "editor"
+      }
+    }
+  }
+}

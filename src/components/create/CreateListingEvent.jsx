@@ -1,4 +1,5 @@
 import React from "react";
+import AIListingEntry from '@/components/create/ai/AIListingEntry';
 import EventDetailsStep from "./event/EventDetailsStep";
 import EventLocationStep from "./event/EventLocationStep";
 import EventScheduleStep from "./event/EventScheduleStep";
@@ -38,7 +39,7 @@ export default function CreateListingEvent({
 }) {
   const eventPriceBreakdown = getResidentialEventPriceBreakdown(formData);
   if (step === 1) {
-    return <EventDetailsStep
+    return <div className="space-y-6"><AIListingEntry /><EventDetailsStep
       formData={formData}
       setFormData={setFormData}
       isAssistedPost={isAssistedPost}
@@ -50,7 +51,7 @@ export default function CreateListingEvent({
       setSpecialtyFont={setSpecialtyFont}
       specialtyHeadline={specialtyHeadline}
       setSpecialtyHeadline={setSpecialtyHeadline}
-    />;
+    /></div>;
   }
 
   if (step === 2) {
