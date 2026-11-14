@@ -19,7 +19,6 @@ export default function CreateListingEvent({
   setSelectedUserForAdmin,
   isAdminDemoMode,
   isAssistedPost = false,
-  showAIAssistant = false,
   specialtyEnabled = false,
   setSpecialtyEnabled,
   specialtyColor,
@@ -43,7 +42,6 @@ export default function CreateListingEvent({
       formData={formData}
       setFormData={setFormData}
       isAssistedPost={isAssistedPost}
-      showAIAssistant={showAIAssistant}
       specialtyEnabled={specialtyEnabled}
       setSpecialtyEnabled={setSpecialtyEnabled}
       specialtyColor={specialtyColor}
