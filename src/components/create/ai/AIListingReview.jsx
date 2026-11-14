@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {Button} from '@/components/ui/button';
 import AIListingSummary from '@/components/create/ai/AIListingSummary';
-import AIListingAttachment from '@/components/create/ai/AIListingAttachment';
+
 export default function AIListingReview({draft,busy,onAction,onBack}) {
   const [checked,setChecked]=useState(false);
   return <section className="space-y-4">

@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.61';
 import tzLookup from 'npm:tz-lookup@6.1.25';
-import {aiUser, ownDraft, lockDraft, finishDraft, unlockDraft, draftView, fail, missingDraftFacts} from '../../shared/aiListingDrafts.ts';
+import {aiUser, ownDraft, lockDraft, finishDraft, unlockDraft, draftView, fail, inputError, missingDraftFacts} from '../../shared/aiListingDrafts.ts';
 import {saveAIFlyer} from '../../shared/aiListingFlyer.ts';
 
 export default async function(req) {
@@ -45,24 +45,24 @@ export default async function(req) {
       const loc=body.location;
       if(!loc)changes={...changes,location:{},location_confirmed:false};
       else {
-        if(typeof loc.lat!=='number'||typeof loc.lng!=='number'||!Number.isFinite(loc.lat)||!Number.isFinite(loc.lng)||Math.abs(loc.lat)>90||Math.abs(loc.lng)>180 || !['street','city','state','zip'].every(key=>typeof loc[key]==='string'&&loc[key].trim()))throw new Error('Select a complete address including city, state and ZIP.');
+        if(typeof loc.lat!=='number'||typeof loc.lng!=='number'||!Number.isFinite(loc.lat)||!Number.isFinite(loc.lng)||Math.abs(loc.lat)>90||Math.abs(loc.lng)>180 || !['street','city','state','zip'].every(key=>typeof loc[key]==='string'&&loc[key].trim()))throw inputError('Select a complete address including city, state and ZIP.');
         const location={lat:loc.lat,lng:loc.lng,street:loc.street.trim().slice(0,180),city:loc.city.trim().slice(0,90),state:loc.state.trim().slice(0,40),zip:loc.zip.trim().slice(0,12),timeZoneId:tzLookup(loc.lat,loc.lng)};
         location.formatted=[location.street,location.city,`${location.state} ${location.zip}`].join(', ');
         changes={...changes,location,location_confirmed:false,facts:{...draft.facts,address:location.street,city:location.city,state:location.state,zip:location.zip}};
       }
     }
     if(action==='confirm_location') {
-      if(body.confirmed!==true || !draft.location?.timeZoneId)throw new Error('Select the real address and review the map pin before confirming.');
+      if(body.confirmed!==true || !draft.location?.timeZoneId)throw inputError('Select the real address and review the map pin before confirming.');
       changes={...changes,location_confirmed:true};
     }
     if(action==='review') {
-      if(body.confirmed!==true || !draft.location_confirmed || missingDraftFacts(draft.facts||{}).length || draft.warnings?.length)throw new Error('Resolve the missing details and warnings, then confirm the map location before reviewing.');
+      if(body.confirmed!==true || !draft.location_confirmed || missingDraftFacts(draft.facts||{}).length || draft.warnings?.length)throw inputError('Resolve the missing details and warnings, then confirm the map location before reviewing.');
       changes={state:'reviewed',details_confirmed:true};
     }
     const saved=await finishDraft(base44,draft,token,changes);token=null;
     return Response.json({draft:await draftView(base44,saved)});
   } catch(error) {
     if(token&&draft)await unlockDraft(base44,draft,token);
-    return fail(error?.message||'Could not save the AI draft.',400);
+    return fail(error?.message||'Could not save the AI draft.',error.status===400?400:500);
   }
 }

@@ -2,6 +2,7 @@ export const AI_EMAILS = ['hectorhernandez369@gmail.com', 'luisamedellin7@gmail.
 export const FACT_FIELDS = ['listingType','title','description','category','startDate','endDate','startTime','endTime','address','city','state','zip','postingFor','homeownerName','homeownerEmail','tierPreference','admission','christmasType'];
 export const LISTING_TYPES = ['yard_sale','neighborhood_sale','event','holiday_lights','halloween_spot'];
 export const fail = (error, status = 400) => Response.json({error}, {status});
+export const inputError = message => Object.assign(new Error(message), {status:400});
 export async function aiUser(base44) {
   const user = await base44.auth.me().catch(e => e.status === 401 ? null : Promise.reject(e));
   return user?.id && user.email_verified !== false && AI_EMAILS.includes(String(user.email || '').trim().toLowerCase()) ? user : null;
