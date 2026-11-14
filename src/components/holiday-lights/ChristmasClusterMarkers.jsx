@@ -1,40 +1,34 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Marker, useMap } from 'react-leaflet';
-import { renderToStaticMarkup } from 'react-dom/server';
+import React, { useEffect, useRef } from 'react';
+import { useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { TreePine } from 'lucide-react';
 import { clusterHalloweenPoints, getHalloweenClusterRadius } from '@/lib/halloweenPixelClustering';
 
-const iconCache = new Map();
-function clusterIcon(count) {
-  if (iconCache.has(count)) return iconCache.get(count);
-  const html = renderToStaticMarkup(
-    <div className="flex h-[42px] w-[42px] items-center justify-center gap-0.5 rounded-full border-[3px] border-[#e9c36b] bg-[#123f30] text-[14px] font-extrabold text-white shadow-lg">
-      <TreePine size={13} className="text-[#e9c36b]" />
-      <span>{count}</span>
-    </div>
-  );
-  const icon = L.divIcon({
-    className: 'yardit-christmas-cluster',
-    html,
-    iconSize: [42, 42],
-    iconAnchor: [21, 21],
-  });
-  iconCache.set(count, icon);
-  return icon;
+const clusterIcon = count => L.divIcon({
+  className: 'yardit-christmas-cluster',
+  html: '<div style="width:42px;height:42px;border-radius:50%;background:#123f30;border:3px solid #e9c36b;display:flex;align-items:center;justify-content:center;gap:3px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 0 0 3px rgba(233,195,107,.25),0 3px 9px rgba(18,63,48,.4);"><span style="font-size:13px;color:#e9c36b;">✦</span>' + count + '</div>',
+  iconSize: [42,42],
+  iconAnchor: [21,21],
+});
+
+export function getChristmasClusters(spots, map, zoom, targetId = '', selectedId = '', clusterRadius = 40) {
+  if (zoom > 10) return {clusters:[],hiddenIds:new Set()};
+  const points = spots
+    .filter(spot => spot?.id && spot.id !== targetId && spot.id !== selectedId &&
+      typeof spot.latitude === 'number' && typeof spot.longitude === 'number' &&
+      Number.isFinite(spot.latitude) && Number.isFinite(spot.longitude))
+    .map(spot => ({id:spot.id,lat:spot.latitude,lng:spot.longitude}));
+  const clusters = clusterHalloweenPoints(points, map, clusterRadius);
+  return {clusters, hiddenIds:new Set(clusters.flatMap(cluster => cluster.members.map(member => member.id)))};
 }
 
 function getClusterBreakZoom(map, members, radius) {
-  for (let zoom = Math.ceil(map.getZoom()) + 1; zoom <= map.getMaxZoom(); zoom += 1) {
-    const projected = members.map(({lat, lng}) => map.project([lat, lng], zoom));
-    const separationRadius = getHalloweenClusterRadius(zoom, radius);
+  for (let zoom = Math.ceil(map.getZoom()) + 1; zoom <= map.getMaxZoom(); zoom++) {
+    const projected = members.map(({lat,lng}) => map.project([lat,lng],zoom));
+    const threshold = getHalloweenClusterRadius(zoom,radius);
     let separated = true;
-    for (let i = 0; i < projected.length && separated; i += 1) {
-      for (let j = i + 1; j < projected.length; j += 1) {
-        if (projected[i].distanceTo(projected[j]) <= separationRadius) {
-          separated = false;
-          break;
-        }
+    for (let i=0;i<projected.length && separated;i++) {
+      for (let j=i+1;j<projected.length;j++) {
+        if (projected[i].distanceTo(projected[j])<=threshold) {separated=false;break;}
       }
     }
     if (separated) return zoom;
@@ -42,57 +36,70 @@ function getClusterBreakZoom(map, members, radius) {
   return map.getMaxZoom();
 }
 
-// Uses exactly the same pixel-distance grouping rule as Halloween:
-// nearby pairs are grouped only at zoom <= 10; all individual pins return at zoom 11+.
-export function getChristmasClusters(spots, map, zoom, targetId = '', selectedId = '', clusterRadius = 40) {
-  if (zoom > 10) return {clusters: [], hiddenIds: new Set()};
-  const points = spots
-    .filter(spot => spot?.id && spot.id !== targetId && spot.id !== selectedId &&
-      Number.isFinite(Number(spot.latitude)) && Number.isFinite(Number(spot.longitude)))
-    .map(spot => ({
-      id: spot.id, lat: Number(spot.latitude), lng: Number(spot.longitude),
-    }));
-  const clusters = clusterHalloweenPoints(points, map, clusterRadius);
-  return {clusters, hiddenIds: new Set(clusters.flatMap(cluster => cluster.members.map(member => member.id)))};
-}
-
-function ChristmasClusterMarker({cluster, clusterRadius = 40}) {
+// Same architecture as HalloweenClusterGroup: leave individual markers mounted,
+// toggle their visibility, and draw cluster counts in an independent Leaflet layer.
+export default function ChristmasClusterMarkers({spots, markerRefsMap, targetId = '', selectedId = '', clusterRadius = 40}) {
   const map = useMap();
-  const timer = useRef(null);
-  useEffect(() => () => {
-    if (timer.current) window.clearTimeout(timer.current);
-  }, []);
-  const handlers = useMemo(() => ({
-    click: event => {
-      L.DomEvent.stopPropagation(event.originalEvent);
-      if (timer.current) window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => {
-        map.flyTo([cluster.lat, cluster.lng], Math.min(map.getZoom() + 2, map.getMaxZoom()), {duration: 0.5});
-        timer.current = null;
-      }, 220);
-    },
-    dblclick: event => {
-      if (timer.current) {
-        window.clearTimeout(timer.current);
-        timer.current = null;
-      }
-      L.DomEvent.stopPropagation(event.originalEvent);
-      const targetZoom = Math.max(11, Math.min(13, getClusterBreakZoom(map, cluster.members, clusterRadius)));
-      map.flyTo([cluster.lat, cluster.lng], targetZoom, {duration: 0.75});
-    },
-  }), [map, cluster, clusterRadius]);
-  return <Marker
-    position={[cluster.lat, cluster.lng]}
-    icon={clusterIcon(cluster.count)}
-    eventHandlers={handlers}
-    title={cluster.count + ' Christmas displays — tap to zoom'}
-  />;
-}
+  const layerRef = useRef(L.layerGroup());
+  const currentRef = useRef({spots,targetId,selectedId,clusterRadius});
+  const updateRef = useRef(()=>{});
+  currentRef.current = {spots,targetId,selectedId,clusterRadius};
 
-export default function ChristmasClusterMarkers({clusters, clusterRadius = 40}) {
-  return <>{clusters.map(cluster => <ChristmasClusterMarker
-    key={cluster.members.map(member => member.id).sort().join('-')}
-    cluster={cluster}
-    clusterRadius={clusterRadius}
-  />)}</>;
+  useEffect(()=>{
+    const layer = layerRef.current;
+    let active = true;
+    let clickTimers = [];
+    const setVisibility = ids => {
+      for (const spot of currentRef.current.spots) {
+        const el = markerRefsMap.current?.[spot.id]?.getElement?.();
+        if (el) el.style.display = ids.has(spot.id) ? 'none' : '';
+      }
+    };
+    const update = () => {
+      if (!active) return;
+      clickTimers.forEach(timer => clearTimeout(timer));
+      clickTimers = [];
+      layer.clearLayers();
+      const {spots,targetId,selectedId,clusterRadius} = currentRef.current;
+      if (map.getZoom()>10) {setVisibility(new Set());return;}
+      const {clusters,hiddenIds} = getChristmasClusters(spots,map,map.getZoom(),targetId,selectedId,clusterRadius);
+      setVisibility(hiddenIds);
+      for (const cluster of clusters) {
+        const marker=L.marker([cluster.lat,cluster.lng],{icon:clusterIcon(cluster.count),interactive:true});
+        let clickTimer=null;
+        marker.on('click',()=>{
+          if(clickTimer)clearTimeout(clickTimer);
+          clickTimer=setTimeout(()=>{
+            map.flyTo([cluster.lat,cluster.lng],Math.min(map.getZoom()+2,map.getMaxZoom()),{duration:0.5});
+            clickTimer=null;
+          },220);
+          clickTimers.push(clickTimer);
+        });
+        marker.on('dblclick',event=>{
+          if(clickTimer){clearTimeout(clickTimer);clickTimer=null;}
+          L.DomEvent.stopPropagation(event);
+          const target=Math.max(11,Math.min(13,getClusterBreakZoom(map,cluster.members,clusterRadius)));
+          map.flyTo([cluster.lat,cluster.lng],target,{duration:0.75});
+        });
+        layer.addLayer(marker);
+      }
+    };
+    updateRef.current=update;
+    layer.addTo(map);
+    update();
+    map.on('zoomend',update);
+    map.on('moveend',update);
+    return ()=>{
+      active=false;
+      clickTimers.forEach(timer=>clearTimeout(timer));
+      map.off('zoomend',update);
+      map.off('moveend',update);
+      setVisibility(new Set());
+      layer.clearLayers();
+      layer.remove();
+      updateRef.current=()=>{};
+    };
+  },[map,markerRefsMap]);
+  useEffect(()=>updateRef.current(),[spots,targetId,selectedId,clusterRadius]);
+  return null;
 }

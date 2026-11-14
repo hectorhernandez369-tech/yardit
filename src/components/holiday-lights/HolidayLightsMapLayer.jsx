@@ -8,7 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { holidayLightState, isHolidayLightsSeason } from '@/lib/holidayLights';
 import { CHRISTMAS_SPOT_TYPES, ChristmasIcon } from './ChristmasDesign';
 import { Star } from 'lucide-react';
-import ChristmasClusterMarkers, {getChristmasClusters} from './ChristmasClusterMarkers';
+import ChristmasClusterMarkers from './ChristmasClusterMarkers';
 
 const ICON_CACHE=new Map();
 function getIcon(spot,on) {
@@ -26,17 +26,17 @@ function getIcon(spot,on) {
 
 export default function HolidayLightsMapLayer({enabled=true,now,targetId=''}) {
  const [bounds,setBounds]=useState(null);
- const [zoom,setZoom]=useState(null);
  const [selectedSpot,setSelectedSpot]=useState(null);
  const targetMarkerRef=useRef(null);
+ const markerRefsMap=useRef({});
  const lastFocusedId=useRef(null);
  const setTargetMarker=useCallback(ref=>{ targetMarkerRef.current=ref; },[]);
- const map=useMapEvents({moveend:updateBounds,zoomend:()=>setZoom(map.getZoom())});
+ const map=useMapEvents({moveend:updateBounds});
  function updateBounds() {
   const b=map.getBounds();
   setBounds({south:b.getSouth(),north:b.getNorth(),west:b.getWest(),east:b.getEast()});
  }
- useEffect(()=>{updateBounds();setZoom(map.getZoom());},[map]);
+ useEffect(()=>{updateBounds();},[map]);
  const center=map.getCenter();
  const season=isHolidayLightsSeason(now,{lat:center.lat,lng:center.lng});
  const query=useInfiniteQuery({queryKey:['holidayLights','map',bounds],enabled:season&&enabled&&!!bounds,initialPageParam:null,
@@ -60,10 +60,6 @@ export default function HolidayLightsMapLayer({enabled=true,now,targetId=''}) {
   for(const spot of additional){if(!combined.some(item=>item.id===spot.id))combined.push(spot);}
   return combined;
  },[query.data,selectedSpot,targetQuery.data]);
- const {clusters:christmasClusters,hiddenIds:christmasClusteredIds}=useMemo(
-  ()=>getChristmasClusters(spots,map,zoom??map.getZoom(),targetId,selectedSpot?.id,40),
-  [spots,map,zoom,targetId,selectedSpot?.id]
- );
  useEffect(()=>{lastFocusedId.current=null;},[targetId]);
  useEffect(()=>{
   if(!season||!enabled||!targetId||targetQuery.data?.id!==targetId||lastFocusedId.current===targetId)return;
@@ -85,7 +81,10 @@ export default function HolidayLightsMapLayer({enabled=true,now,targetId=''}) {
  useEffect(()=>{if(!enabled) setSelectedSpot(null);},[enabled]);
  if(!season) return null;
  return <>
-  {enabled&&<ChristmasClusterMarkers clusters={christmasClusters} clusterRadius={40}/>}
-  {enabled&&spots.filter(spot=>!christmasClusteredIds.has(spot.id)).map(spot=><HolidayLightsMapMarker key={spot.id} spot={spot} now={now} icon={getIcon(spot,holidayLightState(spot,now)==='Lights on now')} onSelect={setSelectedSpot} markerRef={spot.id===targetId?setTargetMarker:undefined}/>)}
+  {enabled&&<ChristmasClusterMarkers spots={spots} markerRefsMap={markerRefsMap} targetId={targetId} selectedId={selectedSpot?.id} clusterRadius={40}/>}
+  {enabled&&spots.map(spot=><HolidayLightsMapMarker key={spot.id} spot={spot} now={now} icon={getIcon(spot,holidayLightState(spot,now)==='Lights on now')} onSelect={setSelectedSpot} markerRef={ref=>{
+    if(ref)markerRefsMap.current[spot.id]=ref;
+    else delete markerRefsMap.current[spot.id];
+  }}/>) }
  </>;
 }
