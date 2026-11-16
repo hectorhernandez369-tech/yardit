@@ -58,6 +58,23 @@
         "blue"
       ],
       "default": "draft"
+    },
+    "submission_result": {
+      "type": "object"
+    },
+    "submission_request_id": {
+      "type": "string"
+    },
+    "submission_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "submitted",
+        "pending_checkout",
+        "pending_approval",
+        "failed"
+      ],
+      "default": "none"
     }
   },
   "required": [
