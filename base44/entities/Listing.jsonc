@@ -659,6 +659,14 @@
           }
         }
       }
+    },
+    "event_flyer_format": {
+      "type": "string",
+      "enum": [
+        "image",
+        "pdf"
+      ],
+      "description": "Public event flyer media format"
     }
   },
   "required": [
