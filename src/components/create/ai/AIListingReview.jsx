@@ -12,12 +12,13 @@ function checkoutAmount(facts,flyer) {
   return facts.tierPreference==='featured'?499:facts.tierPreference==='premium'?799:0;
 }
 function label(cents) {return '$'+(cents/100).toFixed(2);}
-export default function AIListingReview({draft,busy,onAction,onComplete,onBack}) {
+export default function AIListingReview({draft,busy,onAction,onComplete,onCheckSubmission,onBack}) {
   const [reviewed,setReviewed]=useState(false);
   const [permission,setPermission]=useState(false);
   const [refundAcknowledged,setRefundAcknowledged]=useState(false);
   const [redirectError,setRedirectError]=useState('');
   const [result,setResult]=useState(null);
+  const [approvalStatus,setApprovalStatus]=useState('');
   const facts=draft.facts||{},saved=result||draft.submission_result;
   const price=facts.postingFor==='self'?checkoutAmount(facts,draft.flyer):0;
   const needsPayment=price>0&&paidTypes.has(facts.listingType==='event'?'event':facts.tierPreference);
@@ -67,6 +68,13 @@ export default function AIListingReview({draft,busy,onAction,onComplete,onBack})
       <strong>Homeowner approval required</strong>
       <p className="text-sm">This listing is pending and is not public. The homeowner must sign in with their matching account email to approve it.</p>
       {saved.approval_url&&<><img className="mx-auto h-44 w-44" alt="Homeowner approval QR" src={'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(saved.approval_url)}/><a className="block break-all font-semibold underline" href={saved.approval_url} target="_blank" rel="noreferrer">Open homeowner approval link</a></>}
+    </div>}
+    {isPending&&<div className="space-y-2">
+      {approvalStatus&&<p role="status" className="text-sm">Approval status: {approvalStatus.replaceAll('_',' ')}</p>}
+      <Button type="button" variant="outline" disabled={busy} onClick={async()=>{
+        const data=await onCheckSubmission();
+        if(data)setApprovalStatus(data.approval_status||'unknown');
+      }}>Check homeowner approval status</Button>
     </div>}
     {showCheckout&&<div role="status" className="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
       <strong>Payment required — {label(saved.amount_cents)}</strong>

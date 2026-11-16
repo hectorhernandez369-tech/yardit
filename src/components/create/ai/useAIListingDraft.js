@@ -29,6 +29,11 @@ export default function useAIListingDraft(id,enabled) {
     const data=await aiDraftCall({id,revision:draft.revision,...request},'draftAssistedEventAI');
     setDraft(data.draft);setTurns(items=>[...items.filter(t=>t.request_id!==data.turn.request_id),data.turn]);pending.current=null;return data;
   });
+  const checkSubmission=()=>run(async()=>{
+    const data=await aiDraftCall({id,action:'status'},'completeAIListing');
+    if(data?.result)setDraft(current=>({...current,submission_result:data.result,submission_status:data.submission_status}));
+    return data;
+  });
   const complete=body=>run(async()=>{
     const data=await aiDraftCall({id,revision:draft.revision,action:'submit',...body},'completeAIListing');
     if(data?.result)setDraft(current=>({...current,submission_result:data.result,submission_status:data.result.status}));
@@ -37,5 +42,5 @@ export default function useAIListingDraft(id,enabled) {
   const older=()=>run(async()=>{
     const data=await aiDraftCall({action:'history',id,cursor});setTurns(items=>[...data.turns.slice().reverse(),...items]);setCursor(data.next_cursor);setHasMore(data.has_more);
   });
-  return {draft,turns,busy,loading,error,hasMore,action,send,older,complete,reload:load};
+  return {draft,turns,busy,loading,error,hasMore,action,send,older,complete,checkSubmission,reload:load};
 }
