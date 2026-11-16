@@ -72,6 +72,7 @@
         "submitted",
         "pending_checkout",
         "pending_approval",
+        "needs_reconciliation",
         "failed"
       ],
       "default": "none"
