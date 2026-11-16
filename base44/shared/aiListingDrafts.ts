@@ -34,6 +34,29 @@ export async function draftView(base44, draft) {
   }
   return {...draft, flyerPreview};
 }
-export function missingDraftFacts(facts) {
-  return ['listingType','title','description','startDate','endDate','startTime','endTime','postingFor'].filter(key=>!facts[key]);
+export function missingDraftFacts(facts = {}) {
+  const fields = ['listingType','title','description','startDate','endDate','startTime','endTime','postingFor'];
+  if (facts.listingType === 'holiday_lights') fields.push('christmasType');
+  if (facts.listingType === 'event') fields.push('admission');
+  if (facts.postingFor === 'someone_else') fields.push('homeownerEmail');
+  return fields.filter(key=>!String(facts[key] ?? '').trim());
+}
+export function validateAIListingFacts(facts = {}) {
+  const missing = missingDraftFacts(facts);
+  if (missing.length) return 'Please answer: ' + missing.join(', ') + '.';
+  if (!LISTING_TYPES.includes(facts.listingType)) return 'Choose a valid Yardit listing type.';
+  if (!['self','someone_else'].includes(facts.postingFor)) return 'Clarify who you are posting for.';
+  if (facts.postingFor === 'someone_else' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(facts.homeownerEmail||''))) return 'Provide a valid homeowner contact email.';
+  const dates = [facts.startDate, facts.endDate];
+  for (const date of dates) {
+    const checked = new Date(date+'T12:00:00Z');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(+checked) || checked.toISOString().slice(0,10)!==date) return 'Confirm complete valid dates and years.';
+  }
+  if (facts.startDate > facts.endDate) return 'The end date cannot precede the start date.';
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(facts.startTime||'') || !/^([01]\d|2[0-3]):[0-5]\d$/.test(facts.endTime||'')) return 'Confirm opening and closing times.';
+  if (facts.startDate === facts.endDate && facts.startTime >= facts.endTime) return 'Closing time must be after opening time on the same day.';
+  if (facts.listingType === 'holiday_lights' && !['christmas_decorations','christmas_lights','light_show','christmas_experience'].includes(facts.christmasType)) return 'Choose a valid Christmas display type.';
+  if (facts.listingType === 'holiday_lights' && (facts.startDate.slice(5) < '11-01' && facts.startDate.slice(5) > '01-02')) return 'Christmas dates must be November 1 through January 2.';
+  if (facts.listingType === 'event' && !facts.category) return 'Choose the event category before submission.';
+  return null;
 }

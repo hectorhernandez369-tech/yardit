@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.61';
 import tzLookup from 'npm:tz-lookup@6.1.25';
-import {aiUser, ownDraft, lockDraft, finishDraft, unlockDraft, draftView, fail, inputError, missingDraftFacts} from '../../shared/aiListingDrafts.ts';
+import {aiUser, ownDraft, lockDraft, finishDraft, unlockDraft, draftView, fail, inputError, missingDraftFacts, validateAIListingFacts} from '../../shared/aiListingDrafts.ts';
 import {saveAIFlyer} from '../../shared/aiListingFlyer.ts';
 
 export default async function(req) {
@@ -52,11 +52,21 @@ export default async function(req) {
       }
     }
     if(action==='confirm_location') {
-      if(body.confirmed!==true || !draft.location?.timeZoneId)throw inputError('Select the real address and review the map pin before confirming.');
+      if(body.confirmed!==true || !draft.location?.timeZoneId || !draft.location?.street || !draft.location?.zip)throw inputError('Select the real address and review the map pin before confirming.');
       changes={...changes,location_confirmed:true};
     }
+    if(action==='edit') {
+      const field=String(body.field||'');
+      const allowed=new Set(['postingFor','admission','homeownerEmail','homeownerName','listingType','christmasType','category','tierPreference']);
+      if(!allowed.has(field) || typeof body.value!=='string')throw inputError('Choose a supported detail to correct.');
+      const value=body.value.trim().slice(0,250);
+      if(field==='postingFor' && !['self','someone_else'].includes(value))throw inputError('Choose yourself or someone else.');
+      if(field==='listingType' && !['yard_sale','neighborhood_sale','event','holiday_lights','halloween_spot'].includes(value))throw inputError('Choose a valid listing type.');
+      if(field==='homeownerEmail' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))throw inputError('Enter a valid homeowner email.');
+      changes={...changes,facts:{...(draft.facts||{}),[field]:value},warnings:[],...(field==='listingType'?{location_confirmed:false}:{})};
+    }
     if(action==='review') {
-      if(body.confirmed!==true || !draft.location_confirmed || missingDraftFacts(draft.facts||{}).length || draft.warnings?.length)throw inputError('Resolve the missing details and warnings, then confirm the map location before reviewing.');
+      if(body.confirmed!==true || !draft.location_confirmed || validateAIListingFacts(draft.facts||{}) || draft.warnings?.length)throw inputError('Resolve the required details and warnings, then confirm the map location before reviewing.');
       changes={state:'reviewed',details_confirmed:true};
     }
     const saved=await finishDraft(base44,draft,token,changes);token=null;

@@ -59,7 +59,10 @@ export default async function(req) {
       if(['startTime','endTime'].includes(change.field)&&value&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(value))continue;
       facts[change.field]=value;
     }
-    const locationChanged=['address','city','state','zip','listingType','postingFor'].some(key=>facts[key]!==draft.facts?.[key]);
+    const locationChanged=['address','city','state','zip'].some(key=>facts[key]!==draft.facts?.[key]);
+    // Type-specific answers from an earlier type must not contaminate the next type.
+    if (facts.listingType !== 'holiday_lights') facts.christmasType='';
+    if (facts.listingType !== 'event') facts.admission='';
     const warnings=(result.warnings||[]).filter(v=>typeof v==='string').map(v=>v.slice(0,350)).slice(0,10);
     const saved=await finishDraft(base44,draft,token,{facts,title:facts.title||'Untitled AI draft',warnings,details_confirmed:false,state:'draft',...(locationChanged?{location_confirmed:false,location:{}}:{})});token=null;
     turn=await turns.update(turn.id,{reply:result.reply.slice(0,2000),state:'answered'});
