@@ -36,6 +36,7 @@ export default function HolidayLightsSummary({spot,now=new Date(),compact=false,
      <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-amber-200"/>{christmasDate(start)} – {christmasDate(end)}</p>
      <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 shrink-0 text-amber-200"/>{christmasTime(spot.viewing_start_time)} – {christmasTime(spot.viewing_end_time)} nightly</p>
    </div>
+   {!compact && spot.christmas_flyer_url && <a className="mt-3 block rounded-lg border border-amber-300/40 bg-white/10 px-3 py-2 font-semibold text-amber-100 underline" href={spot.christmas_flyer_url} target="_blank" rel="noopener noreferrer">View original Christmas flyer (PDF)</a>}
    {spot.christmas_tags?.length>0 && <div className="mt-3"><ChristmasTags compact={compact} tags={spot.christmas_tags}/></div>}
    {!compact && (spot.christmas_suggested_age||spot.christmas_host_name||spot.christmas_admission||spot.christmas_parking_notes||spot.christmas_activities) && <div className="mt-4 space-y-2 rounded-xl border border-amber-200/20 bg-white/5 p-4 text-sm">
       <h2 className="font-black uppercase tracking-wide text-amber-200">What to Expect</h2>

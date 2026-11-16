@@ -311,7 +311,7 @@ export default function ListingDetailPage() {
           : (listing?.photoUrls || listing?.event_photos || []);
         return (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(basePhotos).filter(Boolean);
       })();
-      const mainImage = listing.event_flyer_url || listingImages[0];
+      const mainImage = (listing.event_flyer_format === "pdf" ? "" : listing.event_flyer_url) || listingImages[0];
 
       if (mainImage) {
         document.title = shareTitle;
@@ -404,7 +404,7 @@ export default function ListingDetailPage() {
 
     return (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(basePhotos).filter(Boolean);
   })();
-  const mainImage = listing.event_flyer_url || listingImages[selectedImageIndex] || listingImages[0];
+  const mainImage = (listing.event_flyer_format === "pdf" ? "" : listing.event_flyer_url) || listingImages[selectedImageIndex] || listingImages[0];
   const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
   const shareTitle = listing.event_name || listing.title;
   return (
@@ -447,9 +447,10 @@ export default function ListingDetailPage() {
           <CardContent className="space-y-8 p-4 sm:p-6 md:p-8">
             <div className="space-y-5">
               {listing?.listingType === "event" && listing?.event_flyer_url && (
-                <EventFlyerDisplay flyerUrl={listing.event_flyer_url} title={shareTitle} />
+                <EventFlyerDisplay flyerUrl={listing.event_flyer_url} format={listing.event_flyer_format} title={shareTitle} />
               )}
 
+              {listing?.ai_listing_flyer_url && listing.ai_listing_flyer_format === 'pdf' && <a className="block rounded-xl border bg-white p-4 font-semibold text-teal-800 underline" href={listing.ai_listing_flyer_url} target="_blank" rel="noopener noreferrer">View original listing flyer (PDF)</a>}
               {listingImages.length > 0 && (
                 <ListingPhotoGallery
                   images={listingImages}
