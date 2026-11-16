@@ -56,6 +56,41 @@ test('no listing can be submitted without a valid owner-scoped draft',async()=>{
   assert.equal(x.status,404);
   assert.equal(c.writes.length,0);
 });
+test('paid event request uses server-owned fee and creates checkout, not an active listing',async()=>{
+  const c=makeClient();
+  c.asServiceRole.entities.AIListingDraft.filter=async()=>[{
+    ...draft, state:'reviewed',details_confirmed:true,location_confirmed:true,
+    location:{street:'123 Fake Street',city:'Visalia',state:'CA',zip:'93291',lat:36.3,lng:-119.3,timeZoneId:'America/Los_Angeles'},
+    facts:{listingType:'event',title:'Test event',description:'An event',startDate:'2026-11-22',
+      endDate:'2026-11-22',startTime:'09:00',endTime:'17:00',postingFor:'self',
+      category:'Holiday',admission:'Free'},warnings:[],
+  }];
+  const invoked=[];
+  c.functions={invoke:async(name,data)=>{invoked.push({name,data});return {data:{checkoutUrl:'https://checkout.stripe.com/example',sessionId:'cs_test_example'}};}};
+  const call=await loadServer('base44/functions/completeAIListing/entry.ts',c);
+  const response=await call({action:'submit',id:'draft1',revision:0,non_refund_acknowledged:true,amount_cents:0});
+  assert.equal(response.status,200);
+  assert.equal(response.body.result.status,'payment_required');
+  assert.equal(response.body.result.amount_cents,999);
+  assert.equal(invoked.filter(x=>x.name==='residentialStripeCheckout').length,1);
+  assert.equal(invoked.find(x=>x.name==='residentialStripeCheckout').data.amount_cents,999);
+  assert.ok(!invoked.some(x=>x.name==='saveResidentialListing'));
+});
+test('missing homeowner permission blocks assisted listing creation',async()=>{
+  const c=makeClient();
+  c.asServiceRole.entities.AIListingDraft.filter=async()=>[{
+    ...draft,state:'reviewed',details_confirmed:true,location_confirmed:true,
+    location:{street:'123 Fake Street',city:'Visalia',state:'CA',zip:'93291',lat:36.3,lng:-119.3,timeZoneId:'America/Los_Angeles'},
+    facts:{listingType:'holiday_lights',title:'Test lights',description:'Lights',startDate:'2026-11-22',
+      endDate:'2026-11-23',startTime:'17:00',endTime:'22:00',postingFor:'someone_else',
+      homeownerEmail:'owner@example.com',christmasType:'christmas_lights'},warnings:[],
+  }];
+  let invoked=false;c.functions={invoke:async()=>{invoked=true;}};
+  const call=await loadServer('base44/functions/completeAIListing/entry.ts',c);
+  const response=await call({action:'submit',id:'draft1',revision:0});
+  assert.equal(response.status,400);
+  assert.equal(invoked,false);
+});
 test('AI type-specific validation rejects missing seller, tiers, bad dates',async()=>{
   const src=readFileSync('base44/shared/aiListingDrafts.ts','utf8');
   const result=await build({stdin:{contents:src,resolveDir:process.cwd(),sourcefile:'aiListingDrafts.ts'},bundle:true,write:false,format:'esm',platform:'neutral'});
