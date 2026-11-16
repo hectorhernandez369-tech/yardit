@@ -219,6 +219,21 @@ export default async function(req:Request) {
       result={status:'pending_approval',listing_id:created.listingId,
         listing_type:facts.listingType,approval_id:created.assistedId,
         approval_url:created.approvalUrl,expires_at:created.expiresAt};
+    } else if(facts.listingType==='yard_sale'&&facts.postingFor==='self'&&String(facts.tierPreference).toLowerCase()==='pre_spree') {
+      if(!verifiedHome(user,loc))throw new Error('Pre-Spree requires your verified home address.');
+      if(facts.startDate!=='2026-11-20'||facts.endDate!=='2026-11-22')
+        throw new Error('The free Pre-Spree offer requires November 20–22, 2026.');
+      const flyerUrl=await uploadApprovedFlyer(base44,draft);
+      const isPdf=draft.flyer?.type==='application/pdf';
+      const listing:any={...common,tier:'featured',listing_offer:'pre_spree_2026',
+        photoUrls:flyerUrl&&!isPdf?[flyerUrl]:[],
+        ...(flyerUrl&&isPdf?{ai_listing_flyer_url:flyerUrl,ai_listing_flyer_format:'pdf'}:{}),
+        ownerUserId:user.id,neighborhood_join_status:'none',participant_origin:'standalone',
+        earlyVisibilityDays:0,earlyVisibilityDates:[],early_visibility_enabled:false};
+      const saved=await call(base44,'saveResidentialListing',{action:'pre_spree_create',data:listing});
+      if(!saved.listing?.id)throw new Error('Pre-Spree listing could not be saved.');
+      result={status:saved.listing.status==='scheduled'?'scheduled':'published',
+        listing_id:saved.listing.id,listing_type:'yard_sale',promotion:'pre_spree_2026'};
     } else if(facts.listingType==='yard_sale'&&facts.postingFor==='self'&&(facts.tierPreference||'free').toLowerCase()==='free') {
       if(!verifiedHome(user,loc))throw new Error('A free yard sale must use your verified home location.');
       const window=freeWindow(timezone);

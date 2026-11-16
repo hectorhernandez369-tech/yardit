@@ -37,7 +37,8 @@ export async function draftView(base44, draft) {
 export function missingDraftFacts(facts = {}) {
   const fields = ['listingType','title','description','startDate','endDate','startTime','endTime','postingFor'];
   if (facts.listingType === 'holiday_lights') fields.push('christmasType');
-  if (facts.listingType === 'event') fields.push('admission');
+  if (facts.listingType === 'event') fields.push('admission','category');
+  if (facts.listingType === 'yard_sale') fields.push('tierPreference');
   if (facts.postingFor === 'someone_else') fields.push('homeownerEmail');
   return fields.filter(key=>!String(facts[key] ?? '').trim());
 }
@@ -60,6 +61,12 @@ export function validateAIListingFacts(facts = {}) {
     const seasonDateOk = date => date.slice(5) >= '11-01' || date.slice(5) <= '01-02';
     if (!seasonDateOk(facts.startDate) || !seasonDateOk(facts.endDate)) return 'Christmas dates must be November 1 through January 2.';
   }
-  if (facts.listingType === 'event' && !facts.category) return 'Choose the event category before submission.';
+  if (facts.listingType === 'yard_sale' && !['free','featured','premium','pre_spree'].includes(String(facts.tierPreference||'').toLowerCase()))
+    return 'Choose Free, Featured, Premium, or Pre-Spree for a yard sale.';
+  if (facts.listingType === 'yard_sale' && facts.tierPreference === 'pre_spree' &&
+    (facts.startDate !== '2026-11-20' || facts.endDate !== '2026-11-22'))
+    return 'Pre-Spree requires the full November 20–22, 2026 weekend.';
+  if (facts.listingType === 'event' && facts.startDate !== facts.endDate)
+    return 'Residential event listings use one calendar date; please confirm one event date.';
   return null;
 }

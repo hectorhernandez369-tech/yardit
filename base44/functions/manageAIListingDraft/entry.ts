@@ -35,6 +35,8 @@ export default async function(req) {
       const page=await base44.asServiceRole.entities.AIListingTurn.filter({draft_id:draft.id,owner_user_id:user.id},{sort:'-created_date',limit:20,...(body.cursor?{cursor:body.cursor}:{})});
       return Response.json({draft:await draftView(base44,draft),turns:page.items,next_cursor:page.next_cursor,has_more:page.has_more});
     }
+    if(draft.submission_result && ['published','scheduled','pending_approval','payment_required'].includes(draft.submission_result.status))
+      return fail('This AI draft has already been submitted. Open its result or create another draft.',409);
     if(!['upload','remove_flyer','location','confirm_location','review','edit'].includes(action))return fail('Unsupported draft action. This operation does not publish listings.');
     token=await lockDraft(base44,draft,Number(body.revision));
     if(!token)return fail('This draft changed or is busy. Reload it before continuing.',409);
@@ -63,7 +65,21 @@ export default async function(req) {
       if(field==='postingFor' && !['self','someone_else'].includes(value))throw inputError('Choose yourself or someone else.');
       if(field==='listingType' && !['yard_sale','neighborhood_sale','event','holiday_lights','halloween_spot'].includes(value))throw inputError('Choose a valid listing type.');
       if(field==='homeownerEmail' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))throw inputError('Enter a valid homeowner email.');
-      changes={...changes,facts:{...(draft.facts||{}),[field]:value},warnings:[],...(field==='listingType'?{location_confirmed:false}:{})};
+      const fieldTerms={
+        postingFor:['posting for','who is posting','who owns','ownership'],
+        admission:['admission','entry fee','ticket price'],
+        tierPreference:['tier','free listing','featured','premium','promotion'],
+        homeownerEmail:['homeowner email','seller email'],
+        category:['category'],
+        christmasType:['christmas type','display type']
+      };
+      const terms=fieldTerms[field]||[];
+      const warnings=(draft.warnings||[]).filter(note=>!terms.some(term=>String(note).toLowerCase().includes(term)));
+      changes={...changes,
+        facts:{...(draft.facts||{}),[field]:value,
+          ...(field==='listingType'&&value!=='holiday_lights'?{christmasType:''}:{}),
+          ...(field==='listingType'&&value!=='event'?{admission:''}:{}),
+        },warnings,...(field==='listingType'?{location_confirmed:false}:{})};
     }
     if(action==='review') {
       if(body.confirmed!==true || !draft.location_confirmed || validateAIListingFacts(draft.facts||{}) || draft.warnings?.length)throw inputError('Resolve the required details and warnings, then confirm the map location before reviewing.');
