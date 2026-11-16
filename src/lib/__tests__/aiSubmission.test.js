@@ -4,8 +4,6 @@ import {readFileSync} from 'node:fs';
 import {build} from 'esbuild';
 
 async function loadServer(file, client) {
-  let endpoint;
-  globalThis.Deno={serve:handler=>{endpoint=handler;}};
   globalThis.__yarditAIClient=client;
   const result=await build({
     entryPoints:[file],bundle:true,write:false,platform:'neutral',format:'esm',
@@ -20,7 +18,8 @@ async function loadServer(file, client) {
       }
     }]
   });
-  await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+  const mod=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+  const endpoint=mod.default;
   return async body=>{
     const response=await endpoint(new Request('https://example.com/api',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));
     return {status:response.status,body:await response.json()};
