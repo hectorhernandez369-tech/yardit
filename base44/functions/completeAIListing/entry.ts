@@ -216,8 +216,11 @@ export default async function(req:Request) {
             await base44.asServiceRole.entities.AssistedChristmas.update(row.id,{data_json:JSON.stringify(stored)});
           }
         }
+        const qrToken=new URL(saved.approval_url).searchParams.get('token');
         result={status:'pending_approval',listing_type:'holiday_lights',
-          approval_id:saved.id,approval_url:saved.approval_url,expires_at:saved.expires_at};
+          approval_id:saved.id,
+          approval_url:'https://yardit.app/assisted-christmas?token='+encodeURIComponent(qrToken||''),
+          expires_at:saved.expires_at};
       }
     } else if(facts.postingFor==='someone_else' && ['yard_sale','event'].includes(facts.listingType)) {
       if(facts.listingType==='event'&&facts.startDate!==facts.endDate)
@@ -236,6 +239,7 @@ export default async function(req:Request) {
         startDateTime:startIso,endDateTime:endIso,
         sellerPermissionConfirmed:true,sellerEmail:facts.homeownerEmail,
         sellerName:facts.homeownerName||'',photoUrls:[],
+        appBaseUrl:'https://yardit.app',
       });
       if(!created.assistedId||!created.listingId||!created.approvalUrl)
         throw new Error('Existing assisted listing service did not create an approval QR.');

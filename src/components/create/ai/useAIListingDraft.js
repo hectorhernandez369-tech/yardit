@@ -34,6 +34,18 @@ export default function useAIListingDraft(id,enabled) {
     if(data?.result)setDraft(current=>({...current,submission_result:data.result,submission_status:data.submission_status}));
     return data;
   });
+  // Quick answers are actual draft edits AND resume the AI conversation.
+  // The follow-up uses the returned revision, never the previous React state.
+  const answer=(field,value)=>run(async()=>{
+    const edited=await aiDraftCall({action:'edit',id,revision:draft.revision,field,value});
+    setDraft(edited.draft);
+    const msg='I confirmed '+field+': '+value+'. Continue with the next missing detail without asking this again.';
+    const response=await aiDraftCall({id,revision:edited.draft.revision,
+      request_id:crypto.randomUUID(),message:msg},'draftAssistedEventAI');
+    setDraft(response.draft);
+    setTurns(items=>[...items.filter(t=>t.request_id!==response.turn.request_id),response.turn]);
+    return response;
+  });
   const complete=body=>run(async()=>{
     const data=await aiDraftCall({id,revision:draft.revision,action:'submit',...body},'completeAIListing');
     if(data?.result)setDraft(current=>({...current,submission_result:data.result,submission_status:data.result.status==='payment_required'?'pending_checkout':data.result.status==='pending_approval'?'pending_approval':'submitted'}));
@@ -42,5 +54,5 @@ export default function useAIListingDraft(id,enabled) {
   const older=()=>run(async()=>{
     const data=await aiDraftCall({action:'history',id,cursor});setTurns(items=>[...data.turns.slice().reverse(),...items]);setCursor(data.next_cursor);setHasMore(data.has_more);
   });
-  return {draft,turns,busy,loading,error,hasMore,action,send,older,complete,checkSubmission,reload:load};
+  return {draft,turns,busy,loading,error,hasMore,action,answer,send,older,complete,checkSubmission,reload:load};
 }
