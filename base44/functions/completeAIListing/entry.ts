@@ -186,6 +186,39 @@ export default async function(req:Request) {
         result={status:'pending_approval',listing_type:'holiday_lights',
           approval_id:saved.id,approval_url:saved.approval_url,expires_at:saved.expires_at};
       }
+    } else if(facts.postingFor==='someone_else' && ['yard_sale','event'].includes(facts.listingType)) {
+      if(facts.listingType==='event'&&facts.startDate!==facts.endDate)
+        throw new Error('Assisted residential events currently support one event date.');
+      const tier=facts.listingType==='event'?'event':
+        ['free','featured','premium'].includes(String(facts.tierPreference||'').toLowerCase())?
+        String(facts.tierPreference).toLowerCase():'free';
+      const created=await call(base44,'createAssistedListing',{
+        listingType:facts.listingType,tier,
+        title:facts.title,description:facts.description,
+        addressText:loc.street,city:loc.city,state:loc.state,zip:loc.zip,
+        lat:loc.lat,lng:loc.lng,timeZoneId:timezone,
+        location_source:'search',saleFormattedAddress:address,
+        selectedRangeStartDate:facts.startDate,selectedRangeEndDate:facts.endDate,
+        startDateTime:startIso,endDateTime:endIso,
+        sellerPermissionConfirmed:true,sellerEmail:facts.homeownerEmail,
+        sellerName:facts.homeownerName||'',photoUrls:[],
+      });
+      if(!created.assistedId||!created.listingId||!created.approvalUrl)
+        throw new Error('Existing assisted listing service did not create an approval QR.');
+      await base44.asServiceRole.entities.AssistedListing.update(created.assistedId,{
+        ai_origin_draft_id:draft.id,
+      });
+      if(facts.listingType==='event') {
+        await base44.asServiceRole.entities.Listing.update(created.listingId,{
+          category:facts.category||'Other',event_category:facts.category||'Other',
+          event_name:facts.title,event_description:facts.description,
+          event_start_date:facts.startDate,event_end_date:facts.endDate,
+          event_start_time:facts.startTime,event_end_time:facts.endTime,
+        });
+      }
+      result={status:'pending_approval',listing_id:created.listingId,
+        listing_type:facts.listingType,approval_id:created.assistedId,
+        approval_url:created.approvalUrl,expires_at:created.expiresAt};
     } else if(facts.listingType==='yard_sale'&&facts.postingFor==='self'&&(facts.tierPreference||'free').toLowerCase()==='free') {
       if(!verifiedHome(user,loc))throw new Error('A free yard sale must use your verified home location.');
       const window=freeWindow(timezone);
@@ -238,7 +271,12 @@ export default async function(req:Request) {
         non_refund_acknowledged_by_user_id:user.id,
         non_refund_disclosure_text:'Paid listing charges are non-refundable according to Yardit listing terms.',
       };
-      const checkout=await call(base44,'residentialStripeCheckout',paymentPayload);
+      const platform=String(body.platform||'web');
+      if(platform.startsWith('ios') && platform!=='ios')
+        throw new Error('Update the Yardit iOS app to use secure website checkout before making a payment.');
+      const checkout=platform==='ios'
+        ? await call(base44,'iosWebsiteCheckout',{action:'create',checkout_function:'residentialStripeCheckout',payload:paymentPayload})
+        : await call(base44,'residentialStripeCheckout',paymentPayload);
       if(checkout.founder_vip===true) {
         const saved=await call(base44,'saveResidentialListing',{action:'founder_create',data:eventData});
         if(!saved.listing?.id)throw new Error('Founder listing could not be saved.');
@@ -246,7 +284,8 @@ export default async function(req:Request) {
       } else {
         if(!checkout.checkoutUrl||!checkout.sessionId)throw new Error('Stripe checkout did not return a valid payment session.');
         result={status:'payment_required',checkout_url:checkout.checkoutUrl,session_id:checkout.sessionId,
-          amount_cents:amount,listing_type:facts.listingType,form_data:{...eventData,ai_listing_draft_id:draft.id}};
+          handoff_id:checkout.handoff_id||'',amount_cents:amount,listing_type:facts.listingType,
+          form_data:{...eventData,ai_listing_draft_id:draft.id}};
       }
     } else {
       throw new Error('This listing type must use the existing specialized assisted or neighborhood workflow. Nothing has been published or charged.');

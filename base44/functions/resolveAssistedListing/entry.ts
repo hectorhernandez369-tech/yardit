@@ -33,6 +33,16 @@ Deno.serve(async (req) => {
 
     let assisted = assistedRecords[0];
     let listingFromToken = null;
+    // AI-origin assisted listings require the actual homeowner to sign in.
+    // The QR token alone does not grant approval or ownership.
+    if(assisted?.ai_origin_draft_id && ['approve','decline','claim_complete'].includes(action)) {
+      const account=await base44.auth.me().catch(()=>null);
+      if(!account?.id || account.email_verified===false ||
+        String(account.email||'').trim().toLowerCase()!==String(assisted.seller_email||'').trim().toLowerCase() ||
+        (claimUserId && String(claimUserId)!==String(account.id))) {
+        return Response.json({error:'Sign in with the homeowner email used on this listing to approve or claim it.',status:'access_denied'},{status:403});
+      }
+    }
 
     if (!assisted) {
       const assistedListings = await base44.asServiceRole.entities.Listing.filter({ assisted_listing: true }, '-created_date', 500);
@@ -150,6 +160,32 @@ Deno.serve(async (req) => {
 
     // Seller approves: listing goes public. If claimUserId is provided, also claim immediately.
     if (action === 'approve') {
+      if(assisted.ai_origin_draft_id) {
+        const [aiDraft]=await base44.asServiceRole.entities.AIListingDraft.filter({
+          id:assisted.ai_origin_draft_id,owner_user_id:assisted.admin_creator_id
+        });
+        if(!aiDraft) return Response.json({error:'Original assisted AI draft not found.',status:'error'},{status:409});
+        if(aiDraft.flyer?.file_uri) {
+          const fileType=aiDraft.flyer.type;
+          if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(fileType))
+            return Response.json({error:'Unsupported flyer format.',status:'error'},{status:400});
+          const link=await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({file_uri:aiDraft.flyer.file_uri,expires_in:240});
+          const fileResponse=await fetch(link.signed_url);
+          if(!fileResponse.ok)return Response.json({error:'Could not retrieve assisted flyer.',status:'error'},{status:503});
+          const blob=await fileResponse.blob();
+          if(blob.size>10*1024*1024)return Response.json({error:'Flyer exceeds 10 MB.',status:'error'},{status:400});
+          const file=new File([blob],aiDraft.flyer.name||'event-flyer',{type:fileType});
+          const uploaded=await base44.asServiceRole.integrations.Core.UploadFile({file});
+          if(!uploaded?.file_url)return Response.json({error:'Could not publish approved flyer.',status:'error'},{status:503});
+          const patch=listing.listingType==='event'
+            ? {event_flyer_url:uploaded.file_url,event_flyer_format:fileType==='application/pdf'?'pdf':'image',
+               event_add_ons:{...(listing.event_add_ons||{}),flyer_upload:true}}
+            : fileType==='application/pdf'
+              ? {ai_listing_flyer_url:uploaded.file_url,ai_listing_flyer_format:'pdf'}
+              : {photoUrls:[uploaded.file_url,...(listing.photoUrls||[])].slice(0,10)};
+          await base44.asServiceRole.entities.Listing.update(assisted.listing_id,patch);
+        }
+      }
       const claimNow = now.toISOString();
       const isClaiming = !!claimUserId;
 
