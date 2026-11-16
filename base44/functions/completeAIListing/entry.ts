@@ -55,9 +55,9 @@ function verifiedHome(user:any,loc:any) {
   if(!flag||typeof lat!=='number'||typeof lng!=='number'||distanceFeet(lat,lng,loc.lat,loc.lng)>500) return false;
   return true;
 }
-async function uploadApprovedImage(base44:any,draft:any) {
+async function uploadApprovedFlyer(base44:any,draft:any) {
   if(!draft.flyer?.file_uri)return '';
-  if(!['image/jpeg','image/png','image/webp'].includes(draft.flyer.type))return '';
+  if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(draft.flyer.type))return '';
   const link=await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({file_uri:draft.flyer.file_uri,expires_in:240});
   const response=await fetch(link.signed_url);
   if(!response.ok)throw new Error('Could not read your saved flyer for publication. Please retry.');
@@ -89,6 +89,8 @@ export default async function(req:Request) {
     if(action==='paid_finalize') {
       const listingId=String(body.listing_id||''),sessionId=String(body.session_id||'');
       if(!listingId||!sessionId)return fail('Payment and listing references required.');
+      if(draft.submission_result?.session_id!==sessionId || draft.submission_result?.status!=='payment_required')
+        return fail('The payment session does not match this AI draft.',403);
       const verified=await call(base44,'residentialStripeCheckout',{action:'verify',session_id:sessionId});
       if(!verified.stripe_paid || verified.listing_id!==listingId)return fail('Stripe has not confirmed this listing payment.',403);
       const [listing]=await base44.asServiceRole.entities.Listing.filter({id:listingId,ownerUserId:user.id});
@@ -98,12 +100,16 @@ export default async function(req:Request) {
       token=await lockDraft(base44,draft,Number(body.revision??draft.revision));
       if(!token)return fail('Draft is busy. Reload and retry.',409);
       const patches:any={};
-      if(draft.flyer?.file_uri && draft.flyer.type.startsWith('image/')) {
-        const flyerUrl=await uploadApprovedImage(base44,draft);
+      if(draft.flyer?.file_uri) {
+        const flyerUrl=await uploadApprovedFlyer(base44,draft);
         if(flyerUrl) {
           if(listing.listingType==='event') {
             patches.event_flyer_url=flyerUrl;
+            patches.event_flyer_format=draft.flyer.type==='application/pdf'?'pdf':'image';
             patches.event_add_ons={...(listing.event_add_ons||{}),flyer_upload:true};
+          } else if(draft.flyer.type==='application/pdf') {
+            patches.ai_listing_flyer_url=flyerUrl;
+            patches.ai_listing_flyer_format='pdf';
           } else {
             patches.photoUrls=[flyerUrl,...(listing.photoUrls||[])].slice(0,listing.tier==='premium'?25:10);
           }
@@ -152,10 +158,12 @@ export default async function(req:Request) {
       };
       if(facts.postingFor==='self') {
         if(!verifiedHome(user,loc))throw new Error('Confirm your verified home address for a self-posted Christmas display.');
-        const image=await uploadApprovedImage(base44,draft);
-        if(image)display.photos=[image];
+        const flyerUrl=await uploadApprovedFlyer(base44,draft);
+        if(flyerUrl&&draft.flyer.type!=='application/pdf')display.photos=[flyerUrl];
         const saved=await call(base44,'manageChristmasListing',{action:'save',payload:display});
         if(!saved.location?.id)throw new Error('Christmas listing was not saved.');
+        if(flyerUrl&&draft.flyer.type==='application/pdf')
+          await base44.asServiceRole.entities.Location.update(saved.location.id,{christmas_flyer_url:flyerUrl});
         result={status:'published',listing_id:saved.location.id,listing_type:'holiday_lights'};
       } else {
         const saved=await call(base44,'manageAssistedChristmas',{
@@ -183,11 +191,14 @@ export default async function(req:Request) {
       const window=freeWindow(timezone);
       if(facts.startDate!==window.start||facts.endDate!==window.end)
         throw new Error(`Free yard sales automatically run ${window.start}–${window.end}. Correct the AI dates or select Featured.`);
-      const image=await uploadApprovedImage(base44,draft);
+      const flyerUrl=await uploadApprovedFlyer(base44,draft);
+      const isPdf=draft.flyer?.type==='application/pdf';
       const listing:any={...common,tier:'free',selectedRangeStartDate:window.start,selectedRangeEndDate:window.end,
         startDateTime:window.startIso,endDateTime:window.endIso,activeDates:window.activeDates,
         status:window.status,activation_status:window.status==='active'?'active':'pending',
-        photoUrls:image?[image]:[],pricePaid:0,payment_status:'free',
+        photoUrls:flyerUrl&&!isPdf?[flyerUrl]:[],
+        ...(flyerUrl&&isPdf?{ai_listing_flyer_url:flyerUrl,ai_listing_flyer_format:'pdf'}:{}),
+        pricePaid:0,payment_status:'free',
         earlyVisibilityDays:0,earlyVisibilityDates:[],early_visibility_enabled:false,
         participant_origin:'standalone',neighborhood_join_status:'none',ownerUserId:user.id,
         locationMethod:'verified_primary_address',addressText:user.primary_address||user.street_address};

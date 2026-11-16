@@ -135,6 +135,29 @@ Deno.serve(async req=>{
   if((existing||[]).some((p:any)=>distanceFeet(p.latitude,p.longitude,data.latitude,data.longitude)<=50&&
        new Date(p.end_date_time||0)>=new Date(data.start_date_time)&&new Date(p.start_date_time||0)<=new Date(data.end_date_time)))
    return fail('Another Christmas listing already exists here.',409);
+  // Keep private AI flyer hidden until homeowner authorizes this display.
+  // Upload it only after approval, and publish its URL in the correct field.
+  const privateFlyer=data.ai_flyer_uri;
+  const privateFlyerType=data.ai_flyer_type;
+  const privateFlyerName=data.ai_flyer_name;
+  delete data.ai_flyer_uri;
+  delete data.ai_flyer_type;
+  delete data.ai_flyer_name;
+  if(privateFlyer) {
+    if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(privateFlyerType))
+      return fail('The attached flyer type is not supported.',400);
+    const signed=await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({file_uri:privateFlyer,expires_in:240});
+    const response=await fetch(signed.signed_url);
+    if(!response.ok)return fail('Could not retrieve the homeowner-approved flyer.',503);
+    const blob=await response.blob();
+    if(blob.size>10*1024*1024)return fail('Flyer exceeds the 10 MB limit.',400);
+    const uploaded=await base44.asServiceRole.integrations.Core.UploadFile({
+      file:new File([blob],privateFlyerName||'yardit-flyer',{type:privateFlyerType})
+    });
+    if(!uploaded?.file_url)return fail('Could not publish approved flyer.',503);
+    if(privateFlyerType==='application/pdf')data.christmas_flyer_url=uploaded.file_url;
+    else data.photos=[uploaded.file_url,...(data.photos||[])].slice(0,3);
+  }
   const loc=await base44.asServiceRole.entities.Location.create(data);
   await records.update(row.id,{status:'approved',approved_at:new Date().toISOString(),location_id:loc.id});
   return Response.json({ok:true,status:'approved',location_id:loc.id});
