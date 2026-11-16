@@ -1,4 +1,3 @@
-import React from 'react';
 import React, {useState} from 'react';
 import { AI_TYPE_LABELS } from '@/components/create/ai/aiListingClient';
 const labels={title:'Title',description:'Description',category:'Category',startDate:'First date',endDate:'Last date',startTime:'Opening time',endTime:'Closing time',address:'Suggested street',city:'City',state:'State',zip:'ZIP',postingFor:'Posting for',homeownerName:'Homeowner',homeownerEmail:'Homeowner email',tierPreference:'Requested tier / promotion',admission:'Admission',christmasType:'Christmas display type'};
