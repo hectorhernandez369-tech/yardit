@@ -929,6 +929,33 @@ export default function CreateListingPage() {
           listing_id: createdListing.id,
         });
       }
+      // Reconcile AI-paid listings only after the existing Stripe link step.
+      // Keep the original payment context if flyer finalization fails, so retry
+      // verifies the SAME Stripe payment rather than charging the customer again.
+      const aiPaidContext = (() => {
+        try { return JSON.parse(localStorage.getItem(PAID_LISTING_CHECKOUT_KEY) || 'null'); }
+        catch { return null; }
+      })();
+      const aiPaidDraftId = aiPaidContext?.formData?.ai_listing_draft_id;
+      let aiPaidFinalized = false;
+      if (aiPaidDraftId && createdListing.pending_checkout_session_id) {
+        try {
+          const done = await base44.functions.invoke('completeAIListing', {
+            action:'paid_finalize',
+            id:aiPaidDraftId,
+            listing_id:createdListing.id,
+            session_id:createdListing.pending_checkout_session_id,
+          });
+          if (!['published','scheduled'].includes(done?.data?.result?.status)) throw new Error('AI confirmation is still pending.');
+          aiPaidFinalized = true;
+        } catch (aiError) {
+          setIsStartingPayment(false);
+          setPaymentError('Your payment was received, but the AI listing needs final confirmation. Do not pay again. Open Ask Yardit AI to retry verification.');
+          toast.error('Payment received. AI listing confirmation needs attention; do not pay again.');
+          navigate('/CreateListingAI?id='+encodeURIComponent(aiPaidDraftId));
+          return;
+        }
+      }
       if (activeRescue?.id) {
         try {
           await base44.entities.NeighborhoodTierRescue.update(activeRescue.id, {
@@ -952,7 +979,7 @@ export default function CreateListingPage() {
       sessionStorage.removeItem("yardit_pending_trust_action");
       clearStaleTrustProgress();
       toast.success("Listing created successfully!");
-      navigate(createPageUrl("MyListings"));
+      navigate(aiPaidFinalized && aiPaidDraftId ? '/CreateListingAI?id='+encodeURIComponent(aiPaidDraftId) : createPageUrl("MyListings"));
     },
     onError: (error) => {
       setIsStartingPayment(false);

@@ -44,9 +44,17 @@ export default function usePaidCheckoutReturn() {
       if (cancelled.current) return;
       await timeout(base44.functions.invoke("residentialStripeCheckout", { action: "link_paid_listing", session_id: exactSessionId, listing_id: listingId }));
       if (cancelled.current) return;
+      const aiDraftId = loadPaidCheckout()?.formData?.ai_listing_draft_id;
+      if (aiDraftId) {
+        const finalized = await timeout(base44.functions.invoke('completeAIListing', {
+          action:'paid_finalize',id:aiDraftId,listing_id:listingId,session_id:exactSessionId
+        }));
+        if (!['published','scheduled'].includes(finalized?.data?.result?.status)) throw new Error(FAILURE);
+      }
+      if (cancelled.current) return;
       localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
       window.history.replaceState({}, "", createPageUrl("CreateListing"));
-      navigate(createPageUrl("MyListings"), { replace: true });
+      navigate(aiDraftId?'/CreateListingAI?id='+encodeURIComponent(aiDraftId):createPageUrl("MyListings"), { replace: true });
     } catch {
       running.current = false;
       if (!cancelled.current) setState({ status: "failed", message: FAILURE });

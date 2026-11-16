@@ -89,14 +89,15 @@ export default async function(req:Request) {
     if(action==='paid_finalize') {
       const listingId=String(body.listing_id||''),sessionId=String(body.session_id||'');
       if(!listingId||!sessionId)return fail('Payment and listing references required.');
+      if(['published','scheduled'].includes(draft.submission_result?.status) && draft.submission_result?.listing_id===listingId)
+        return Response.json({result:draft.submission_result,reused:true});
       if(draft.submission_result?.session_id!==sessionId || draft.submission_result?.status!=='payment_required')
         return fail('The payment session does not match this AI draft.',403);
       const verified=await call(base44,'residentialStripeCheckout',{action:'verify',session_id:sessionId});
       if(!verified.stripe_paid || verified.listing_id!==listingId)return fail('Stripe has not confirmed this listing payment.',403);
       const [listing]=await base44.asServiceRole.entities.Listing.filter({id:listingId,ownerUserId:user.id});
       if(!listing)return fail('Paid listing does not belong to this account.',403);
-      if(draft.submission_result?.status==='published'&&draft.submission_result?.listing_id===listingId)
-        return Response.json({result:draft.submission_result});
+
       token=await lockDraft(base44,draft,Number(body.revision??draft.revision));
       if(!token)return fail('Draft is busy. Reload and retry.',409);
       const patches:any={};
@@ -274,7 +275,7 @@ export default async function(req:Request) {
       const paymentPayload:any={
         action:'create',tier,listing_kind:isEvent?'event':'residential',amount_cents:amount,
         event_price_breakdown:isEvent?{total:amount,addOns:draft.flyer?.file_uri?[{key:'flyer_upload'}]:[]}:undefined,
-        customer_email:user.email,return_url:String(req.headers.get('origin')||'https://yardit.app')+'/CreateListing',
+        customer_email:user.email,return_url:'https://yardit.app/CreateListing',
         owner_user_id:user.id,listingType:facts.listingType,description:facts.description,
         event_description:isEvent?facts.description:undefined,
         addressText:common.addressText,zip:loc.zip,lat:loc.lat,lng:loc.lng,
