@@ -667,6 +667,17 @@
         "pdf"
       ],
       "description": "Public event flyer media format"
+    },
+    "ai_listing_flyer_url": {
+      "type": "string",
+      "description": "Optional public flyer PDF URL from Ask Yardit AI"
+    },
+    "ai_listing_flyer_format": {
+      "type": "string",
+      "enum": [
+        "image",
+        "pdf"
+      ]
     }
   },
   "required": [
