@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -82,6 +82,17 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
   const [results, setResults] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [noResults, setNoResults] = useState(false);
+
+  // An AI draft may restore a previously selected address after a page refresh.
+  // Keep the search boxes consistent with the confirmed map location.
+  useEffect(() => {
+    if (!selectedAddress) return;
+    setStreet(selectedAddress.street || "");
+    setCity(selectedAddress.city || "");
+    setState(selectedAddress.state || "");
+    setZip(selectedAddress.zip || "");
+  }, [selectedAddress?.street, selectedAddress?.city, selectedAddress?.state, selectedAddress?.zip,
+      selectedAddress?.lat, selectedAddress?.lng]);
 
   const canSearch = !!(street.trim() || city.trim());
 

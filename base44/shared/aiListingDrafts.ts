@@ -56,7 +56,10 @@ export function validateAIListingFacts(facts = {}) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(facts.startTime||'') || !/^([01]\d|2[0-3]):[0-5]\d$/.test(facts.endTime||'')) return 'Confirm opening and closing times.';
   if (facts.startDate === facts.endDate && facts.startTime >= facts.endTime) return 'Closing time must be after opening time on the same day.';
   if (facts.listingType === 'holiday_lights' && !['christmas_decorations','christmas_lights','light_show','christmas_experience'].includes(facts.christmasType)) return 'Choose a valid Christmas display type.';
-  if (facts.listingType === 'holiday_lights' && (facts.startDate.slice(5) < '11-01' && facts.startDate.slice(5) > '01-02')) return 'Christmas dates must be November 1 through January 2.';
+  if (facts.listingType === 'holiday_lights') {
+    const seasonDateOk = date => date.slice(5) >= '11-01' || date.slice(5) <= '01-02';
+    if (!seasonDateOk(facts.startDate) || !seasonDateOk(facts.endDate)) return 'Christmas dates must be November 1 through January 2.';
+  }
   if (facts.listingType === 'event' && !facts.category) return 'Choose the event category before submission.';
   return null;
 }

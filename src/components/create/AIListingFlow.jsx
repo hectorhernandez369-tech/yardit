@@ -10,7 +10,10 @@ export default function AIListingFlow({id}) {
   const {draft,busy,loading,error,action,reload}=model;
   if(loading)return <p role="status">Loading your saved AI draft…</p>;
   if(!draft)return <div role="alert"><p>{error||'Draft not found.'}</p><Button variant="outline" onClick={reload}>Reload draft</Button></div>;
-  const missing=['listingType','title','description','startDate','endDate','startTime','endTime','postingFor'].filter(key=>!draft.facts?.[key]);
+  const missing=['listingType','title','description','startDate','endDate','startTime','endTime','postingFor',
+    ...(draft.facts?.listingType==='event'?['category','admission']:[]),
+    ...(draft.facts?.listingType==='holiday_lights'?['christmasType']:[]),
+    ...(draft.facts?.postingFor==='someone_else'?['homeownerEmail']:[])].filter(key=>!draft.facts?.[key]);
   const reviewReady=draft.location_confirmed&&!missing.length&&!draft.warnings?.length;
   return <div className="space-y-4">
     <p className="text-sm text-muted-foreground">{busy?'Saving / preparing reply…':'Saved AI draft'} · No listing has been created.</p>

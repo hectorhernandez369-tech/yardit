@@ -6,8 +6,27 @@ export default function AIListingConversation({model}) {
   const {draft,turns,busy,hasMore,older,send,action}=model;
   const [message,setMessage]=useState('');
   const submit=async()=>{const result=await send(message);if(result)setMessage('');};
+  const choose=async text=>{await send(text);};
+  const missing=[
+    ...(['listingType','title','description','startDate','endDate','startTime','endTime','postingFor'].filter(key=>!draft.facts?.[key])),
+    ...(draft.facts?.listingType==='event'&&!draft.facts?.admission?['admission']:[]),
+    ...(draft.facts?.listingType==='holiday_lights'&&!draft.facts?.christmasType?['christmasType']:[]),
+    ...(draft.facts?.postingFor==='someone_else'&&!draft.facts?.homeownerEmail?['homeownerEmail']:[])
+  ];
+
   return <section className="space-y-4 rounded-xl border bg-card p-4 text-card-foreground">
     <h2 className="font-semibold">Conversation with Ask Yardit</h2>
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+      <strong>Still needed:</strong> {missing.length ? missing.join(', ') : 'Review warnings and confirm your map location.'}
+    </div>
+    {!draft.facts?.postingFor&&<div className="flex flex-wrap gap-2">
+      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={()=>choose('I am posting this listing for myself.')}>Posting for myself</Button>
+      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={()=>choose('I am posting this listing for someone else.')}>Posting for someone else</Button>
+    </div>}
+    {draft.facts?.listingType==='event'&&!draft.facts?.admission&&<div className="flex flex-wrap gap-2">
+      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={()=>choose('Admission is free.')}>Free admission</Button>
+      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={()=>choose('Admission is paid. Please ask me how much.')}>Paid admission</Button>
+    </div>}
     {hasMore&&<Button type="button" variant="outline" size="sm" disabled={busy} onClick={older}>Load earlier messages</Button>}
     <div className="space-y-3" role="log" aria-live="polite">
       {!turns.length&&<p className="whitespace-pre-wrap rounded-lg bg-muted p-3 text-sm"><strong>Your starting message:</strong> {draft.initial_message}</p>}
