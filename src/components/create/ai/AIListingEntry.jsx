@@ -20,7 +20,7 @@ export default function AIListingEntry() {
   return <section aria-label="Create with Ask Yardit AI" className="space-y-3 rounded-xl border bg-card p-4 text-card-foreground">
     <h2 className="font-semibold">Create with Ask Yardit AI</h2>
     <p className="text-sm text-muted-foreground">Upload a flyer or describe your listing. Yardit will help fill in the details and ask for anything missing.</p>
-    <p className="text-xs font-medium">Drafting preview: chat, map confirmation and review are available. Listing creation and checkout are not connected yet.</p>
+    <p className="text-xs font-medium">After reviewing, Ask Yardit uses the existing posting, checkout, or homeowner approval process.</p>
     <label className="block text-sm">Describe your listing<Textarea value={message} onChange={e=>setMessage(e.target.value)} maxLength={3000} rows={3} disabled={busy} placeholder="Tell Yardit what you are posting…"/></label>
     <AIListingAttachment flyer={file} preview={preview} busy={busy} onUpload={choose} onRemove={()=>setFile(null)}/>
     {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}

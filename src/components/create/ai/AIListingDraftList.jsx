@@ -9,7 +9,7 @@ export default function AIListingDraftList() {
   useEffect(()=>{load();},[]);
   return <div className="space-y-5"><AIListingEntry/><h2 className="font-semibold">My saved AI drafts</h2>
     {error&&<div role="alert"><p className="text-destructive">{error}</p><Button variant="outline" onClick={()=>load()}>Retry</Button></div>}
-    {items.map(item=><Link key={item.id} to={`/CreateListingAI?id=${encodeURIComponent(item.id)}`} className="block rounded-xl border bg-card p-4 text-card-foreground"><strong>{item.title}</strong><p className="text-xs text-muted-foreground">{item.state==='reviewed'?'Reviewed draft':'Unfinished draft'} · Not published</p></Link>)}
+    {items.map(item=><Link key={item.id} to={`/CreateListingAI?id=${encodeURIComponent(item.id)}`} className="block rounded-xl border bg-card p-4 text-card-foreground"><strong>{item.title}</strong><p className="text-xs text-muted-foreground">{item.state==='reviewed'?'Ready for submission':'Draft in progress'} · Open for status</p></Link>)}
     {!busy&&!items.length&&!error&&<p className="text-sm text-muted-foreground">No AI drafts yet. Describe a listing or attach a flyer above.</p>}
     {busy&&<p role="status">Loading drafts…</p>}
     {more&&<Button type="button" variant="outline" disabled={busy} onClick={()=>load(cursor)}>Load more drafts</Button>}
