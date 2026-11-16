@@ -133,6 +133,10 @@
         "map_pin"
       ],
       "description": "Source of the location data"
+    },
+    "ai_origin_draft_id": {
+      "type": "string",
+      "description": "Restricted AI draft that prepared this assisted listing; requires homeowner account validation on approval"
     }
   },
   "required": [
