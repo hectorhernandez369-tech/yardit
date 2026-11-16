@@ -84,7 +84,20 @@ export default async function(req:Request) {
     const action=String(body.action||'');
     draft=await ownDraft(base44,user,body.id);
     if(!draft)return fail('AI draft not found.',404);
-    if(action==='status')return Response.json({result:draft.submission_result||null,submission_status:draft.submission_status||'none'});
+    if(action==='status') {
+      const outcome=draft.submission_result||null;
+      let approval_status='';
+      if(outcome?.status==='pending_approval' && outcome.approval_id) {
+        if(outcome.listing_type==='holiday_lights') {
+          const [pending]=await base44.asServiceRole.entities.AssistedChristmas.filter({id:outcome.approval_id,admin_creator_id:user.id});
+          approval_status=pending?.status||'unknown';
+        } else {
+          const [pending]=await base44.asServiceRole.entities.AssistedListing.filter({id:outcome.approval_id,admin_creator_id:user.id});
+          approval_status=pending?.assisted_status||'unknown';
+        }
+      }
+      return Response.json({result:outcome,approval_status,submission_status:draft.submission_status||'none'});
+    }
     if(action!=='submit'&&action!=='paid_finalize')return fail('Unsupported action.');
     if(action==='paid_finalize') {
       const listingId=String(body.listing_id||''),sessionId=String(body.session_id||'');
@@ -125,6 +138,8 @@ export default async function(req:Request) {
 
     if(draft.submission_result && ['published','scheduled','pending_approval','payment_required'].includes(draft.submission_result.status))
       return Response.json({result:draft.submission_result,reused:true});
+    if(draft.submission_status==='needs_reconciliation')
+      return fail('An earlier submission may have already created a listing or checkout. Do not retry automatically. Check My Listings or contact Yardit support.',409);
     if(draft.state!=='reviewed'||draft.details_confirmed!==true||draft.location_confirmed!==true||!draft.location?.timeZoneId)
       return fail('Review all details and confirm the map location first.',409);
     const facts=draft.facts||{},loc=draft.location;
@@ -147,6 +162,13 @@ export default async function(req:Request) {
       selectedRangeStartDate:facts.startDate,selectedRangeEndDate:facts.endDate,
       openTime:facts.startTime,closeTime:facts.endTime};
     let result:any;
+    const markWriteStarted=async()=>{
+      const updated=await base44.asServiceRole.entities.AIListingDraft.updateMany(
+        {id:draft.id,owner_user_id:user.id,lock_token:token,revision:draft.revision},
+        {$set:{submission_status:'needs_reconciliation',submission_request_id:draft.id}}
+      );
+      if(updated.updated!==1)throw new Error('Could not reserve this submission safely. Reload the draft.');
+    };
     if(facts.listingType==='holiday_lights') {
       const display:any={
         title:facts.title,description:facts.description,
@@ -161,12 +183,14 @@ export default async function(req:Request) {
         if(!verifiedHome(user,loc))throw new Error('Confirm your verified home address for a self-posted Christmas display.');
         const flyerUrl=await uploadApprovedFlyer(base44,draft);
         if(flyerUrl&&draft.flyer.type!=='application/pdf')display.photos=[flyerUrl];
+        await markWriteStarted();
         const saved=await call(base44,'manageChristmasListing',{action:'save',payload:display});
         if(!saved.location?.id)throw new Error('Christmas listing was not saved.');
         if(flyerUrl&&draft.flyer.type==='application/pdf')
           await base44.asServiceRole.entities.Location.update(saved.location.id,{christmas_flyer_url:flyerUrl});
         result={status:'published',listing_id:saved.location.id,listing_type:'holiday_lights'};
       } else {
+        await markWriteStarted();
         const saved=await call(base44,'manageAssistedChristmas',{
           action:'create',homeowner_permission:true,homeowner_email:facts.homeownerEmail,
           homeowner_name:facts.homeownerName||'',display,
@@ -193,6 +217,7 @@ export default async function(req:Request) {
       const tier=facts.listingType==='event'?'event':
         ['free','featured','premium'].includes(String(facts.tierPreference||'').toLowerCase())?
         String(facts.tierPreference).toLowerCase():'free';
+      await markWriteStarted();
       const created=await call(base44,'createAssistedListing',{
         listingType:facts.listingType,tier,
         title:facts.title,description:facts.description,
@@ -231,6 +256,7 @@ export default async function(req:Request) {
         ...(flyerUrl&&isPdf?{ai_listing_flyer_url:flyerUrl,ai_listing_flyer_format:'pdf'}:{}),
         ownerUserId:user.id,neighborhood_join_status:'none',participant_origin:'standalone',
         earlyVisibilityDays:0,earlyVisibilityDates:[],early_visibility_enabled:false};
+      await markWriteStarted();
       const saved=await call(base44,'saveResidentialListing',{action:'pre_spree_create',data:listing});
       if(!saved.listing?.id)throw new Error('Pre-Spree listing could not be saved.');
       result={status:saved.listing.status==='scheduled'?'scheduled':'published',
@@ -251,6 +277,7 @@ export default async function(req:Request) {
         earlyVisibilityDays:0,earlyVisibilityDates:[],early_visibility_enabled:false,
         participant_origin:'standalone',neighborhood_join_status:'none',ownerUserId:user.id,
         locationMethod:'verified_primary_address',addressText:user.primary_address||user.street_address};
+      await markWriteStarted();
       const saved=await call(base44,'saveResidentialListing',{action:'create',data:listing});
       if(!saved.listing?.id)throw new Error('Free yard sale was not saved.');
       result={status:window.status==='active'?'published':'scheduled',listing_id:saved.listing.id,listing_type:'yard_sale'};
@@ -261,6 +288,11 @@ export default async function(req:Request) {
       const isEvent=facts.listingType==='event';
       const tier=isEvent?'event':String(facts.tierPreference||'').toLowerCase();
       if(!isEvent&&!['featured','premium'].includes(tier))throw new Error('Choose Featured or Premium for paid residential dates.');
+      if(!isEvent){
+        const days=Math.round((Date.parse(facts.endDate+'T12:00:00Z')-Date.parse(facts.startDate+'T12:00:00Z'))/86400000)+1;
+        if(days<1 || days>(tier==='featured'?3:5))
+          throw new Error(tier==='featured'?'Featured allows up to three consecutive days.':'Premium allows up to five consecutive days.');
+      }
       const amount=isEvent?999+(draft.flyer?.file_uri?199:0):(tier==='featured'?499:799);
       const eventData:any=isEvent?{
         ...common,tier:'event',event_tier:'event',event_name:facts.title,event_description:facts.description,
@@ -290,6 +322,7 @@ export default async function(req:Request) {
       const platform=String(body.platform||'web');
       if(platform.startsWith('ios') && platform!=='ios')
         throw new Error('Update the Yardit iOS app to use secure website checkout before making a payment.');
+      await markWriteStarted();
       const checkout=platform==='ios'
         ? await call(base44,'iosWebsiteCheckout',{action:'create',checkout_function:'residentialStripeCheckout',payload:paymentPayload})
         : await call(base44,'residentialStripeCheckout',paymentPayload);

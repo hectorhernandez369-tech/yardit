@@ -16,7 +16,7 @@ export default async function(req) {
     const drafts=base44.asServiceRole.entities.AIListingDraft;
     if(action==='list') {
       const page=await drafts.filter({owner_user_id:user.id},{sort:'-updated_date',limit:20,...(body.cursor?{cursor:body.cursor}:{})});
-      return Response.json({items:page.items.map(row=>({id:row.id,title:row.title,state:row.state,updated_date:row.updated_date})),next_cursor:page.next_cursor,has_more:page.has_more});
+      return Response.json({items:page.items.map(row=>({id:row.id,title:row.title,state:row.state,submission_status:row.submission_status||'none',submission_result:row.submission_result||null,updated_date:row.updated_date})),next_cursor:page.next_cursor,has_more:page.has_more});
     }
     if(action==='create') {
       const message=typeof body.message==='string'?body.message.trim():'';
