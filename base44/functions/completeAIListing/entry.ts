@@ -307,6 +307,7 @@ export default async function(req:Request) {
         event_category:facts.category,event_start_date:facts.startDate,event_end_date:facts.startDate,
         event_start_time:facts.startTime,event_end_time:facts.endTime,
         start_datetime:startIso,end_datetime:endIso,
+        ai_utc_start_datetime:startIso,ai_utc_end_datetime:endIso,
         event_add_ons:{flyer_upload:!!draft.flyer?.file_uri},event_flyer_url:'',
         event_photos:[],event_icon:'calendar',category:facts.category,photoUrls:[],
       }:{...common,tier,photoUrls:[],ownerUserId:user.id,earlyVisibilityDays:0,earlyVisibilityDates:[]};

@@ -61,8 +61,12 @@ export function buildPaidListingPayload(source, user, sessionId) {
       display_address: data.display_address || data.address_text || data.addressText,
       addressText: data.display_address || data.address_text || data.addressText,
       address_text: data.display_address || data.address_text || data.addressText,
-      startDateTime: data.start_datetime ? new Date(data.start_datetime).toISOString() : data.startDateTime,
-      endDateTime: data.end_datetime ? new Date(data.end_datetime).toISOString() : data.endDateTime,
+      startDateTime: data.ai_listing_draft_id && data.ai_utc_start_datetime
+        ? data.ai_utc_start_datetime
+        : data.start_datetime ? new Date(data.start_datetime).toISOString() : data.startDateTime,
+      endDateTime: data.ai_listing_draft_id && data.ai_utc_end_datetime
+        ? data.ai_utc_end_datetime
+        : data.end_datetime ? new Date(data.end_datetime).toISOString() : data.endDateTime,
       status: "active",
       pricePaid: Number(getResidentialEventPriceBreakdown(data).total || 0) / 100,
     };

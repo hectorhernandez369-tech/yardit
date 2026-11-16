@@ -1247,8 +1247,12 @@ export default function CreateListingPage() {
         location_source: payload.location_source || "search",
         addressText: payload.display_address || payload.address_text || payload.addressText,
         address_text: payload.display_address || payload.address_text || payload.addressText,
-        startDateTime: payload.start_datetime ? new Date(payload.start_datetime).toISOString() : payload.startDateTime,
-        endDateTime: payload.end_datetime ? new Date(payload.end_datetime).toISOString() : payload.endDateTime,
+        startDateTime: payload.ai_listing_draft_id && payload.ai_utc_start_datetime
+          ? payload.ai_utc_start_datetime
+          : payload.start_datetime ? new Date(payload.start_datetime).toISOString() : payload.startDateTime,
+        endDateTime: payload.ai_listing_draft_id && payload.ai_utc_end_datetime
+          ? payload.ai_utc_end_datetime
+          : payload.end_datetime ? new Date(payload.end_datetime).toISOString() : payload.endDateTime,
         start_datetime: payload.start_datetime ? new Date(payload.start_datetime).toISOString() : payload.startDateTime,
         end_datetime: payload.end_datetime ? new Date(payload.end_datetime).toISOString() : payload.endDateTime,
         status: "active",
