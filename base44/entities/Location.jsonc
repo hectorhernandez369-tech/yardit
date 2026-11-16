@@ -381,6 +381,10 @@
       "type": "integer",
       "default": 0,
       "description": "Unique 5-star rating count"
+    },
+    "christmas_flyer_url": {
+      "type": "string",
+      "description": "Optional publicly shared PDF flyer for a Christmas display after authorized approval"
     }
   },
   "required": [
