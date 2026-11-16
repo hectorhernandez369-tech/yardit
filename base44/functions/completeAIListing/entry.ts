@@ -91,9 +91,17 @@ export default async function(req:Request) {
         if(outcome.listing_type==='holiday_lights') {
           const [pending]=await base44.asServiceRole.entities.AssistedChristmas.filter({id:outcome.approval_id,admin_creator_id:user.id});
           approval_status=pending?.status||'unknown';
+          if(pending?.location_id&&['approved','claimed'].includes(pending?.status))
+            return Response.json({result:{status:'published',listing_type:'holiday_lights',listing_id:pending.location_id},approval_status});
+          if(['declined','expired'].includes(pending?.status))
+            return Response.json({result:{...outcome,status:pending.status},approval_status});
         } else {
           const [pending]=await base44.asServiceRole.entities.AssistedListing.filter({id:outcome.approval_id,admin_creator_id:user.id});
           approval_status=pending?.assisted_status||'unknown';
+          if(['assisted_active_unclaimed','claimed_active'].includes(pending?.assisted_status)&&pending?.listing_id)
+            return Response.json({result:{status:'published',listing_type:outcome.listing_type,listing_id:pending.listing_id},approval_status});
+          if(['assisted_declined','assisted_expired'].includes(pending?.assisted_status))
+            return Response.json({result:{...outcome,status:pending.assisted_status==='assisted_declined'?'declined':'expired'},approval_status});
         }
       }
       return Response.json({result:outcome,approval_status,submission_status:draft.submission_status||'none'});
@@ -329,7 +337,7 @@ export default async function(req:Request) {
       if(checkout.founder_vip===true) {
         const saved=await call(base44,'saveResidentialListing',{action:'founder_create',data:eventData});
         if(!saved.listing?.id)throw new Error('Founder listing could not be saved.');
-        result={status:'published',listing_id:saved.listing.id,listing_type:facts.listingType};
+        result={status:saved.listing.status==='scheduled'?'scheduled':'published',listing_id:saved.listing.id,listing_type:facts.listingType};
       } else {
         if(!checkout.checkoutUrl||!checkout.sessionId)throw new Error('Stripe checkout did not return a valid payment session.');
         result={status:'payment_required',checkout_url:checkout.checkoutUrl,session_id:checkout.sessionId,

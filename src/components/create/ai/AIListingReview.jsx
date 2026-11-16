@@ -30,6 +30,10 @@ export default function AIListingReview({draft,busy,onAction,onComplete,onCheckS
   const openExistingCheckout=async data=>{
     if(!data?.checkout_url||!data?.session_id)throw new Error('Checkout session is missing. Review your saved draft.');
     if(window.self!==window.top)throw new Error('Open the published Yardit website to complete Stripe payment.');
+    if(data.handoff_id&&localStorage.getItem(IOS_PENDING_KEY)===data.handoff_id){
+      window.location.assign('/IosCheckoutPending');
+      return;
+    }
     ensureCheckoutCanStart();
     const existing={formData:data.form_data,session_id:data.session_id,checkout_started_at:new Date().toISOString()};
     localStorage.setItem('yardit_paid_listing_checkout_v1',JSON.stringify(existing));
@@ -73,8 +77,15 @@ export default function AIListingReview({draft,busy,onAction,onComplete,onCheckS
       {approvalStatus&&<p role="status" className="text-sm">Approval status: {approvalStatus.replaceAll('_',' ')}</p>}
       <Button type="button" variant="outline" disabled={busy} onClick={async()=>{
         const data=await onCheckSubmission();
-        if(data)setApprovalStatus(data.approval_status||'unknown');
+        if(data){setApprovalStatus(data.approval_status||'unknown');if(data.result)setResult(data.result);}
       }}>Check homeowner approval status</Button>
+    </div>}
+    {['declined','expired'].includes(safeResult)&&<div role="status" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-900">
+      <strong>{safeResult==='declined'?'Homeowner declined the listing.':'Approval link expired.'}</strong>
+      <p className="text-sm">Nothing was published. Create a fresh authorized draft if the homeowner wants to try again.</p>
+    </div>}
+    {draft.submission_status==='needs_reconciliation'&&!saved&&<div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-900">
+      A previous submission may already have created a record or payment session. Do not submit again automatically. Check My Listings or contact Yardit support.
     </div>}
     {showCheckout&&<div role="status" className="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
       <strong>Payment required — {label(saved.amount_cents)}</strong>
@@ -99,7 +110,7 @@ export default function AIListingReview({draft,busy,onAction,onComplete,onCheckS
       <Button type="button" variant="outline" onClick={onBack} disabled={busy}>Back to conversation</Button>
       {!saved&&(!draft.details_confirmed?
         <Button type="button" disabled={busy||!reviewed} onClick={()=>onAction({action:'review',confirmed:true})}>{busy?'Saving…':'Confirm reviewed details'}</Button>:
-        <Button type="button" disabled={busy||(isAssisted&&!permission)||(needsPayment&&!refundAcknowledged)||['neighborhood_sale','halloween_spot'].includes(facts.listingType)} onClick={submit}>{busy?'Submitting…':isAssisted?'Create homeowner approval QR':needsPayment?'Continue to secure checkout':'Create listing'}</Button>)}
+        <Button type="button" disabled={busy||draft.submission_status==='needs_reconciliation'||(isAssisted&&!permission)||(needsPayment&&!refundAcknowledged)||['neighborhood_sale','halloween_spot'].includes(facts.listingType)} onClick={submit}>{busy?'Submitting…':isAssisted?'Create homeowner approval QR':needsPayment?'Continue to secure checkout':'Create listing'}</Button>)}
     </div>
   </section>;
 }
