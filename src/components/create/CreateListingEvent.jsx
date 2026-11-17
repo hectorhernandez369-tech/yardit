@@ -36,11 +36,12 @@ export default function CreateListingEvent({
   onCancelPayment,
   isDeveloperMode = false,
   onDeveloperPublish,
+  onAIActiveChange,
 }) {
   const eventPriceBreakdown = getResidentialEventPriceBreakdown(formData);
   const [aiActive,setAIActive] = useState(false);
   if (step === 1) {
-    return <div className="space-y-6"><AIListingEntry onActiveChange={setAIActive} />{!aiActive&&<EventDetailsStep
+    return <div className="space-y-6"><AIListingEntry onActiveChange={value=>{setAIActive(value);onAIActiveChange?.(value);}} />{!aiActive&&<EventDetailsStep
       formData={formData}
       setFormData={setFormData}
       isAssistedPost={isAssistedPost}

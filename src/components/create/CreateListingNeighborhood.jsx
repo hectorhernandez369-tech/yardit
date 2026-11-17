@@ -25,9 +25,10 @@ export default function CreateListingNeighborhood({
   onCancelPayment,
   isDeveloperMode = false,
   onDeveloperPublish,
+  onAIActiveChange,
 }) {
   if (step === 1) {
-    return <StepOne formData={formData} setFormData={setFormData} />;
+    return <StepOne formData={formData} setFormData={setFormData} onAIActiveChange={onAIActiveChange} />;
   }
 
   if (step === 2) {

@@ -30,9 +30,10 @@ export default function CreateListingResidential({
   isAssistedPost = false,
   isDeveloperMode = false,
   onDeveloperPublish,
+  onAIActiveChange,
 }) {
   if (step === 1) {
-    return <StepOne formData={formData} setFormData={setFormData} />;
+    return <StepOne formData={formData} setFormData={setFormData} onAIActiveChange={onAIActiveChange} />;
   }
 
   if (step === 2) {

@@ -70,6 +70,7 @@ export default function CreateListingPage() {
   const queryClient = useQueryClient();
   const formContainerRef = useRef(null);
   const [step, setStep] = useState(1);
+  const [aiChatActive,setAiChatActive] = useState(false);
   const [user, setUser] = useState(null);
   const { isVip: founderVip } = useFounderMembership(user?.id);
   const [activeDraftId, setActiveDraftId] = useState(null);
@@ -2253,7 +2254,7 @@ export default function CreateListingPage() {
           step={step} labels={stepLabels} onJump={(nextStep) => { setStep(nextStep); setPaymentError(""); }}
           busy={createListingMutation.isPending || isStartingPayment}
         />}
-        <ListingStepNavigation step={step} totalSteps={totalSteps} stepLabels={stepLabels} />
+        {!(step===1 && aiChatActive)&&<ListingStepNavigation step={step} totalSteps={totalSteps} stepLabels={stepLabels} />}
         {canUseAssistedPost && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <label className="flex items-start gap-3 cursor-pointer">
@@ -2352,6 +2353,7 @@ export default function CreateListingPage() {
             )}
             {!assistedCreated && formData.listingType === "event" && (
               <CreateListingEvent
+                onAIActiveChange={setAiChatActive}
                 step={step}
                 formData={formData}
                 setFormData={setFormData}
@@ -2381,6 +2383,7 @@ export default function CreateListingPage() {
             )}
             {!assistedCreated && formData.listingType === "halloween_spot" && (
               <CreateListingHalloween
+                onAIActiveChange={setAiChatActive}
                 isDeveloperMode={isDeveloperMode}
                 step={step}
                 formData={formData}
@@ -2398,6 +2401,7 @@ export default function CreateListingPage() {
             )}
             {!assistedCreated && formData.listingType === "neighborhood_sale" && (
               <CreateListingNeighborhood
+                onAIActiveChange={setAiChatActive}
                 step={step}
                 formData={formData}
                 setFormData={setFormData}
@@ -2419,6 +2423,7 @@ export default function CreateListingPage() {
             )}
             {!assistedCreated && formData.listingType === "yard_sale" && (
               <CreateListingResidential
+                onAIActiveChange={setAiChatActive}
                 step={step}
                 formData={formData}
                 setFormData={setFormData}
@@ -2448,7 +2453,7 @@ export default function CreateListingPage() {
                 isAssistedPost={isAssistedPost}
               />
             )}
-            {!assistedCreated && (step !== paymentStepNumber || isAdminCreate) && <ListingCreationActions
+            {!assistedCreated && !(step===1 && aiChatActive) && (step !== paymentStepNumber || isAdminCreate) && <ListingCreationActions
               step={step} setStep={setStep} paymentStepNumber={paymentStepNumber} entryStepNumber={entryStepNumber}
               isAdminCreate={isAdminCreate} isAssistedPost={isAssistedPost} isDeveloperMode={isDeveloperMode}
               listingType={formData.listingType} tier={formData.tier} regularAddressIncomplete={regularAddressIncomplete}

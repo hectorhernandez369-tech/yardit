@@ -7,7 +7,7 @@ import { CalendarDays, Clock3, Candy, Baby, Footprints, Lightbulb, Volume2, Aler
 import EventPhotoUpload from "./event/EventPhotoUpload";
 import DeveloperScheduleFields from "@/components/developer/DeveloperScheduleFields";
 
-export default function CreateListingHalloween({ step, formData, setFormData, setGeocodeRef, user, onAddressSelected, isAssistedPost = false, isDeveloperMode = false }) {
+export default function CreateListingHalloween({ step, formData, setFormData, setGeocodeRef, user, onAddressSelected, isAssistedPost = false, isDeveloperMode = false, onAIActiveChange }) {
   const spotType = formData.halloween_spot_type || formData.halloween_icon_key;
   const isTrickOrTreat = spotType === "trick_or_treat";
   const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(spotType);
@@ -26,7 +26,7 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
   }, [isAssistedPost, setFormData, trickOrTreatDate]);
 
   if (step === 1) {
-    return <StepOne formData={formData} setFormData={setFormData} />;
+    return <StepOne formData={formData} setFormData={setFormData} onAIActiveChange={onAIActiveChange} />;
   }
 
   if (step === 2) {

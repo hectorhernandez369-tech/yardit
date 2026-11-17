@@ -102,7 +102,7 @@ const COLLECTIBLE_TYPES = [
   "Movie Memorabilia", "Other Collectible"
 ];
 
-export default function StepOne({ formData, setFormData }) {
+export default function StepOne({ formData, setFormData, onAIActiveChange }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const listingType = formData?.listingType || "yard_sale";
@@ -161,7 +161,7 @@ export default function StepOne({ formData, setFormData }) {
 
   return (
     <div className="space-y-8">
-      <AIListingEntry onActiveChange={setAIActive} />
+      <AIListingEntry onActiveChange={value=>{setAIActive(value);onAIActiveChange?.(value);}} />
       {!aiActive && <>
 
       {isHolidayLightsSeason() && !formData.assisted_post && !showChristmasChoice && <button type="button" onClick={() => navigate('/CreateHolidayLights')} className="flex w-full items-center gap-3 rounded-xl border border-holiday-gold/50 bg-holiday-night p-4 text-left text-holiday-snow">
