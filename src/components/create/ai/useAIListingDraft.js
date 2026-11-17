@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {aiDraftCall,aiError} from '@/components/create/ai/aiListingClient';
+import {remainingAIListingSteps,nextAIPrompt} from '@/lib/aiListingCompletion';
 export default function useAIListingDraft(id,enabled) {
   const [draft,setDraft]=useState(null),[turns,setTurns]=useState([]),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState('');
   const [cursor,setCursor]=useState(null),[hasMore,setHasMore]=useState(false);
@@ -28,6 +29,22 @@ export default function useAIListingDraft(id,enabled) {
     pending.current=request;
     const data=await aiDraftCall({id,revision:draft.revision,...request},'draftAssistedEventAI');
     setDraft(data.draft);setTurns(items=>[...items.filter(t=>t.request_id!==data.turn.request_id),data.turn]);pending.current=null;return data;
+  });
+  // Confirming a location is not the end of the process. Save confirmation,
+  // then either show review or have Ask Yardit ask the NEXT required question.
+  // Both calls use the server-returned revision so there is no stale-update lock.
+  const confirmLocationAndContinue=()=>run(async()=>{
+    const confirmed=await aiDraftCall({action:'confirm_location',id,revision:draft.revision,confirmed:true});
+    setDraft(confirmed.draft);
+    const remaining=remainingAIListingSteps(confirmed.draft);
+    if(remaining.ready) return {ready:true,draft:confirmed.draft};
+    const response=await aiDraftCall({
+      id,revision:confirmed.draft.revision,request_id:crypto.randomUUID(),
+      message:nextAIPrompt(confirmed.draft),
+    },'draftAssistedEventAI');
+    setDraft(response.draft);
+    setTurns(items=>[...items.filter(t=>t.request_id!==response.turn.request_id),response.turn]);
+    return {ready:false,draft:response.draft};
   });
   const checkSubmission=()=>run(async()=>{
     const data=await aiDraftCall({id,action:'status'},'completeAIListing');
@@ -67,5 +84,5 @@ export default function useAIListingDraft(id,enabled) {
   const older=()=>run(async()=>{
     const data=await aiDraftCall({action:'history',id,cursor});setTurns(items=>[...data.turns.slice().reverse(),...items]);setCursor(data.next_cursor);setHasMore(data.has_more);
   });
-  return {draft,turns,busy,loading,error,hasMore,action,answer,send,older,complete,checkSubmission,attachAndRead,reload:load};
+  return {draft,turns,busy,loading,error,hasMore,action,answer,send,older,complete,checkSubmission,attachAndRead,confirmLocationAndContinue,reload:load};
 }
