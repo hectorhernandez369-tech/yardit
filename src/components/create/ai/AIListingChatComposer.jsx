@@ -53,7 +53,7 @@ export default function AIListingChatComposer({
         <Paperclip className="h-5 w-5"/>
       </button>
       <Textarea
-        aria-label="Message Ask Yardit" rows={1} value={value}
+        id="yardit-ai-chat-input" aria-label="Message Ask Yardit" rows={1} value={value}
         onChange={event=>onChange?.(event.target.value)}
         onKeyDown={handleKeyDown} maxLength={3000} disabled={inactive} placeholder={placeholder}
         className="min-h-[42px] max-h-36 flex-1 resize-none border-0 bg-transparent px-1 py-2.5 text-[15px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"

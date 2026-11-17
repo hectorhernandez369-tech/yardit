@@ -81,7 +81,13 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
         {canReview&&<Button type="button" size="sm" disabled={busy} onClick={()=>setPanel(value=>value==='review'?'':'review')}>Review listing</Button>}
       </div>}
       {submitted&&<Button type="button" size="sm" onClick={()=>setPanel(value=>value==='review'?'':'review')}>View listing status</Button>}
-      {panel==='location'&&!submitted&&<AIListingLocation draft={draft} busy={busy} onAction={model.action} onConfirm={()=>setPanel('')}/>}
+      {panel==='location'&&!submitted&&<AIListingLocation draft={draft} busy={busy} onAction={model.action} onConfirm={()=>{
+        setPanel('');
+        window.requestAnimationFrame(()=>{
+          const field=document.getElementById('yardit-ai-chat-input');
+          field?.scrollIntoView?.({behavior:'smooth',block:'nearest'});
+        });
+      }}/>}
       {panel==='review'&&canReview&&<AIListingReview key={draft.revision} draft={draft} busy={busy} onAction={model.action}
         onComplete={model.complete} onCheckSubmission={model.checkSubmission} onBack={()=>setPanel('')}/>}
       {special&&!submitted&&<p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">

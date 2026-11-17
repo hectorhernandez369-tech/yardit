@@ -22,3 +22,13 @@ test('chat never substitutes for map confirmation',()=>{
  const x=getAIListingProgress({...event,location_confirmed:false});
  assert.equal(x.ready,false);assert.match(x.nextQuestion,/map pin/);
 });
+
+test('location confirmation has a visible continuation action in the assistant',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const location=readFileSync('src/components/create/ai/AIListingLocation.jsx','utf8');
+ const flow=readFileSync('src/components/create/ai/AIListingInlineSession.jsx','utf8');
+ assert.match(location,/Confirm location & continue/);
+ assert.match(flow,/getAIListingProgress/);
+ assert.match(flow,/Next question:/);
+ assert.match(flow,/yardit-ai-chat-input/);
+});
