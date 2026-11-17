@@ -11,7 +11,7 @@ test('inline Ask Yardit UI has no missing JSX globals',()=>{
   const linter=new Linter();
   for(const file of source){
     const errors=linter.verify(read(file),[{
-      files:['**/*.jsx'],languageOptions:{ecmaVersion:'latest',sourceType:'module',globals:{crypto:'readonly',URL:'readonly',URLSearchParams:'readonly',window:'readonly'},parserOptions:{ecmaFeatures:{jsx:true}}},
+      files:['**/*.jsx'],languageOptions:{ecmaVersion:'latest',sourceType:'module',globals:{crypto:'readonly',URL:'readonly',URLSearchParams:'readonly',window:'readonly',document:'readonly'},parserOptions:{ecmaFeatures:{jsx:true}}},
       rules:{'no-undef':'error'}
     }],{filename:file});
     assert.deepEqual(errors.map(({line,message})=>({line,message})),[],file);
