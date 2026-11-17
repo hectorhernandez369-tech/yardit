@@ -7,6 +7,7 @@ import AIListingSummary from './AIListingSummary';
 import {CheckCircle2, MapPin, ChevronDown} from 'lucide-react';
 import AIListingReview from './AIListingReview';
 import {getAIListingProgress} from './aiListingProgress';
+import AIListingFastFollowup from './AIListingFastFollowup';
 
 // The entire assistant lives in Step 1; there is no second "start chat" page.
 // The original message is sent automatically as the first conversation turn.
@@ -16,6 +17,7 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
   const [panel,setPanel]=useState('');
   const autoStarted=useRef(new Set());
   const [initialFailure,setInitialFailure]=useState(false);
+  const [reviewDismissed,setReviewDismissed]=useState(false);
   useEffect(()=>{
     if(!loading && draft && !turns.length && !busy && !autoStarted.current.has(id) &&
        !draft.submission_result?.status && draft.submission_status!=='needs_reconciliation') {
@@ -28,6 +30,12 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
   useEffect(()=>{
     if(draft?.submission_result?.status) setPanel('review');
   },[draft?.submission_result?.status]);
+  // Skip navigating through multiple manual-like steps: when the draft
+  // becomes ready, offer its final review immediately, never publish it.
+  useEffect(()=>{
+    if(draft && getAIListingProgress(draft).ready && !reviewDismissed &&
+       !draft.submission_result?.status && !loading) setPanel('review');
+  },[draft?.revision,draft?.location_confirmed,loading,reviewDismissed]);
 
   if(loading) return <div className="rounded-xl border bg-card p-5" role="status">Opening your saved conversation…</div>;
   if(!draft) return <div role="alert" className="space-y-3 rounded-xl border bg-card p-4">
@@ -62,13 +70,12 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
       <Button type="button" variant="outline" size="sm" className="ml-2" disabled={busy}
         onClick={async()=>{setInitialFailure(false);if(!await send(''))setInitialFailure(true);}}>Retry</Button>
     </div>}
-    <AIListingConversation model={model} inline promptSuggestion={draft.location_confirmed&&!canReview?progress.nextQuestion:''}/>
-    {!submitted&&draft.location_confirmed&&!canReview&&<div role="status" className="space-y-1 border-t border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-      <strong>✓ Location confirmed — continue your listing.</strong>
-      {!!missing.length&&<p>Still needed: {progress.missingLabels.join(', ')}.</p>}
-      {!!progress.warnings.length&&<p>{progress.warnings.length} unresolved clarification{progress.warnings.length===1?'':'s'}.</p>}
-      {!!progress.nextQuestion&&<p className="font-medium">Next question: {progress.nextQuestion}</p>}
-      <p className="text-xs">Answer in the chat above. Your confirmed map location is saved.</p>
+    <AIListingConversation model={model} inline promptSuggestion={!canReview?progress.nextQuestion:''}/>
+    {!submitted&&!canReview&&!busy&&<div className="space-y-2 border-t border-teal-100 bg-white px-3 py-2 sm:px-4">
+      <AIListingFastFollowup draft={draft} progress={progress} busy={busy} onAnswer={(field,value)=>model.action({action:'edit',field,value})}/>
+      {!progress.nextField&&!!progress.warnings.length&&<p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">
+        Just one clarification remains: {progress.warnings[0]} Answer in the chat above before continuing.
+      </p>}
     </div>}
     <div className="space-y-2 border-t border-slate-200 bg-white px-3 pb-3 pt-3 sm:px-4">
       {!submitted&&<div className="flex flex-wrap gap-2">
@@ -78,7 +85,7 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
           {draft.location_confirmed?'Location confirmed':addressReady?'Confirm location':'Confirm map location'}
           <ChevronDown className="h-3.5 w-3.5"/>
         </button>}
-        {canReview&&<Button type="button" size="sm" disabled={busy} onClick={()=>setPanel(value=>value==='review'?'':'review')}>Review listing</Button>}
+        {canReview&&<Button type="button" size="sm" disabled={busy} onClick={()=>{setReviewDismissed(false);setPanel(value=>value==='review'?'':'review');}}>Review & finish listing</Button>}
       </div>}
       {submitted&&<Button type="button" size="sm" onClick={()=>setPanel(value=>value==='review'?'':'review')}>View listing status</Button>}
       {panel==='location'&&!submitted&&<AIListingLocation draft={draft} busy={busy} onAction={model.action} onConfirm={()=>{
@@ -89,7 +96,7 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
         });
       }}/>}
       {panel==='review'&&canReview&&<AIListingReview key={draft.revision} draft={draft} busy={busy} onAction={model.action}
-        onComplete={model.complete} onCheckSubmission={model.checkSubmission} onBack={()=>setPanel('')}/>}
+        onComplete={model.complete} onCheckSubmission={model.checkSubmission} onBack={()=>{setReviewDismissed(true);setPanel('');}}/>}
       {special&&!submitted&&<p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">
         This type needs Yardit's specialized posting process. Chat can collect details but cannot publish it yet.
       </p>}
