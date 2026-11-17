@@ -73,11 +73,11 @@ function ResultItem({ feature, onSelect }) {
   );
 }
 
-export default function AdminAddressSearch({ onAddressSelected, selectedAddress }) {
-  const [street, setStreet] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [zip, setZip] = useState("");
+export default function AdminAddressSearch({ onAddressSelected, selectedAddress, restoreSelectedFields = false }) {
+  const [street, setStreet] = useState(() => restoreSelectedFields ? (selectedAddress?.street || "") : "");
+  const [city, setCity] = useState(() => restoreSelectedFields ? (selectedAddress?.city || "") : "");
+  const [state, setState] = useState(() => restoreSelectedFields ? (selectedAddress?.state || "") : "");
+  const [zip, setZip] = useState(() => restoreSelectedFields ? (selectedAddress?.zip || "") : "");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [showModal, setShowModal] = useState(false);

@@ -14,7 +14,7 @@ export default function AIListingSummary({draft,expandedInitially=false}) {
       {Object.entries(labels).filter(([key]) => facts[key] && (key!=='christmasType' || facts.listingType==='holiday_lights') && (key!=='admission'||facts.listingType==='event')).map(([key,label])=><div key={key}><dt className="font-semibold">{label}</dt><dd className="whitespace-pre-wrap">{facts[key]||'Not provided'}</dd></div>)}
       <div><dt className="font-semibold">Map location</dt><dd>{draft.location_confirmed?`Confirmed: ${draft.location.formatted}`:'Not confirmed on the map'}</dd></div>
       {draft.location?.timeZoneId&&<div><dt className="font-semibold">Location time zone</dt><dd>{draft.location.timeZoneId}</dd></div>}
-      <div><dt className="font-semibold">Payment / approval</dt><dd>Not evaluated. No payment waiver or homeowner approval has been granted.</dd></div>
+      <div><dt className="font-semibold">Payment / approval</dt><dd>{draft.submission_result?.status ? 'Submission status: ' + draft.submission_result.status.replaceAll('_',' ') : 'Not evaluated. No payment waiver or homeowner approval has been granted.'}</dd></div>
     </dl></>}
   </aside>;
 }

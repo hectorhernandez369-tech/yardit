@@ -219,7 +219,7 @@ export default async function(req:Request) {
         const qrToken=new URL(saved.approval_url).searchParams.get('token');
         result={status:'pending_approval',listing_type:'holiday_lights',
           approval_id:saved.id,
-          approval_url:'https://yardit.app/assisted-christmas?token='+encodeURIComponent(qrToken||''),
+          approval_url:saved.approval_url,
           expires_at:saved.expires_at};
       }
     } else if(facts.postingFor==='someone_else' && ['yard_sale','event'].includes(facts.listingType)) {
@@ -320,7 +320,7 @@ export default async function(req:Request) {
       const paymentPayload:any={
         action:'create',tier,listing_kind:isEvent?'event':'residential',amount_cents:amount,
         event_price_breakdown:isEvent?{total:amount,addOns:draft.flyer?.file_uri?[{key:'flyer_upload'}]:[]}:undefined,
-        customer_email:user.email,return_url:'https://yardit.app/CreateListing',
+        customer_email:user.email,return_url:'https://yardit.app/PaidCheckoutReturn',
         owner_user_id:user.id,listingType:facts.listingType,description:facts.description,
         event_description:isEvent?facts.description:undefined,
         addressText:common.addressText,zip:loc.zip,lat:loc.lat,lng:loc.lng,

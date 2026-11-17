@@ -11,7 +11,7 @@ export default function AIListingLocation({draft,busy,onAction}) {
     <p className="text-sm">Search for the full address, inspect the actual map pin, then explicitly confirm it. Chat cannot confirm this step.</p>
     <p className="break-words text-sm text-muted-foreground">Suggested: {[draft.facts?.address,draft.facts?.city,draft.facts?.state,draft.facts?.zip].filter(Boolean).join(', ')||'Not provided'}</p>
     {(!loc || editing) && <fieldset disabled={busy} className={busy?'pointer-events-none opacity-60':''}>
-      <AdminAddressSearch selectedAddress={selected} onAddressSelected={location=>{onAction({action:'location',location});if(location)setEditing(false);}}/>
+      <AdminAddressSearch key={loc ? [loc.street,loc.city,loc.state,loc.zip].join("|") : "new-address"} restoreSelectedFields selectedAddress={selected} onAddressSelected={location=>{onAction({action:'location',location});if(location)setEditing(false);}}/>
     </fieldset>}
     {loc && !editing && <Button type="button" variant="outline" disabled={busy} onClick={()=>setEditing(true)}>Change location</Button>}
     {loc&&<><AddressReviewMap lat={loc.lat} lng={loc.lng}/><p className="text-sm">{loc.formatted}<br/>Time zone: {loc.timeZoneId}</p>
