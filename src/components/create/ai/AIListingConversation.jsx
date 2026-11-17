@@ -25,7 +25,7 @@ function suggestedAnswers(facts) {
   return [];
 }
 
-export default function AIListingConversation({model,inline=false}) {
+export default function AIListingConversation({model,inline=false,promptSuggestion=''}) {
   const {draft,turns,busy,hasMore,older,send,answer,action,attachAndRead,error}=model;
   const submitted=!!draft.submission_result?.status;
   const [message,setMessage]=useState('');
@@ -104,6 +104,6 @@ export default function AIListingConversation({model,inline=false}) {
       disabled={submitted} busy={busy} file={draft.flyer?.file_uri?draft.flyer:null}
       preview={draft.flyerPreview} onFileSelected={attach}
       onRemoveFile={()=>action({action:'remove_flyer'})}
-      placeholder={submitted?'This chat is complete':'Ask Yardit anything about this listing…'}/>
+      placeholder={submitted?'This chat is complete':promptSuggestion||'Ask Yardit anything about this listing…'}/>
   </div>;
 }

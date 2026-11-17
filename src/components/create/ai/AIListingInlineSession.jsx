@@ -6,6 +6,7 @@ import AIListingLocation from './AIListingLocation';
 import AIListingSummary from './AIListingSummary';
 import {CheckCircle2, MapPin, ChevronDown} from 'lucide-react';
 import AIListingReview from './AIListingReview';
+import {getAIListingProgress} from './aiListingProgress';
 
 // The entire assistant lives in Step 1; there is no second "start chat" page.
 // The original message is sent automatically as the first conversation turn.
@@ -35,13 +36,9 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
     <Button variant="ghost" onClick={onClose}>Back to Step 1</Button>
   </div>;
   const facts=draft.facts||{};
-  const required=['listingType','title','description','startDate','endDate','startTime','endTime','postingFor',
-    ...(facts.listingType==='event'?['category','admission']:[]),
-    ...(facts.listingType==='yard_sale'?['tierPreference']:[]),
-    ...(facts.listingType==='holiday_lights'?['christmasType']:[]),
-    ...(facts.postingFor==='someone_else'?['homeownerEmail']:[])];
-  const missing=required.filter(key=>!facts[key]);
-  const canReview=!!draft.submission_result?.status || (!!draft.location_confirmed && !missing.length && !draft.warnings?.length);
+  const progress=getAIListingProgress(draft);
+  const missing=progress.missing;
+  const canReview=!!draft.submission_result?.status || progress.ready;
   const special=['neighborhood_sale','halloween_spot'].includes(facts.listingType);
   const addressReady=!!draft.location?.timeZoneId;
   const shouldConfirmLocation=addressReady || (!!facts.address && !!facts.city) || (missing.length<=2 && !!facts.listingType);
@@ -65,7 +62,14 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
       <Button type="button" variant="outline" size="sm" className="ml-2" disabled={busy}
         onClick={async()=>{setInitialFailure(false);if(!await send(''))setInitialFailure(true);}}>Retry</Button>
     </div>}
-    <AIListingConversation model={model} inline />
+    <AIListingConversation model={model} inline promptSuggestion={draft.location_confirmed&&!canReview?progress.nextQuestion:''}/>
+    {!submitted&&draft.location_confirmed&&!canReview&&<div role="status" className="space-y-1 border-t border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+      <strong>✓ Location confirmed — continue your listing.</strong>
+      {!!missing.length&&<p>Still needed: {progress.missingLabels.join(', ')}.</p>}
+      {!!progress.warnings.length&&<p>{progress.warnings.length} unresolved clarification{progress.warnings.length===1?'':'s'}.</p>}
+      {!!progress.nextQuestion&&<p className="font-medium">Next question: {progress.nextQuestion}</p>}
+      <p className="text-xs">Answer in the chat above. Your confirmed map location is saved.</p>
+    </div>}
     <div className="space-y-2 border-t border-slate-200 bg-white px-3 pb-3 pt-3 sm:px-4">
       {!submitted&&<div className="flex flex-wrap gap-2">
         {shouldConfirmLocation&&<button type="button" disabled={busy} onClick={()=>setPanel(value=>value==='location'?'':'location')}
@@ -77,7 +81,7 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
         {canReview&&<Button type="button" size="sm" disabled={busy} onClick={()=>setPanel(value=>value==='review'?'':'review')}>Review listing</Button>}
       </div>}
       {submitted&&<Button type="button" size="sm" onClick={()=>setPanel(value=>value==='review'?'':'review')}>View listing status</Button>}
-      {panel==='location'&&!submitted&&<AIListingLocation draft={draft} busy={busy} onAction={model.action}/>}
+      {panel==='location'&&!submitted&&<AIListingLocation draft={draft} busy={busy} onAction={model.action} onConfirm={()=>setPanel('')}/>}
       {panel==='review'&&canReview&&<AIListingReview key={draft.revision} draft={draft} busy={busy} onAction={model.action}
         onComplete={model.complete} onCheckSubmission={model.checkSubmission} onBack={()=>setPanel('')}/>}
       {special&&!submitted&&<p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">
