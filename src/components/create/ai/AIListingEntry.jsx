@@ -7,12 +7,22 @@ import AIListingInlineSession from './AIListingInlineSession';
 import AIListingErrorBoundary from './AIListingErrorBoundary';
 import {aiDraftCall,aiError,canUseAIListing} from './aiListingClient';
 
+function rememberCurrentDraft(id) {
+  // This changes only the URL; React stays on the same Step One page.
+  // A refresh or return from Stripe can then reopen the conversation.
+  const url=new URL(window.location.href);
+  if(id)url.searchParams.set('aiDraft',id);
+  else url.searchParams.delete('aiDraft');
+  window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+}
+
 // Embedded Step 1 chatbot. Creating a draft NEVER navigates away from Step 1.
 // Starting a conversation automatically sends the opening message once.
 export default function AIListingEntry({onActiveChange}) {
   const {user}=useAuth();
-  const [open,setOpen]=useState(false);
-  const [id,setId]=useState('');
+  const initialId=new URLSearchParams(window.location.search).get('aiDraft')||'';
+  const [open,setOpen]=useState(Boolean(initialId));
+  const [id,setId]=useState(initialId);
   const [message,setMessage]=useState('');
   const [file,setFile]=useState(null);
   const [preview,setPreview]=useState('');
@@ -24,6 +34,14 @@ export default function AIListingEntry({onActiveChange}) {
   const inFlight=useRef(false);
   const requestId=useRef(crypto.randomUUID());
   const allowed=canUseAIListing(user);
+  // A direct saved-chat link should open the assistant, not the manual wizard.
+  const initialOpenNotified=useRef(false);
+  useEffect(()=>{
+    if(allowed && initialId && !initialOpenNotified.current){
+      initialOpenNotified.current=true;
+      onActiveChange?.(true);
+    }
+  },[allowed,initialId]);
 
   useEffect(()=>{
     if(!file){setPreview('');return;}
@@ -55,7 +73,7 @@ export default function AIListingEntry({onActiveChange}) {
       const response=await aiDraftCall({action:'create',message,request_id:requestId.current,...(file?{file}:{})});
       if(!response?.draft?.id)throw new Error('Could not save your opening message.');
       setOpen(true);onActiveChange?.(true);
-      setId(response.draft.id);
+      setId(response.draft.id);rememberCurrentDraft(response.draft.id);
       setMessage('');setFile(null);
       setShowDrafts(false);
       requestId.current=crypto.randomUUID();
@@ -88,14 +106,14 @@ export default function AIListingEntry({onActiveChange}) {
     </section>}
     {open&&(id?
       <AIListingErrorBoundary key={id}>
-        <AIListingInlineSession id={id} onNew={()=>{setId('');setMessage('');setFile(null);requestId.current=crypto.randomUUID();}}
-          onClose={()=>{setId('');setOpen(false);onActiveChange?.(false);}}/>
+        <AIListingInlineSession id={id} onNew={()=>{setId('');rememberCurrentDraft('');setMessage('');setFile(null);requestId.current=crypto.randomUUID();}}
+          onClose={()=>{setId('');rememberCurrentDraft('');setOpen(false);onActiveChange?.(false);}}/>
       </AIListingErrorBoundary>
       :<section aria-label="Ask Yardit AI chat" className="space-y-3 rounded-2xl border-2 border-[#2d6057] bg-card p-3 shadow-sm sm:p-5">
         <header className="flex items-center justify-between gap-2 border-b pb-3">
           <div><h2 className="font-bold">✦ Ask Yardit AI</h2>
             <p className="text-xs text-muted-foreground">Start here. Yardit will answer directly in this chat—no separate page.</p></div>
-          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={()=>{setOpen(false);onActiveChange?.(false);}}>Close</Button>
+          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={()=>{setOpen(false);rememberCurrentDraft('');onActiveChange?.(false);}}>Close</Button>
         </header>
         {showDrafts?<div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -105,7 +123,7 @@ export default function AIListingEntry({onActiveChange}) {
           {draftsBusy&&<p role="status" className="text-sm">Loading saved chats…</p>}
           {!draftsBusy&&!drafts.length&&<p className="text-sm text-muted-foreground">No saved AI conversations yet.</p>}
           {drafts.map(draft=><button type="button" key={draft.id} className="block w-full rounded-xl border p-3 text-left hover:bg-muted"
-            onClick={()=>{setId(draft.id);setShowDrafts(false);}}>
+            onClick={()=>{setId(draft.id);rememberCurrentDraft(draft.id);setShowDrafts(false);}}>
             <strong className="block text-sm">{draft.title||'Untitled listing'}</strong>
             <span className="text-xs text-muted-foreground">{draft.submission_result?.status||'Saved conversation'}</span>
           </button>)}

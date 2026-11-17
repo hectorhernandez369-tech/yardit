@@ -953,7 +953,7 @@ export default function CreateListingPage() {
           setIsStartingPayment(false);
           setPaymentError('Your payment was received, but the AI listing needs final confirmation. Do not pay again. Open Ask Yardit AI to retry verification.');
           toast.error('Payment received. AI listing confirmation needs attention; do not pay again.');
-          navigate('/CreateListingAI?id='+encodeURIComponent(aiPaidDraftId));
+          navigate('/CreateListing?aiDraft='+encodeURIComponent(aiPaidDraftId));
           return;
         }
       }
@@ -980,7 +980,7 @@ export default function CreateListingPage() {
       sessionStorage.removeItem("yardit_pending_trust_action");
       clearStaleTrustProgress();
       toast.success("Listing created successfully!");
-      navigate(aiPaidFinalized && aiPaidDraftId ? '/CreateListingAI?id='+encodeURIComponent(aiPaidDraftId) : createPageUrl("MyListings"));
+      navigate(aiPaidFinalized && aiPaidDraftId ? '/CreateListing?aiDraft='+encodeURIComponent(aiPaidDraftId) : createPageUrl("MyListings"));
     },
     onError: (error) => {
       setIsStartingPayment(false);

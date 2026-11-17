@@ -21,6 +21,7 @@ test('new initial message stays within Step One and auto-starts AI reply',()=>{
   const entryCode=read(entry),chatCode=read(inline),hook=read('src/components/create/ai/useAIListingDraft.js');
   assert.match(entryCode,/setId\(response\.draft\.id\)/);
   assert.match(entryCode,/Send to Ask Yardit/);
+  assert.match(entryCode,/rememberCurrentDraft\(response\.draft\.id\)/);
   assert.match(entryCode,/setOpen\(true\);onActiveChange\?\.\(true\)/);
   assert.doesNotMatch(entryCode,/navigate\(/);
   assert.match(chatCode,/send\(''\)/);

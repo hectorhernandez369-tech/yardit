@@ -22,7 +22,8 @@ test('AI listing flow has no missing JS globals, including React hooks', () => {
 test('AI listing route has a recoverable rendering error screen', () => {
   const page = readFileSync('src/pages/CreateListingAI.jsx', 'utf8');
   const boundary = readFileSync('src/components/create/ai/AIListingErrorBoundary.jsx', 'utf8');
-  assert.match(page, /<AIListingErrorBoundary/);
+  assert.match(page, /<Navigate/);
+  assert.match(page, /aiDraft/);
   assert.match(boundary, /My saved AI drafts/);
   assert.match(boundary, /Reload AI draft/);
 });

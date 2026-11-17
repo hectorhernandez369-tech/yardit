@@ -21,7 +21,7 @@ export default class AIListingErrorBoundary extends React.Component {
         <p className="text-sm">Your previously saved draft is still stored in Yardit. Try reopening it, or go to your saved AI drafts.</p>
         <div className="flex flex-wrap gap-3">
           <button type="button" className="rounded-md bg-primary px-4 py-2 text-primary-foreground" onClick={() => window.location.reload()}>Reload AI draft</button>
-          <Link className="rounded-md border px-4 py-2" to="/CreateListingAI">My saved AI drafts</Link>
+          <Link className="rounded-md border px-4 py-2" to="/CreateListing">My saved AI drafts</Link>
           <Link className="rounded-md border px-4 py-2" to="/CreateListing">Normal posting</Link>
         </div>
       </section>

@@ -54,7 +54,7 @@ export default function usePaidCheckoutReturn() {
       if (cancelled.current) return;
       localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
       window.history.replaceState({}, "", createPageUrl("CreateListing"));
-      navigate(aiDraftId?'/CreateListingAI?id='+encodeURIComponent(aiDraftId):createPageUrl("MyListings"), { replace: true });
+      navigate(aiDraftId?'/CreateListing?aiDraft='+encodeURIComponent(aiDraftId):createPageUrl("MyListings"), { replace: true });
     } catch {
       running.current = false;
       if (!cancelled.current) setState({ status: "failed", message: FAILURE });
