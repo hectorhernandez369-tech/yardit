@@ -18,18 +18,29 @@ export function getAIListingProgress(draft={}) {
   const missing=required.filter(key=>!String(facts[key]??'').trim());
   const warnings=(draft.warnings||[]).filter(w=>typeof w==='string'&&w.trim());
   const blockedLocation=draft.location_confirmed!==true;
-  let nextQuestion='';
-  if(!facts.listingType)nextQuestion='What kind of listing are you creating?';
-  else if(!facts.postingFor)nextQuestion='Are you posting for yourself or on behalf of an organizer?';
-  else if(!facts.endTime)nextQuestion='What time does this listing end?';
-  else if(!facts.description)nextQuestion='What would you like visitors to know about this listing?';
-  else if(facts.postingFor==='someone_else'&&!facts.homeownerEmail)nextQuestion='What is the contact email for the organizer or homeowner?';
-  else if(missing.length)nextQuestion='Can you confirm the '+(LABELS[missing[0]]||missing[0])+'?';
-  else if(warnings.length)nextQuestion='Please clarify this before publishing: '+warnings[0];
-  else if(blockedLocation)nextQuestion='Please confirm the address and map pin.';
+  // Prioritize just one genuinely missing answer. The map and final payment
+  // confirmation remain separate, explicit actions.
+  const nextField=(
+    !facts.listingType?'listingType':
+    !facts.postingFor?'postingFor':
+    !facts.endTime?'endTime':
+    !facts.description?'description':
+    facts.postingFor==='someone_else'&&!facts.homeownerEmail?'homeownerEmail':
+    missing[0]||''
+  );
+  const QUESTIONS={
+    listingType:'What are you posting?',
+    postingFor:'Are you posting for yourself or an organizer?',
+    endTime:'What time does this listing end?',
+    description:'What would you like visitors to know?',
+    homeownerEmail:'What is the organizer or homeowner contact email?',
+  };
+  const nextQuestion=nextField ? QUESTIONS[nextField]||'Please confirm the '+(LABELS[nextField]||nextField)+'.'
+    : warnings.length?'Please clarify: '+warnings[0]
+    : blockedLocation?'Confirm the address and map pin.':'';
   const ready=!missing.length&&!warnings.length&&!blockedLocation;
   return {
     missing,missingLabels:missing.map(key=>LABELS[key]||key),
-    warnings,ready,nextQuestion,blockedLocation,
+    warnings,ready,nextQuestion,nextField,blockedLocation,
   };
 }

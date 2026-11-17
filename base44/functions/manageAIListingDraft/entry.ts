@@ -59,18 +59,33 @@ export default async function(req) {
     }
     if(action==='edit') {
       const field=String(body.field||'');
-      const allowed=new Set(['postingFor','admission','homeownerEmail','homeownerName','listingType','christmasType','category','tierPreference']);
+      const allowed=new Set(['postingFor','admission','homeownerEmail','homeownerName','listingType','christmasType','category','tierPreference',
+        'title','description','startDate','endDate','startTime','endTime']);
       if(!allowed.has(field) || typeof body.value!=='string')throw inputError('Choose a supported detail to correct.');
-      const value=body.value.trim().slice(0,250);
+      const value=body.value.trim().slice(0,field==='description'?3000:250);
       if(field==='postingFor' && !['self','someone_else'].includes(value))throw inputError('Choose yourself or someone else.');
       if(field==='listingType' && !['yard_sale','neighborhood_sale','event','holiday_lights','halloween_spot'].includes(value))throw inputError('Choose a valid listing type.');
       if(field==='homeownerEmail' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))throw inputError('Enter a valid homeowner email.');
+      if(['startDate','endDate'].includes(field) && value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+          !Number.isFinite(Date.parse(value+'T12:00:00Z')) || new Date(value+'T12:00:00Z').toISOString().slice(0,10)!==value))
+        throw inputError('Confirm a complete valid date and year.');
+      if(['startTime','endTime'].includes(field) && value && !/^([01]\d|2[0-3]):[0-5]\d$/.test(value))
+        throw inputError('Confirm a valid time.');
+      if(field==='endTime' && draft.facts?.startDate===draft.facts?.endDate &&
+          draft.facts?.startTime && value<=draft.facts.startTime)
+        throw inputError('The closing time must be later than the opening time.');
       const fieldTerms={
         postingFor:['posting for','who is posting','who owns','ownership'],
         admission:['admission','entry fee','ticket price'],
         tierPreference:['tier','free listing','featured','premium','promotion'],
         homeownerEmail:['homeowner email','seller email'],
         category:['category'],
+        title:['title','listing name'],
+        description:['description','what to expect'],
+        endTime:['end time','closing time','finish time','ending time'],
+        startTime:['start time','opening time'],
+        endDate:['end date'],
+        startDate:['start date'],
         christmasType:['christmas type','display type']
       };
       const terms=fieldTerms[field]||[];
