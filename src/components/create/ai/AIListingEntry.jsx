@@ -54,6 +54,7 @@ export default function AIListingEntry({onActiveChange}) {
     try{
       const response=await aiDraftCall({action:'create',message,request_id:requestId.current,...(file?{file}:{})});
       if(!response?.draft?.id)throw new Error('Could not save your opening message.');
+      setOpen(true);onActiveChange?.(true);
       setId(response.draft.id);
       setMessage('');setFile(null);
       setShowDrafts(false);
@@ -70,8 +71,18 @@ export default function AIListingEntry({onActiveChange}) {
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-bold">Post with Ask Yardit AI</h2>
           <p className="text-sm text-muted-foreground">Tell Yardit what you're posting or upload a flyer. Chat here while Yardit gathers the details.</p>
-          <Button type="button" className="mt-3" onClick={()=>{setOpen(true);onActiveChange?.(true);setShowDrafts(false);}}>Open AI chat</Button>
-          <Button type="button" variant="ghost" className="ml-2 mt-3" onClick={()=>{setOpen(true);onActiveChange?.(true);setShowDrafts(true);loadDrafts();}}>Saved chats</Button>
+          <div className="mt-3 space-y-3">
+            <label className="block text-sm font-medium">Message Ask Yardit
+              <Textarea rows={2} maxLength={3000} disabled={busy} value={message} onChange={e=>setMessage(e.target.value)}
+                placeholder="E.g. Create a light show at the Porterville courthouse…"/>
+            </label>
+            <AIListingAttachment flyer={file} preview={preview} busy={busy} onUpload={chooseFile} onRemove={()=>setFile(null)}/>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" disabled={busy||(!message.trim()&&!file)} onClick={start}>{busy?'Starting your conversation…':'Send to Ask Yardit'}</Button>
+              <Button type="button" variant="outline" disabled={busy} onClick={()=>{setOpen(true);onActiveChange?.(true);setShowDrafts(true);loadDrafts();}}>Saved chats</Button>
+            </div>
+            {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
+          </div>
         </div>
       </div>
     </section>}
