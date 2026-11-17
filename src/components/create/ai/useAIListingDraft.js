@@ -51,8 +51,21 @@ export default function useAIListingDraft(id,enabled) {
     if(data?.result)setDraft(current=>({...current,submission_result:data.result,submission_status:data.result.status==='payment_required'?'pending_checkout':data.result.status==='pending_approval'?'pending_approval':'submitted'}));
     return data.result;
   });
+  // Upload a new flyer and immediately ask the AI to read it. Using the
+  // returned revision avoids sending against stale React state.
+  const attachAndRead=file=>run(async()=>{
+    const uploaded=await aiDraftCall({action:'upload',id,revision:draft.revision,file});
+    setDraft(uploaded.draft);
+    const response=await aiDraftCall({
+      id,revision:uploaded.draft.revision,request_id:crypto.randomUUID(),
+      message:'I attached a new flyer. Please read it, update our proposed details, and ask about any missing or conflicting information.'
+    },'draftAssistedEventAI');
+    setDraft(response.draft);
+    setTurns(items=>[...items.filter(t=>t.request_id!==response.turn.request_id),response.turn]);
+    return response;
+  });
   const older=()=>run(async()=>{
     const data=await aiDraftCall({action:'history',id,cursor});setTurns(items=>[...data.turns.slice().reverse(),...items]);setCursor(data.next_cursor);setHasMore(data.has_more);
   });
-  return {draft,turns,busy,loading,error,hasMore,action,answer,send,older,complete,checkSubmission,reload:load};
+  return {draft,turns,busy,loading,error,hasMore,action,answer,send,older,complete,checkSubmission,attachAndRead,reload:load};
 }
