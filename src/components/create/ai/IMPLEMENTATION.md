@@ -41,3 +41,20 @@ Known remaining boundaries:
 - Neighborhood sales and Halloween specialized AI submission are intentionally not connected; this must be designed around the established eligibility, season, organizer and payment rules. The normal dedicated workflows remain unchanged.
 - Real Stripe and Apple native handoff behavior, signed-in homeowner QR approval, and device uploads require end-to-end test accounts. A successful compilation alone does not certify those flows.
 - Pending submission reconciliation is conservative: no automatic duplicate charged/published retries. If an earlier external write succeeded before the result was recorded, a support review may be necessary.
+
+## AI1.l — Inline conversational Step One redesign (2026-11-17)
+
+The dedicated multi-step AI drafting screen has been replaced as the primary entry point with an **inline chatbot in Step One**, restricted to the same two accounts.
+
+- The Step One card contains a message composer and optional flyer upload immediately; it does not ask the user to press Start a second time.
+- Creating a draft stays on the SAME Step One page. The initial message or flyer is automatically submitted as the first AI conversation turn, with retry if a reply fails.
+- Conversation replies render as chat bubbles; the AI asks for missing fields, and the existing quick-answer options remain functional.
+- The manual form, manual Next action, and Step One manual progress labels are hidden only while the AI conversation is active, and reappear when it is closed.
+- Location search/map confirmation and final review are expandable **inside the conversation**, not separate navigation destinations. The compact collected-details summary remains collapsed.
+- A conversation identifier is kept in the Step One URL query so refresh, saved chats, and returns from paid checkout can reopen the same chat.
+- Legacy /CreateListingAI links redirect to Step One without deleting or migrating existing drafts. Both web and iOS paid-return completion continue to use the existing secure verification route, then reopen the AI chat.
+- Backend allowlist, existing private draft/flyer storage, explicit map confirmation, server-side pricing, homeowner approval, payment verification, and idempotency protections remain intact.
+- The model instructions specifically clarify that displays at courthouses, schools, and other public venues must not be misrepresented as the user's verified home or posted without required authorization.
+- No public listing is automatically created from a chat message. Neighborhood Sale and Halloween AI publication remain restricted to their established specialized workflows.
+
+Verification: 42 source/validation/regression tests passed and Vite build passed. Live signed-in conversations, flyer OCR/analysis, homeowner approval, iOS checkout, and full device interaction have **not** been tested end-to-end. This implementation must not be described as fully device-QA verified.
