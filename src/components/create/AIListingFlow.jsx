@@ -8,6 +8,11 @@ import AIListingReview from '@/components/create/ai/AIListingReview';
 export default function AIListingFlow({id}) {
   const model=useAIListingDraft(id,true),[stage,setStage]=useState('chat');
   const {draft,busy,loading,error,action,reload}=model;
+  // Returning from Stripe or homeowner approval should display the actual
+  // server result rather than dropping the user back into the chat.
+  useEffect(()=>{
+    if(draft?.submission_result?.status) setStage('review');
+  },[draft?.submission_result?.status]);
   if(loading)return <p role="status">Loading your saved AI draft…</p>;
   if(!draft)return <div role="alert"><p>{error||'Draft not found.'}</p><Button variant="outline" onClick={reload}>Reload draft</Button></div>;
   const missing=['listingType','title','description','startDate','endDate','startTime','endTime','postingFor',
