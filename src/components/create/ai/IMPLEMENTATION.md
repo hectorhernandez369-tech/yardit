@@ -58,3 +58,10 @@ The dedicated multi-step AI drafting screen has been replaced as the primary ent
 - No public listing is automatically created from a chat message. Neighborhood Sale and Halloween AI publication remain restricted to their established specialized workflows.
 
 Verification: 42 source/validation/regression tests passed and Vite build passed. Live signed-in conversations, flyer OCR/analysis, homeowner approval, iOS checkout, and full device interaction have **not** been tested end-to-end. This implementation must not be described as fully device-QA verified.
+
+## AI1.m — Chatbot-style visual redesign (November 17, 2026)
+The AI-only Step One entry and conversation are now styled as a familiar assistant chat instead of a multi-field wizard. The first screen shows Ask Yardit's avatar, greeting, starter prompts, and a single bottom composer with attachment and send controls. Once a conversation starts, user messages appear on the right, assistant replies on the left, and contextual quick-answer chips appear below the message transcript. On mobile, the message area scrolls inside the chat surface.
+
+The chat's prominent form labels, duplicate flyer panels, and large collected-details block were removed from the main conversation. Uploaded flyers use the same paperclip attachment control with preview and validation; a changed flyer in an existing chat is passed through the existing secure draft upload, then submitted for analysis. Location confirmation and the secure final review stay inline and appear contextually. Saved chats and new chats remain accessible from the compact header. The back-end posting, tier, promotion, payment, homeowner QR approval, and account authorization functions were not changed by this visual redesign.
+
+Verification: 42 AI / Pre-Spree unit-and-source tests passed, Vite build succeeded. Real account, browser, phone, upload, checkout and homeowner approval flows remain unverified by these tests.
