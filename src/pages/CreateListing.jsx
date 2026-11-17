@@ -2244,9 +2244,9 @@ export default function CreateListingPage() {
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
         <div className="mb-8 text-center">
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
-            {isAdminCreate ? "Create Listing (Admin)" : formData.listingType === "event" ? "Create an Event" : formData.listingType === "neighborhood_sale" ? "Set Up a Neighborhood Sale" : formData.listingType === "halloween_spot" ? "Post a Halloween Spot" : "Post Your Yard Sale"}
+            {aiChatActive && step===1 ? "Ask Yardit AI" : isAdminCreate ? "Create Listing (Admin)" : formData.listingType === "event" ? "Create an Event" : formData.listingType === "neighborhood_sale" ? "Set Up a Neighborhood Sale" : formData.listingType === "halloween_spot" ? "Post a Halloween Spot" : "Post Your Yard Sale"}
           </h1>
-          {currentMeta && <p className="text-slate-400 text-sm mt-1.5">{currentMeta}</p>}
+          {!(aiChatActive && step===1) && currentMeta && <p className="text-slate-400 text-sm mt-1.5">{currentMeta}</p>}
         </div>
         {isDevBypassUser(user) && !isAssistedPost && !isAdminCreate && <DeveloperListingControls
           enabled={developerModeEnabled}
@@ -2255,7 +2255,7 @@ export default function CreateListingPage() {
           busy={createListingMutation.isPending || isStartingPayment}
         />}
         {!(step===1 && aiChatActive)&&<ListingStepNavigation step={step} totalSteps={totalSteps} stepLabels={stepLabels} />}
-        {canUseAssistedPost && (
+        {!(aiChatActive && step===1) && canUseAssistedPost && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -2331,7 +2331,7 @@ export default function CreateListingPage() {
             )}
           </div>
         )}
-        {formData.listingType === "yard_sale" && (
+        {!(aiChatActive && step===1) && formData.listingType === "yard_sale" && (
           <div className="mb-6 flex justify-center">
             <button type="button" onClick={() => setShowGuideModal(true)} className="text-xs text-[#006168] font-medium hover:text-[#004d52] underline underline-offset-2 transition-colors">
               Need tips for a great sale? View our Success Guide →
