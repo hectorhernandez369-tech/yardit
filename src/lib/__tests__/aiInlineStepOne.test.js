@@ -22,12 +22,15 @@ test('new initial message stays within Step One and auto-starts AI reply',()=>{
   assert.match(entryCode,/setId\(response\.draft\.id\)/);
   assert.match(entryCode,/Send to Ask Yardit/);
   assert.match(entryCode,/rememberCurrentDraft\(response\.draft\.id\)/);
-  assert.match(entryCode,/setOpen\(true\);onActiveChange\?\.\(true\)/);
+  assert.match(entryCode,/const activate=/);
+  assert.match(entryCode,/activate\(\);/);
   assert.doesNotMatch(entryCode,/navigate\(/);
   assert.match(chatCode,/send\(''\)/);
   assert.match(chatCode,/autoStarted\.current\.add\(id\)/);
   assert.match(hook,/initial_request_id/);
   assert.match(chatCode,/AIListingConversation model=\{model\} inline/);
+  assert.match(chatCode,/shouldConfirmLocation/);
+  assert.match(entryCode,/AIListingChatComposer/);
 });
 test('AI-only view hides competing manual steps and actions',()=>{
   const parent=read('src/pages/CreateListing.jsx'),step=read('src/components/create/StepOne.jsx'),event=read('src/components/create/CreateListingEvent.jsx');
