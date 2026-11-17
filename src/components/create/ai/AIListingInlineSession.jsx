@@ -4,6 +4,7 @@ import useAIListingDraft from './useAIListingDraft';
 import AIListingConversation from './AIListingConversation';
 import AIListingLocation from './AIListingLocation';
 import AIListingSummary from './AIListingSummary';
+import {CheckCircle2, MapPin, ChevronDown} from 'lucide-react';
 import AIListingReview from './AIListingReview';
 
 // The entire assistant lives in Step 1; there is no second "start chat" page.
@@ -44,41 +45,47 @@ export default function AIListingInlineSession({id,onNew,onClose}) {
   const special=['neighborhood_sale','halloween_spot'].includes(facts.listingType);
   const addressReady=!!draft.location?.timeZoneId;
   const submitted=!!draft.submission_result?.status;
-  return <section className="space-y-3 rounded-2xl border-2 border-[#2d6057] bg-card p-3 shadow-md sm:p-5" aria-label="Ask Yardit AI conversation">
-    <header className="flex items-center justify-between gap-2 border-b pb-3">
-      <div>
-        <h2 className="font-bold text-base">✦ Ask Yardit AI</h2>
-        <p className="text-xs text-muted-foreground">Your conversation saves automatically, right here in Step 1.</p>
+  return <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md" aria-label="Ask Yardit AI conversation">
+    <header className="flex items-center justify-between gap-2 bg-[#153f37] px-3 py-3 text-white sm:px-4">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-300/60 bg-[#235449] text-xl text-amber-300">✦</div>
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-bold sm:text-base">Ask Yardit</h2>
+          <p className="text-[11px] text-white/80">{busy?'Thinking…':'Your listing assistant · Auto-saved'}</p>
+        </div>
       </div>
-      <div className="flex flex-wrap justify-end gap-1">
-        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={onNew}>New chat</Button>
-        <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onClose}>Close</Button>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button type="button" size="sm" variant="ghost" className="text-xs text-white hover:bg-white/15 hover:text-white" disabled={busy} onClick={onNew}>New</Button>
+        <Button type="button" size="sm" variant="ghost" className="text-xs text-white hover:bg-white/15 hover:text-white" disabled={busy} onClick={onClose}>Close</Button>
       </div>
     </header>
-    {initialFailure&&!turns.length&&<div role="alert" className="rounded-lg border border-amber-300 p-3 text-sm">
-      Yardit saved your opening message but could not get an AI reply.
-      <Button type="button" className="ml-2" size="sm" variant="outline" disabled={busy}
-        onClick={async()=>{setInitialFailure(false);if(!await send(''))setInitialFailure(true);}}>Retry the first reply</Button>
+    {initialFailure&&!turns.length&&<div role="alert" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+      Your opening message was saved, but Yardit couldn't reply.
+      <Button type="button" variant="outline" size="sm" className="ml-2" disabled={busy}
+        onClick={async()=>{setInitialFailure(false);if(!await send(''))setInitialFailure(true);}}>Retry</Button>
     </div>}
     <AIListingConversation model={model} inline />
-    <div className="flex flex-wrap gap-2">
-      {!submitted&&<Button type="button" variant="outline" disabled={busy} onClick={()=>setPanel(value=>value==='location'?'':'location')}>
-        {draft.location_confirmed?'✓ Change confirmed location':addressReady?'Confirm location on map':'Find & confirm location'}
-      </Button>}
-      {(canReview||submitted)&&<Button type="button" disabled={busy} onClick={()=>setPanel(value=>value==='review'?'':'review')}>
-        {submitted?'View listing status':'Review & continue'}
-      </Button>}
+    <div className="space-y-2 border-t border-slate-200 bg-white px-3 pb-3 pt-3 sm:px-4">
+      {!submitted&&<div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy} onClick={()=>setPanel(value=>value==='location'?'':'location')}
+          className="flex min-h-10 items-center gap-1.5 rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+          {draft.location_confirmed?<CheckCircle2 className="h-4 w-4 text-teal-700"/>:<MapPin className="h-4 w-4"/>}
+          {draft.location_confirmed?'Location confirmed':addressReady?'Confirm location':'Confirm map location'}
+          <ChevronDown className="h-3.5 w-3.5"/>
+        </button>
+        {canReview&&<Button type="button" size="sm" disabled={busy} onClick={()=>setPanel(value=>value==='review'?'':'review')}>Review listing</Button>}
+      </div>}
+      {submitted&&<Button type="button" size="sm" onClick={()=>setPanel(value=>value==='review'?'':'review')}>View listing status</Button>}
+      {panel==='location'&&!submitted&&<AIListingLocation draft={draft} busy={busy} onAction={model.action}/>}
+      {panel==='review'&&canReview&&<AIListingReview key={draft.revision} draft={draft} busy={busy} onAction={model.action}
+        onComplete={model.complete} onCheckSubmission={model.checkSubmission} onBack={()=>setPanel('')}/>}
+      {special&&!submitted&&<p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">
+        This type needs Yardit's specialized posting process. Chat can collect details but cannot publish it yet.
+      </p>}
+      <details className="rounded-lg border border-slate-200 p-2">
+        <summary className="cursor-pointer text-xs font-medium text-slate-600">Listing details collected</summary>
+        <div className="pt-2"><AIListingSummary draft={draft}/></div>
+      </details>
     </div>
-    {panel==='location'&&!submitted&&<div className="rounded-xl border p-2 sm:p-3">
-      <AIListingLocation draft={draft} busy={busy} onAction={model.action}/>
-    </div>}
-    {panel==='review'&&canReview&&<div className="rounded-xl border p-2 sm:p-3">
-      <AIListingReview key={draft.revision} draft={draft} busy={busy} onAction={model.action}
-        onComplete={model.complete} onCheckSubmission={model.checkSubmission} onBack={()=>setPanel('')}/>
-    </div>}
-    {special&&!submitted&&<p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-      This category still uses Yardit's specialized posting process. The AI can help prepare information, but it cannot publish it from chat yet.
-    </p>}
-    <AIListingSummary draft={draft}/>
   </section>;
 }
