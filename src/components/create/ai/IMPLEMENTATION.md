@@ -65,3 +65,13 @@ The AI-only Step One entry and conversation are now styled as a familiar assista
 The chat's prominent form labels, duplicate flyer panels, and large collected-details block were removed from the main conversation. Uploaded flyers use the same paperclip attachment control with preview and validation; a changed flyer in an existing chat is passed through the existing secure draft upload, then submitted for analysis. Location confirmation and the secure final review stay inline and appear contextually. Saved chats and new chats remain accessible from the compact header. The back-end posting, tier, promotion, payment, homeowner QR approval, and account authorization functions were not changed by this visual redesign.
 
 Verification: 42 AI / Pre-Spree unit-and-source tests passed, Vite build succeeded. Real account, browser, phone, upload, checkout and homeowner approval flows remain unverified by these tests.
+
+## AI1.o — Faster-than-manual flyer-to-listing workflow (November 17, 2026)
+- The conversation's presentation now prioritizes a **single missing question** rather than repeating a field checklist.
+- A small contextual answer control offers time/date pickers, an organizer contact email input, and an editable short description proposal when appropriate. The user can still respond in ordinary chat instead.
+- Once required fields, the explicit map confirmation, and any real uncertainties are resolved, final review opens automatically. It never automatically publishes or charges.
+- The review button now saves final reviewed details and proceeds to the existing authorized submission in one deliberate user action, using the review operation's actual new revision. Any required Stripe acknowledgment and assisted-posting permission acknowledgment remain explicit.
+- The AI extraction prompt prefers existing flyer facts and asks just one outstanding question; it does not invent prices, missing dates/times, venue permission, or homeowner authorization.
+- Normal manual listing forms, promotion eligibility, tier prices, Stripe and homeowner QR policies are unchanged. Specialized Neighborhood Sale and Halloween publishing remain outside AI publication until safely connected.
+
+Validation: 48 AI / Pre-Spree / render / progress tests passed; Vite production build passed. Live flyer upload, actual Stripe return, and organizer approval need real-device/account end-to-end QA.
