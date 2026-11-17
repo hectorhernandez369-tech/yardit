@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import AIListingEntry from '@/components/create/ai/AIListingEntry';
 import EventDetailsStep from "./event/EventDetailsStep";
 import EventLocationStep from "./event/EventLocationStep";
@@ -38,8 +38,9 @@ export default function CreateListingEvent({
   onDeveloperPublish,
 }) {
   const eventPriceBreakdown = getResidentialEventPriceBreakdown(formData);
+  const [aiActive,setAIActive] = useState(false);
   if (step === 1) {
-    return <div className="space-y-6"><AIListingEntry /><EventDetailsStep
+    return <div className="space-y-6"><AIListingEntry onActiveChange={setAIActive} />{!aiActive&&<EventDetailsStep
       formData={formData}
       setFormData={setFormData}
       isAssistedPost={isAssistedPost}
@@ -51,7 +52,7 @@ export default function CreateListingEvent({
       setSpecialtyFont={setSpecialtyFont}
       specialtyHeadline={specialtyHeadline}
       setSpecialtyHeadline={setSpecialtyHeadline}
-    /></div>;
+    />}</div>;
   }
 
   if (step === 2) {

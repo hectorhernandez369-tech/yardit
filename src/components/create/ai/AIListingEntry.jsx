@@ -9,7 +9,7 @@ import {aiDraftCall,aiError,canUseAIListing} from './aiListingClient';
 
 // Embedded Step 1 chatbot. Creating a draft NEVER navigates away from Step 1.
 // Starting a conversation automatically sends the opening message once.
-export default function AIListingEntry() {
+export default function AIListingEntry({onActiveChange}) {
   const {user}=useAuth();
   const [open,setOpen]=useState(false);
   const [id,setId]=useState('');
@@ -70,21 +70,21 @@ export default function AIListingEntry() {
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-bold">Post with Ask Yardit AI</h2>
           <p className="text-sm text-muted-foreground">Tell Yardit what you're posting or upload a flyer. Chat here while Yardit gathers the details.</p>
-          <Button type="button" className="mt-3" onClick={()=>{setOpen(true);setShowDrafts(false);}}>Open AI chat</Button>
-          <Button type="button" variant="ghost" className="ml-2 mt-3" onClick={()=>{setOpen(true);setShowDrafts(true);loadDrafts();}}>Saved chats</Button>
+          <Button type="button" className="mt-3" onClick={()=>{setOpen(true);onActiveChange?.(true);setShowDrafts(false);}}>Open AI chat</Button>
+          <Button type="button" variant="ghost" className="ml-2 mt-3" onClick={()=>{setOpen(true);onActiveChange?.(true);setShowDrafts(true);loadDrafts();}}>Saved chats</Button>
         </div>
       </div>
     </section>}
     {open&&(id?
       <AIListingErrorBoundary key={id}>
         <AIListingInlineSession id={id} onNew={()=>{setId('');setMessage('');setFile(null);requestId.current=crypto.randomUUID();}}
-          onClose={()=>{setId('');setOpen(false);}}/>
+          onClose={()=>{setId('');setOpen(false);onActiveChange?.(false);}}/>
       </AIListingErrorBoundary>
       :<section aria-label="Ask Yardit AI chat" className="space-y-3 rounded-2xl border-2 border-[#2d6057] bg-card p-3 shadow-sm sm:p-5">
         <header className="flex items-center justify-between gap-2 border-b pb-3">
           <div><h2 className="font-bold">✦ Ask Yardit AI</h2>
             <p className="text-xs text-muted-foreground">Start here. Yardit will answer directly in this chat—no separate page.</p></div>
-          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={()=>setOpen(false)}>Close</Button>
+          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={()=>{setOpen(false);onActiveChange?.(false);}}>Close</Button>
         </header>
         {showDrafts?<div className="space-y-2">
           <div className="flex items-center justify-between">
