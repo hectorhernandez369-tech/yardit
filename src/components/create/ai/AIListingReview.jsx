@@ -43,8 +43,19 @@ export default function AIListingReview({draft,busy,onAction,onComplete,onCheckS
   const submit=async()=>{
     if(isAssisted&&!permission)return;
     if(needsPayment&&!refundAcknowledged)return;
+    if(!draft.details_confirmed&&!reviewed)return;
     setRedirectError('');
+    // One deliberate final action: save review first, then submit using its
+    // new revision. Server permissions, homeowner approval, and Stripe remain
+    // enforced independently of this UX shortcut.
+    let revision=draft.revision;
+    if(!draft.details_confirmed) {
+      const confirmed=await onAction({action:'review',confirmed:true});
+      if(!confirmed?.draft?.details_confirmed)return;
+      revision=confirmed.draft.revision;
+    }
     const data=await onComplete({
+      revision,
       homeowner_permission:isAssisted?permission:false,
       non_refund_acknowledged:needsPayment?refundAcknowledged:false,
       platform:checkoutPlatform(),
@@ -103,14 +114,18 @@ export default function AIListingReview({draft,busy,onAction,onComplete,onCheckS
       <input type="checkbox" checked={reviewed} onChange={e=>setReviewed(e.target.checked)} className="mt-1"/>
       I reviewed every detail and confirmed the map location.
     </label>:<p role="status" className="text-sm font-semibold">Listing details reviewed. Ready for the applicable posting process.</p>}
-    {draft.details_confirmed&&isAssisted&&<label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={permission} onChange={e=>setPermission(e.target.checked)} className="mt-1"/>The homeowner has authorized the draft. They will separately approve it using their own account.</label>}
-    {draft.details_confirmed&&needsPayment&&<label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={refundAcknowledged} onChange={e=>setRefundAcknowledged(e.target.checked)} className="mt-1"/>I understand paid listing charges are non-refundable under Yardit's listing terms and agree to continue to checkout.</label>}
+    {isAssisted&&<label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={permission} onChange={e=>setPermission(e.target.checked)} className="mt-1"/>The homeowner has authorized the draft. They will separately approve it using their own account.</label>}
+    {needsPayment&&<label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={refundAcknowledged} onChange={e=>setRefundAcknowledged(e.target.checked)} className="mt-1"/>I understand paid listing charges are non-refundable under Yardit's listing terms and agree to continue to checkout.</label>}
     </>}
     <div className="flex flex-wrap gap-2">
       <Button type="button" variant="outline" onClick={onBack} disabled={busy}>Back to conversation</Button>
-      {!saved&&(!draft.details_confirmed?
-        <Button type="button" disabled={busy||!reviewed} onClick={()=>onAction({action:'review',confirmed:true})}>{busy?'Saving…':'Confirm reviewed details'}</Button>:
-        <Button type="button" disabled={busy||draft.submission_status==='needs_reconciliation'||(isAssisted&&!permission)||(needsPayment&&!refundAcknowledged)||['neighborhood_sale','halloween_spot'].includes(facts.listingType)} onClick={submit}>{busy?'Submitting…':isAssisted?'Create homeowner approval QR':needsPayment?'Continue to secure checkout':'Create listing'}</Button>)}
+      {!saved&&<Button type="button"
+        disabled={busy||draft.submission_status==='needs_reconciliation'||
+          (!draft.details_confirmed&&!reviewed)||(isAssisted&&!permission)||(needsPayment&&!refundAcknowledged)||
+          ['neighborhood_sale','halloween_spot'].includes(facts.listingType)}
+        onClick={submit}>
+        {busy?'Submitting…':isAssisted?'Review & create approval QR':needsPayment?'Review & continue to checkout':'Review & create listing'}
+      </Button>}
     </div>
   </section>;
 }

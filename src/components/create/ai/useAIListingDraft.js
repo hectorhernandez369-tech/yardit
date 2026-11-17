@@ -64,7 +64,8 @@ export default function useAIListingDraft(id,enabled) {
     return response;
   });
   const complete=body=>run(async()=>{
-    const data=await aiDraftCall({id,revision:draft.revision,action:'submit',...body},'completeAIListing');
+    const {revision:verifiedRevision,...payload}=body||{};
+    const data=await aiDraftCall({id,revision:verifiedRevision??draft.revision,action:'submit',...payload},'completeAIListing');
     if(data?.result)setDraft(current=>({...current,submission_result:data.result,submission_status:data.result.status==='payment_required'?'pending_checkout':data.result.status==='pending_approval'?'pending_approval':'submitted'}));
     return data.result;
   });

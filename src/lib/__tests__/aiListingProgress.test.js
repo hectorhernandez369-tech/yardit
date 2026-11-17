@@ -29,6 +29,16 @@ test('location confirmation has a visible continuation action in the assistant',
  const flow=readFileSync('src/components/create/ai/AIListingInlineSession.jsx','utf8');
  assert.match(location,/Confirm location & continue/);
  assert.match(flow,/getAIListingProgress/);
- assert.match(flow,/Next question:/);
+ assert.match(flow,/AIListingFastFollowup/);
  assert.match(flow,/yardit-ai-chat-input/);
+});
+
+test('review is one deliberate user action before submission',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const review=readFileSync('src/components/create/ai/AIListingReview.jsx','utf8');
+ const hook=readFileSync('src/components/create/ai/useAIListingDraft.js','utf8');
+ assert.match(review,/action:'review',confirmed:true/);
+ assert.match(review,/revision=confirmed.draft.revision/);
+ assert.match(review,/onComplete\(\{/);
+ assert.match(hook,/verifiedRevision\?\?draft.revision/);
 });
