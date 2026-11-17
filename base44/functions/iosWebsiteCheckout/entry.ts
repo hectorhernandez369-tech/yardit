@@ -22,6 +22,12 @@ function ready() {
   }
 }
 function paths(name, payload) {
+  // AI listings use the same verified Stripe return handler as web checkout.
+  // Ordinary manual listings retain their existing return paths.
+  if (name === "residentialStripeCheckout" && typeof payload?.ai_listing_draft_id === "string" &&
+      /^[a-f0-9]{24}$/i.test(payload.ai_listing_draft_id)) {
+    return { return_path: "/PaidCheckoutReturn?payment=success", cancel_path: "/PaidCheckoutReturn?payment=cancel" };
+  }
   if (name === "createListingUpgradeCheckout") return { return_path: "/CreateListingUpgradeReturn?payment=success", cancel_path: "/CreateListingUpgradeReturn?payment=cancel" };
   if (name === "createVendorSubscriptionCheckout") return { return_path: "/VendorDashboard?tab=tier", cancel_path: "/VendorDashboard?tab=tier" };
   if (name === "createVendorEventPromotionCheckout") {

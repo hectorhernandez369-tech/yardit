@@ -319,6 +319,7 @@ export default async function(req:Request) {
       if(!ack)throw new Error('Acknowledge the payment and refund terms before checkout.');
       const paymentPayload:any={
         action:'create',tier,listing_kind:isEvent?'event':'residential',amount_cents:amount,
+        ai_listing_draft_id:draft.id,
         event_price_breakdown:isEvent?{total:amount,addOns:draft.flyer?.file_uri?[{key:'flyer_upload'}]:[]}:undefined,
         customer_email:user.email,return_url:'https://yardit.app/PaidCheckoutReturn',
         owner_user_id:user.id,listingType:facts.listingType,description:facts.description,
