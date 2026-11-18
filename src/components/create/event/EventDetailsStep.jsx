@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EVENT_CATEGORY_GROUPS, getDefaultEventIconForCategory, getEventIconEmoji } from "@/lib/eventListingConfig";
+import { EVENT_CATEGORY_GROUPS, SEASONAL_COMMUNITY_CARE_CATEGORIES, getDefaultEventIconForCategory, getEventIconEmoji } from "@/lib/eventListingConfig";
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 import ChristmasListingChoice from "@/components/create/ChristmasListingChoice";
 import { useAuth } from "@/lib/AuthContext";
+import { HeartHandshake } from "lucide-react";
 
 export default function EventDetailsStep({
   formData, setFormData, isAssistedPost = false,
@@ -20,6 +21,7 @@ export default function EventDetailsStep({
   const { user } = useAuth();
   const christmasPreviewAllowed = user?.email?.toLowerCase() === "hectorhernandez369@gmail.com";
   const showHolidayLightsChoice = !isAssistedPost && !formData.assisted_post;
+  const selectedCareCategory = SEASONAL_COMMUNITY_CARE_CATEGORIES[formData.event_category] || null;
 
   const setListingType = (value) => {
     setFormData((prev) => ({
@@ -80,8 +82,10 @@ export default function EventDetailsStep({
           <SelectContent>
             {EVENT_CATEGORY_GROUPS.map(group => (
               <SelectGroup key={group.label}>
-                <SelectLabel className="sticky top-0 bg-white text-xs font-bold uppercase tracking-wide text-[#006168]">
-                  {group.label}
+                <SelectLabel className={group.seasonal
+                  ? "sticky top-0 bg-[#ecf6f2] text-xs font-bold uppercase tracking-wide text-[#256457]"
+                  : "sticky top-0 bg-white text-xs font-bold uppercase tracking-wide text-[#006168]"}>
+                  {group.seasonal ? "♥ " : ""}{group.label}{group.seasonal ? " · Seasonal" : ""}
                 </SelectLabel>
                 {group.categories.map(category => {
                   const iconKey = getDefaultEventIconForCategory(category);
@@ -101,6 +105,20 @@ export default function EventDetailsStep({
           </SelectContent>
         </Select>
         <p className="text-xs text-slate-400">Your default graphic icon is selected by category. You can replace it with the Custom Icon add-on later.</p>
+        {selectedCareCategory && (
+          <section aria-label="Community care listing guidance"
+            className="space-y-2 rounded-xl border border-emerald-200 bg-[#eef7f3] p-4 text-[#215a4c]">
+            <div className="flex items-center gap-2">
+              <HeartHandshake className="h-5 w-5 shrink-0" />
+              <strong className="text-sm">Here for our neighbors</strong>
+            </div>
+            <p className="text-sm">{selectedCareCategory.guidance}</p>
+            <p className="text-xs">
+              This form currently creates a one-day event listing. Only publish a date when service hours are
+              confirmed. This listing does not verify a provider or guarantee that a location is open.
+            </p>
+          </section>
+        )}
       </div>
     </div>
   );

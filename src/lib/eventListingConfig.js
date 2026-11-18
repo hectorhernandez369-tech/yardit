@@ -34,6 +34,9 @@ export const EVENT_CATEGORIES = [
   "Open House",
   "Collectibles",
   "Games / Tabletop",
+  "Free Community Meals",
+  "Toy Donation Drop-Off",
+  "Warming Center",
   "Other",
 ];
 
@@ -48,6 +51,9 @@ export const EVENT_CATEGORY_GROUPS = [
   ] },
   { label: "Charity & Fundraising", categories: [
     "Charity", "Charity Benefit", "Church Fundraiser", "Fundraiser", "School Fundraiser",
+  ] },
+  { label: "Community Care & Winter Relief", seasonal: true, categories: [
+    "Free Community Meals", "Toy Donation Drop-Off", "Warming Center",
   ] },
   { label: "Community & Family", categories: [
     "Block Party", "Community", "Family", "Kids Activity", "Neighborhood Meetup",
@@ -72,6 +78,29 @@ export const EVENT_CATEGORY_GROUPS = [
   label, categories:[...categories].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}))
 })).sort((a,b)=>a.label.localeCompare(b.label,undefined,{sensitivity:"base"}));
 
+// These describe aid or community service, not entertainment or promotional amenities.
+// Keep category values stable; seasonal tags don't change event prices or schedule rules.
+export const SEASONAL_COMMUNITY_CARE_CATEGORIES = Object.freeze({
+  "Free Community Meals": {
+    label: "Free Community Meals",
+    icon: "food",
+    season: "winter",
+    guidance: "Free meals offered with dignity. Include serving hours, eligibility (if any), and a contact before visitors travel.",
+  },
+  "Toy Donation Drop-Off": {
+    label: "Toy Donation Drop-Off",
+    icon: "gift",
+    season: "holiday",
+    guidance: "A place to give. Include what toys are accepted, drop-off dates and hours, and the receiving organization.",
+  },
+  "Warming Center": {
+    label: "Warming Center",
+    icon: "heart",
+    season: "winter",
+    guidance: "A safe place to get warm. List confirmed operating hours, contact information, and whether opening depends on a weather alert.",
+  },
+});
+
 export const RESIDENTIAL_EVENT_BASE_PRICE = 999;
 
 export const RESIDENTIAL_EVENT_ADD_ONS = {
@@ -94,6 +123,9 @@ export const EVENT_TIER_PRICES = { event: RESIDENTIAL_EVENT_BASE_PRICE };
 export const EVENT_TIERS = [];
 
 export const EVENT_CATEGORY_DEFAULT_ICONS = {
+  "Free Community Meals": "food",
+  "Toy Donation Drop-Off": "gift",
+  "Warming Center": "heart",
   Community: "heart",
   "Block Party": "balloons",
   "Neighborhood Meetup": "house",
