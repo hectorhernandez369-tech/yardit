@@ -3,8 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EVENT_CATEGORIES, getDefaultEventIconForCategory, getEventIconEmoji } from "@/lib/eventListingConfig";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EVENT_CATEGORY_GROUPS, getDefaultEventIconForCategory, getEventIconEmoji } from "@/lib/eventListingConfig";
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 import ChristmasListingChoice from "@/components/create/ChristmasListingChoice";
@@ -78,19 +78,26 @@ export default function EventDetailsStep({
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
-            {EVENT_CATEGORIES.map((category) => {
-              const iconKey = getDefaultEventIconForCategory(category);
-              return (
-                <SelectItem key={category} value={category}>
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F3E6CF] text-lg shadow-sm">
-                      {getEventIconEmoji(iconKey)}
-                    </span>
-                    <span>{category.replace(/_/g, " ")}</span>
-                  </div>
-                </SelectItem>
-              );
-            })}
+            {EVENT_CATEGORY_GROUPS.map(group => (
+              <SelectGroup key={group.label}>
+                <SelectLabel className="sticky top-0 bg-white text-xs font-bold uppercase tracking-wide text-[#006168]">
+                  {group.label}
+                </SelectLabel>
+                {group.categories.map(category => {
+                  const iconKey = getDefaultEventIconForCategory(category);
+                  return (
+                    <SelectItem key={category} value={category}>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F3E6CF] text-lg shadow-sm">
+                          {getEventIconEmoji(iconKey)}
+                        </span>
+                        <span>{category.replace(/_/g, " ")}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectGroup>
+            ))}
           </SelectContent>
         </Select>
         <p className="text-xs text-slate-400">Your default graphic icon is selected by category. You can replace it with the Custom Icon add-on later.</p>

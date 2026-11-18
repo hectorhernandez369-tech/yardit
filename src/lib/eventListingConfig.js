@@ -37,6 +37,41 @@ export const EVENT_CATEGORIES = [
   "Other",
 ];
 
+// Group the EXISTING event category values for an easier alphabetical picker.
+ // Grouping affects presentation only: do not rename values used by listings, icons or filters.
+export const EVENT_CATEGORY_GROUPS = [
+  { label: "Arts & Markets", categories: [
+    "Art / Makers Market", "Collectibles", "Craft Fair", "Holiday Market", "Vendor Market",
+  ] },
+  { label: "Automotive & Real Estate", categories: [
+    "Car Show", "Open House",
+  ] },
+  { label: "Charity & Fundraising", categories: [
+    "Charity", "Charity Benefit", "Church Fundraiser", "Fundraiser", "School Fundraiser",
+  ] },
+  { label: "Community & Family", categories: [
+    "Block Party", "Community", "Family", "Kids Activity", "Neighborhood Meetup",
+  ] },
+  { label: "Entertainment & Games", categories: [
+    "Entertainment", "Games / Tabletop", "Live Music", "Live Show", "Movie Night",
+  ] },
+  { label: "Faith & Education", categories: [
+    "Church", "School",
+  ] },
+  { label: "Food & Drink", categories: [
+    "BBQ / Cookout", "Coffee / Brunch", "Food", "Food Truck Event",
+  ] },
+  { label: "Holidays & Celebrations", categories: [
+    "Birthday / Party", "Gift Exchange", "Holiday",
+  ] },
+  { label: "Other", categories: ["Other"] },
+  { label: "Sports & Recreation", categories: [
+    "5K / Run", "Golf Event", "Sports", "Sports Tournament",
+  ] },
+].map(({label,categories})=>({
+  label, categories:[...categories].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}))
+})).sort((a,b)=>a.label.localeCompare(b.label,undefined,{sensitivity:"base"}));
+
 export const RESIDENTIAL_EVENT_BASE_PRICE = 999;
 
 export const RESIDENTIAL_EVENT_ADD_ONS = {
