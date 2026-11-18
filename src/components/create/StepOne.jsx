@@ -105,7 +105,7 @@ const COLLECTIBLE_TYPES = [
 export default function StepOne({ formData, setFormData, onAIActiveChange }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const listingType = formData?.listingType || "yard_sale";
+  const listingType = formData?.listingType || "";
   const isNeighborhood = listingType === "neighborhood_sale";
   const isHalloween = listingType === "halloween_spot";
   const showChristmasChoice = isHolidayLightsSeason();
@@ -196,7 +196,7 @@ export default function StepOne({ formData, setFormData, onAIActiveChange }) {
       <div>
         <Label className="text-sm font-semibold text-slate-900 mb-3 block">What are you listing?</Label>
         <RadioGroup
-          value={formData.listingType}
+          value={listingType}
           onValueChange={handleListingTypeSelect}
           className="space-y-2.5"
         >

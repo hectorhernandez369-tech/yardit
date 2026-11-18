@@ -13,6 +13,9 @@ export default function ChristmasListingChoice({ disabled = false, assisted = fa
       className={`relative isolate flex w-full items-start gap-4 overflow-hidden rounded-xl border border-holiday-gold bg-gradient-to-br from-christmas-red via-christmas-red to-christmas-green p-4 text-left text-holiday-snow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-holiday-gold ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-holiday-snow'}`}
     >
       <HolidayHeaderDecorations />
+      {/* Same unselected radio-dot visual as the other listing choices.
+          This card navigates to the dedicated Holiday Lights page. */}
+      <span aria-hidden="true" className="relative z-10 mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-holiday-snow bg-transparent" />
       <span className="relative z-10 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-holiday-gold bg-christmas-green"><TreePine className="h-4 w-4 text-holiday-gold" /></span>
       <span className="relative z-10">
         <strong className="block text-sm">Christmas / Holiday Lights</strong>

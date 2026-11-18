@@ -992,6 +992,10 @@ export default function CreateListingPage() {
     }
   });
   const handleNext = async () => {
+    if(step===1 && !formData.listingType) {
+      toast.error("Choose Yard Sale, Event, or another listing type before continuing.");
+      return;
+    }
     if (isDeveloperMode) { setStep((current) => current + 1); return; }
     if (formData.listingType === "yard_sale") {
       setHasAttemptedContinue(true);
@@ -2244,7 +2248,7 @@ export default function CreateListingPage() {
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
         <div className="mb-8 text-center">
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
-            {aiChatActive && step===1 ? "Ask Yardit AI" : isAdminCreate ? "Create Listing (Admin)" : formData.listingType === "event" ? "Create an Event" : formData.listingType === "neighborhood_sale" ? "Set Up a Neighborhood Sale" : formData.listingType === "halloween_spot" ? "Post a Halloween Spot" : "Post Your Yard Sale"}
+            {aiChatActive && step===1 ? "Ask Yardit AI" : !formData.listingType && step===1 ? "What Would You Like to Post?" : isAdminCreate ? "Create Listing (Admin)" : formData.listingType === "event" ? "Create an Event" : formData.listingType === "neighborhood_sale" ? "Set Up a Neighborhood Sale" : formData.listingType === "halloween_spot" ? "Post a Halloween Spot" : "Post Your Yard Sale"}
           </h1>
           {!(aiChatActive && step===1) && currentMeta && <p className="text-slate-400 text-sm mt-1.5">{currentMeta}</p>}
         </div>
@@ -2351,6 +2355,14 @@ export default function CreateListingPage() {
                 }}
               />
             )}
+            {!assistedCreated && step===1 && !formData.listingType && (
+              <CreateListingResidential
+                onAIActiveChange={setAiChatActive}
+                step={step}
+                formData={formData}
+                setFormData={setFormData}
+              />
+            )}
             {!assistedCreated && formData.listingType === "event" && (
               <CreateListingEvent
                 onAIActiveChange={setAiChatActive}
@@ -2453,7 +2465,7 @@ export default function CreateListingPage() {
                 isAssistedPost={isAssistedPost}
               />
             )}
-            {!assistedCreated && !(step===1 && aiChatActive) && (step !== paymentStepNumber || isAdminCreate) && <ListingCreationActions
+            {!assistedCreated && !(step===1 && aiChatActive) && !(step===1 && !formData.listingType) && (step !== paymentStepNumber || isAdminCreate) && <ListingCreationActions
               step={step} setStep={setStep} paymentStepNumber={paymentStepNumber} entryStepNumber={entryStepNumber}
               isAdminCreate={isAdminCreate} isAssistedPost={isAssistedPost} isDeveloperMode={isDeveloperMode}
               listingType={formData.listingType} tier={formData.tier} regularAddressIncomplete={regularAddressIncomplete}
