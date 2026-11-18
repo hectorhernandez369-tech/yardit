@@ -8,7 +8,7 @@ export default function SocialShareMessageDialog({ appName, message, url, onClos
   const [status, setStatus] = useState("");
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`${text}\n\n${url}`);
+      await navigator.clipboard.writeText(text.includes(url) ? text : `${text}\n\n${url}`);
       setStatus("Message and link copied. Paste them into your post.");
     } catch {
       setStatus("Copy isn't available here. Select the message below and copy it manually.");

@@ -17,7 +17,8 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
   const [shareApp, setShareApp] = useState(null);
   const [sharing, setSharing] = useState(false);
   const shareTitle = getShareTitle(listing);
-  const shareText = getShareMessage(listing);
+  const holidayLink = /\/(HolidayLightsDetail|HalloweenSpotDetail)\?/.test(listingUrl);
+  const shareText = getShareMessage(listing) + (holidayLink ? `\n\n${listingUrl}` : "");
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(listingUrl);
@@ -51,11 +52,11 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
       }
       const shareData = {
         title: shareTitle,
-        text: fileToShare ? `${message}\n\n${listingUrl}` : message,
+        text: (fileToShare || holidayLink) && !message.includes(listingUrl) ? `${message}\n\n${listingUrl}` : message,
       };
       if (fileToShare) {
         shareData.files = [fileToShare];
-      } else {
+      } else if (!holidayLink) {
         shareData.url = listingUrl;
       }
       await navigator.share(shareData);
