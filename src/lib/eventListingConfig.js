@@ -74,8 +74,8 @@ export const EVENT_CATEGORY_GROUPS = [
   { label: "Sports & Recreation", categories: [
     "5K / Run", "Golf Event", "Sports", "Sports Tournament",
   ] },
-].map(({label,categories})=>({
-  label, categories:[...categories].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}))
+].map(({label,categories,seasonal=false})=>({
+  label, seasonal, categories:[...categories].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}))
 })).sort((a,b)=>a.label.localeCompare(b.label,undefined,{sensitivity:"base"}));
 
 // These describe aid or community service, not entertainment or promotional amenities.
