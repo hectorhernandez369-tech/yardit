@@ -13,11 +13,9 @@ function rememberCurrentDraft(id) {
   window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
 }
 
-const STARTERS=[
-  'I want to post a Christmas display.',
-  'Help me create a community event.',
-  'I want to list a yard sale.',
-];
+// Show a normal, conversational IDEA rather than a form-like list of fields.
+// The example is editable and is never sent or published until the user taps Send.
+const EXAMPLE_IDEA = "I want to post a Christmas light show in Porterville. I have a flyer—can you help me create the listing and ask me what's missing?";
 
 // One continuous chatbot on Step One. The first message is processed
 // automatically without switching pages or asking to start again.
@@ -144,18 +142,19 @@ export default function AIListingEntry({onActiveChange}) {
           <p className="mt-1">Tell me what you'd like to post, or attach a flyer. I'll help with the details and ask a few questions along the way.</p>
         </div>
       </div>
-      <div className="mt-5 flex flex-wrap gap-2 pl-9">
-        {STARTERS.map(prompt=><button key={prompt} type="button" disabled={busy}
-          onClick={()=>{setMessage(prompt);activate();}}
-          className="rounded-full border border-teal-200 bg-white px-3 py-2 text-left text-xs font-medium text-[#11645a] hover:bg-teal-50 disabled:opacity-50">
-          {prompt}
-        </button>)}
+      <div className="mt-4 pl-9">
+        <p className="mb-1.5 text-xs font-semibold text-slate-600">Example of what you can type:</p>
+        <button type="button" disabled={busy} onClick={()=>{setMessage(EXAMPLE_IDEA);activate();}}
+          className="w-full rounded-xl border border-teal-200 bg-white p-3 text-left text-sm text-slate-700 shadow-sm hover:border-teal-400 hover:bg-teal-50 disabled:opacity-50">
+          “{EXAMPLE_IDEA}”
+          <span className="mt-2 block text-xs font-semibold text-[#11645a]">Tap to use this example (you can edit it)</span>
+        </button>
       </div>
     </div>}
     {!showHistory&&<AIListingChatComposer value={message} onChange={value=>{setMessage(value);if(value)activate();}}
       file={file} preview={preview} onFileSelected={next=>{setFile(next);activate();}}
       onRemoveFile={()=>setFile(null)} onSend={start} busy={busy}
-      placeholder="Describe your listing…" sendLabel="Send to Ask Yardit"/>}
+      placeholder="Describe your listing idea…" sendLabel="Send to Ask Yardit"/>}
     {error&&<p role="alert" className="border-t border-red-200 bg-red-50 px-4 py-2 text-xs text-red-800">{error}</p>}
   </section>;
 }
