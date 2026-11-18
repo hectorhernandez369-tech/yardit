@@ -80,6 +80,16 @@ export const EVENT_CATEGORY_GROUPS = [
 
 // These describe aid or community service, not entertainment or promotional amenities.
 // Keep category values stable; seasonal tags don't change event prices or schedule rules.
+export const COMMUNITY_CARE_ICON_ASSETS = Object.freeze({
+  "Warming Center": "/assets/community-care/warming-center.svg",
+  "Toy Donation Drop-Off": "/assets/community-care/toy-donation.svg",
+  "Free Community Meals": "/assets/community-care/community-meals.svg",
+});
+
+export function getCommunityCareIconUrl(category) {
+  return COMMUNITY_CARE_ICON_ASSETS[category] || null;
+}
+
 export const SEASONAL_COMMUNITY_CARE_CATEGORIES = Object.freeze({
   "Free Community Meals": {
     label: "Free Community Meals",

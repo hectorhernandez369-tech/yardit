@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EVENT_CATEGORY_GROUPS, SEASONAL_COMMUNITY_CARE_CATEGORIES, getDefaultEventIconForCategory, getEventIconEmoji } from "@/lib/eventListingConfig";
+import { EVENT_CATEGORY_GROUPS, SEASONAL_COMMUNITY_CARE_CATEGORIES, getDefaultEventIconForCategory, getEventIconEmoji, getCommunityCareIconUrl } from "@/lib/eventListingConfig";
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 import ChristmasListingChoice from "@/components/create/ChristmasListingChoice";
@@ -89,11 +89,14 @@ export default function EventDetailsStep({
                 </SelectLabel>
                 {group.categories.map(category => {
                   const iconKey = getDefaultEventIconForCategory(category);
+                  const careIcon = getCommunityCareIconUrl(category);
                   return (
                     <SelectItem key={category} value={category}>
                       <div className="flex items-center gap-2">
                         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F3E6CF] text-lg shadow-sm">
-                          {getEventIconEmoji(iconKey)}
+                          {careIcon
+                            ? <img src={careIcon} alt="" aria-hidden="true" className="h-7 w-7 shrink-0 object-contain" onError={e => { e.currentTarget.style.display = "none"; }} />
+                            : getEventIconEmoji(iconKey)}
                         </span>
                         <span>{category.replace(/_/g, " ")}</span>
                       </div>

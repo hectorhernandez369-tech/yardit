@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="Warming center">
+<defs><linearGradient id="g" x2="0" y2="1"><stop stop-color="#237d93"/><stop offset="1" stop-color="#11445e"/></linearGradient></defs>
+<circle cx="40" cy="40" r="37" fill="url(#g)" stroke="#d4f7ff" stroke-width="3"/>
+<path d="M15 38 40 20 65 38" fill="none" stroke="#f9f8ed" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M21 36v25h38V36" fill="#fff9e9" stroke="#0c435c" stroke-width="2.5"/>
+<rect x="35" y="42" width="11" height="19" rx="2" fill="#11445e"/>
+<path d="M28 20q-5-6 0-11M40 18q-5-7 0-12M52 20q-5-6 0-11" stroke="#ffd36f" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+<circle cx="40.5" cy="52" r="1" fill="#ffd36f"/>
+</svg>

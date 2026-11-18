@@ -1,5 +1,5 @@
 import L from "leaflet";
-import { getEventIconEmoji, getBasicEventIconSvg } from "@/lib/eventListingConfig";
+import { getEventIconEmoji, getBasicEventIconSvg, getCommunityCareIconUrl } from "@/lib/eventListingConfig";
 import { MARQUEE_BOARD_WIDTH, MARQUEE_BOARD_COLLAPSED_WIDTH } from "@/components/map/MarqueeBoard.jsx";
 
 const MARQUEE_ANCHOR_Y = 0;
@@ -78,6 +78,14 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
     const size = isSelected ? 34 : 30;
     const html = `<img src="${image}" alt="Event" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:4px;opacity:${opacity};filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));" />`;
     return makeDivIcon(`event_custom_icon_${image}_${isSelected}_${opacity}_${markerAnimation}`, wrapAnimation(html), size, size, size / 2, size / 2);
+  }
+
+  // Purpose-built community care artwork for standard pins; preserve uploaded icons and marquees.
+  const communityCareIcon = getCommunityCareIconUrl(listing?.event_category || listing?.category);
+  if (communityCareIcon && !image && tier !== "marquee") {
+    const size = isSelected ? 40 : 36;
+    const html = `<img src="${communityCareIcon}" alt="" style="width:${size}px;height:${size}px;object-fit:contain;opacity:${opacity};filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));"/>`;
+    return makeDivIcon(`community_care_${communityCareIcon}_${isSelected}_${opacity}_${markerAnimation}`, wrapAnimation(html), size, size, size/2, size/2);
   }
 
   if (tier === "marquee") {

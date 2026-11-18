@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="Free community meals">
+<circle cx="40" cy="40" r="37" fill="#247656" stroke="#e3ffe7" stroke-width="3"/>
+<path d="M29 28q-5-6 0-12M40 25q-5-6 0-12M51 28q-5-6 0-12" stroke="#f9d77f" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+<path d="M15 37h50c-1 17-9 24-25 24S16 54 15 37Z" fill="#fff5de" stroke="#114934" stroke-width="2.6"/>
+<path d="M20 45h40" stroke="#e6ae5a" stroke-width="3" stroke-linecap="round"/>
+<path d="M24 60h32" stroke="#ffd47e" stroke-width="4" stroke-linecap="round"/>
+<path d="M10 34v24M7 34v9M13 34v9M67 34v24M64 34q3-6 6 0v13h-6" stroke="#fff3d5" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>
