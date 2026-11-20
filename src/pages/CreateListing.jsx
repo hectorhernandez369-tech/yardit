@@ -28,6 +28,7 @@ import ListingCreationActions from "@/components/create/ListingCreationActions";
 import DeveloperListingControls from "@/components/developer/DeveloperListingControls";
 import buildDeveloperListingPayload from "@/components/developer/buildDeveloperListingPayload";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
+import AssistedOwnerPermission from '@/components/create/AssistedOwnerPermission';
 import AssistedListingQRPanel from "@/components/admin/assisted/AssistedListingQRPanel";
 import {
   getNeighborhoodCreationLeadTimeError,
@@ -1616,7 +1617,7 @@ export default function CreateListingPage() {
   };
   const submitAssistedPost = async () => {
     if (!canUseAssistedPost || !isAssistedPost) return false;
-    if (formData.listingType !== "halloween_spot" && !assistedPermissionConfirmed) {
+    if (formData.listingType !== "halloween_spot" && !formData.bypass_owner_approval && !assistedPermissionConfirmed) {
       toast.error("Confirm that the homeowner gave permission for this assisted post.");
       return true;
     }
@@ -1713,7 +1714,7 @@ export default function CreateListingPage() {
           timeZoneId: formData.timeZoneId || "America/Los_Angeles",
           title: formData.event_name || formData.title, description: formData.event_description || formData.description || "",
           photoUrls: formData.event_photos || formData.photoUrls || [],
-          startDateTime, endDateTime, sellerPermissionConfirmed: true,
+          startDateTime, endDateTime, sellerPermissionConfirmed: assistedPermissionConfirmed, bypassOwnerApproval: formData.bypass_owner_approval === true,
           appBaseUrl: window.location.origin,
         });
         await finishAssistedPost({ ...response.data, kind: "event", saleAddress: response.data.saleFormattedAddress, title: formData.event_name || formData.title }, "Assisted Event created!");
@@ -1746,7 +1747,7 @@ export default function CreateListingPage() {
           saleFormattedAddress: [formData.addressText, formData.city, getStateAbbreviation(formData.state || ""), formData.zip].filter(Boolean).join(", "),
           timeZoneId: tz, title: formData.title, description: formData.description || "", photoUrls: formData.photoUrls || [],
           startDateTime, endDateTime, selectedRangeStartDate: startDate, selectedRangeEndDate: endDate,
-          sellerPermissionConfirmed: true, appBaseUrl: window.location.origin,
+          sellerPermissionConfirmed: assistedPermissionConfirmed, bypassOwnerApproval: formData.bypass_owner_approval === true, appBaseUrl: window.location.origin,
         });
         await finishAssistedPost({ ...response.data, kind: "yard_sale", saleAddress: response.data.saleFormattedAddress, title: formData.title }, "Assisted Yard Sale created!");
         return true;
@@ -2322,17 +2323,7 @@ export default function CreateListingPage() {
                 </span>
               </label>
             )}
-            {isAssistedPost && formData.listingType !== "halloween_spot" && (
-              <label className="mt-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={assistedPermissionConfirmed}
-                  onChange={(e) => setAssistedPermissionConfirmed(e.target.checked)}
-                  className="mt-1 h-4 w-4"
-                />
-                <span className="text-xs text-slate-700"><strong>Owner permission confirmed.</strong> The homeowner gave permission for Yardit to create this post for their property.</span>
-              </label>
-            )}
+            {isAssistedPost && ['yard_sale','event'].includes(formData.listingType) && <AssistedOwnerPermission bypass={formData.bypass_owner_approval === true} setBypass={value => setFormData(prev => ({...prev, bypass_owner_approval:value}))} confirmed={assistedPermissionConfirmed} setConfirmed={setAssistedPermissionConfirmed} />}
           </div>
         )}
         {!(aiChatActive && step===1) && formData.listingType === "yard_sale" && (

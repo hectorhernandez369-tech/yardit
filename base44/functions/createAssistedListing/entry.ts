@@ -118,7 +118,8 @@ Deno.serve(async (req) => {
 
     const isMapPin = location_source === 'map_pin';
 
-    if (!sellerPermissionConfirmed) {
+    const bypass = payload.bypassOwnerApproval === true && ['yard_sale', 'event'].includes(rawListingType);
+    if (!bypass && !sellerPermissionConfirmed) {
       return Response.json({ error: 'Seller permission confirmation is required' }, { status: 400 });
     }
     // For map pin mode, we only need lat/lng. For search mode, full address is required.
@@ -222,7 +223,7 @@ Deno.serve(async (req) => {
       assisted = await base44.asServiceRole.entities.AssistedListing.create({
         listing_id: listing.id,
         listing_number: listingNumber,
-        assisted_status: 'pending_seller_approval',
+        assisted_status: bypass ? 'assisted_active_unclaimed' : 'pending_seller_approval',
         assisted_qr_token: token,
         approval_url: approvalUrl,
         qr_image_url: qrImageUrl,
@@ -230,7 +231,7 @@ Deno.serve(async (req) => {
         assisted_qr_expires_at: expiresAt.toISOString(),
         admin_creator_id: user.id,
         admin_creator_email: user.email,
-        seller_permission_confirmed: true,
+        seller_permission_confirmed: !bypass && sellerPermissionConfirmed === true,
         seller_name: sellerName,
         seller_phone: sellerPhone,
         seller_email: sellerEmail,
@@ -255,6 +256,7 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Listing.update(listing.id, {
       assisted_listing_id: assisted.id,
+      ...(bypass ? { assisted_status: 'assisted_active_unclaimed', status: 'active' } : {}),
       assisted_qr_token: token,
       assisted_approval_url: approvalUrl,
       assisted_qr_image_url: qrImageUrl,
@@ -276,7 +278,7 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.AdminAuditLog.create({
       user_id: user.id,
       admin_employee_id: adminProfile?.employee_id || user.email || user.id,
-      action_type: 'admin_created_assisted_listing',
+      action_type: bypass ? 'admin_bypassed_assisted_owner_approval' : 'admin_created_assisted_listing',
       target_type: 'AssistedListing',
       target_id: assisted.id,
       success: true,

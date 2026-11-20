@@ -1,0 +1,4 @@
+import React from 'react';
+export default function AssistedOwnerPermission({ bypass, setBypass, confirmed, setConfirmed }) {
+ return <div className="mt-3 space-y-3 rounded-xl border border-amber-200 bg-white p-3 text-xs"><label className="flex items-center gap-3"><input type="checkbox" checked={bypass} onChange={e=>setBypass(e.target.checked)} />Skip owner permission and QR approval. Publish unclaimed.</label>{!bypass && <label className="flex items-center gap-3"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)} />Owner permission confirmed.</label>}</div>;
+}
