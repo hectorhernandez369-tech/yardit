@@ -2259,7 +2259,7 @@ export default function CreateListingPage() {
           busy={createListingMutation.isPending || isStartingPayment}
         />}
         {!(step===1 && aiChatActive)&&<ListingStepNavigation step={step} totalSteps={totalSteps} stepLabels={stepLabels} />}
-        {!(aiChatActive && step===1) && canUseAssistedPost && (
+        {!(aiChatActive && step===1) && (canUseAssistedPost || (!formData.listingType && quickAssistAdminProfile && !isAdminCreate)) && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
