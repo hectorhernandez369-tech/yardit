@@ -78,7 +78,7 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
     const isCheerCompetition = listing?.listingNumber === "CA3291-AVYFC";
     const size = isCheerCompetition ? (isSelected ? 108 : 96) : (isSelected ? 34 : 30);
     const html = `<img src="${image}" alt="Event" style="width:${size}px;height:${size}px;object-fit:${isCheerCompetition ? "contain" : "cover"};border-radius:${isCheerCompetition ? "0" : "4px"};opacity:${opacity};filter:drop-shadow(0 2px ${isCheerCompetition ? "10px" : "4px"} rgba(0,0,0,0.45));" />`;
-    return makeDivIcon(`event_custom_icon_${image}_${isSelected}_${opacity}_${markerAnimation}_${size}`, wrapAnimation(html), size, size, size / 2, size / 2);
+    return makeDivIcon(`event_custom_icon_${image}_${isSelected}_${opacity}_${markerAnimation}_${size}`, wrapAnimation(html), size, size, size / 2, size / 2, isCheerCompetition ? [0, -size / 2 + 4] : undefined);
   }
 
   // Purpose-built community care artwork for standard pins; preserve uploaded icons and marquees.
