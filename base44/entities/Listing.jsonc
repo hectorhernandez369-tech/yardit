@@ -678,6 +678,39 @@
         "image",
         "pdf"
       ]
+    },
+    "event_animation": {
+      "type": "string",
+      "enum": [
+        "pulse",
+        "bounce",
+        ""
+      ],
+      "description": "Map pin animation for residential events"
+    },
+    "event_add_ons": {
+      "type": "object",
+      "properties": {
+        "custom_icon": {
+          "type": "boolean"
+        },
+        "animation": {
+          "type": "boolean"
+        },
+        "premium_visibility": {
+          "type": "boolean"
+        },
+        "marquee": {
+          "type": "boolean"
+        },
+        "flyer_upload": {
+          "type": "boolean"
+        },
+        "photo_gallery": {
+          "type": "boolean"
+        }
+      },
+      "description": "Selected event upgrades"
     }
   },
   "required": [
