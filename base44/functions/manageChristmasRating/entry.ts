@@ -75,7 +75,7 @@ Deno.serve(async req => {
       String(r.user_email || '').trim().toLowerCase() === myEmail);
     if (action === 'read') {
       const chosen = mine.sort((a: any, b: any) => String(b.updated_date || b.created_date || '').localeCompare(String(a.updated_date || a.created_date || '')))[0];
-      return Response.json({ok: true, my_rating: chosen ? scoreValue(chosen.rating_value) : null,
+      return Response.json({ok: true, ratings_enabled: true, my_rating: chosen ? scoreValue(chosen.rating_value) : null,
         average_rating: Number(location.average_rating || 0), ratings_count: Number(location.ratings_count || 0)});
     }
     if (action !== 'rate') return fail('Unknown rating action.');
