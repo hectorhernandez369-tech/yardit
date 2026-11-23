@@ -50,6 +50,8 @@ export default function useHolidayLightEditor(id) {
   return response.data.location;
  },onSuccess:async spot=>{
   await client.invalidateQueries({queryKey:['holidayLights']});
+  await client.invalidateQueries({queryKey:['holidayLeaderboardLocations']});
+  await client.invalidateQueries({queryKey:['christmasVote',spot.id]});
   navigate('/HolidayLightsDetail?id='+spot.id,{replace:true});
  }});
  return {user,form,setForm,record,save};
