@@ -2460,7 +2460,7 @@ export default function CreateListingPage() {
               step={step} setStep={setStep} paymentStepNumber={paymentStepNumber} entryStepNumber={entryStepNumber}
               isAdminCreate={isAdminCreate} isAssistedPost={isAssistedPost} isDeveloperMode={isDeveloperMode}
               listingType={formData.listingType} tier={formData.tier} regularAddressIncomplete={regularAddressIncomplete}
-              preSpreeSelected={isPreSpreeSelected(formData)}
+              preSpreeSelected={canPublishPreSpree(formData)}
               userHasVerifiedPrimaryAddress={userHasVerifiedPrimaryAddress} isStartingPayment={isStartingPayment}
               isCreating={createListingMutation.isPending} selectedUserForAdmin={selectedUserForAdmin}
               onNext={handleNext} onSubmit={() => handleSubmit({ userInitiated: true })} onAdminCreate={() => executeSubmit("admin_create")}
