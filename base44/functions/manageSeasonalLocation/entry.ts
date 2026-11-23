@@ -211,6 +211,9 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Holiday lights location not found.' }, { status: 404 });
       }
 
+      if (location.ratings_enabled !== true) {
+        return Response.json({ error: 'Ratings are turned off for this display.' }, { status: 403 });
+      }
       const ratings = await base44.asServiceRole.entities.LightRating.filter({
         listing_id: locationId,
         season_year: seasonYear,
