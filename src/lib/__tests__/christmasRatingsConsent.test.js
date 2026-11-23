@@ -115,3 +115,56 @@ test('legacy recalculation endpoint cannot expose scores while ratings are off',
  const r=await call({action:'recalculate_holiday_rating',location_id:ID,season_year:2026});
  assert.equal(r.status,403);assert.equal(client.writes.length,0);
 });
+test('Ask Yardit passes only the explicit final review choice to Christmas publication',async t=>{
+ clock(t);
+ for(const enabled of [undefined,false,true]){
+ const user={...owner,email:'hectorhernandez369@gmail.com'};
+ const client=clientFor(null,user);
+ const draft={id:'draft1',owner_user_id:user.id,revision:0,state:'reviewed',details_confirmed:true,location_confirmed:true,
+ location:{street:'1 Test St',city:'Visalia',state:'CA',zip:'93291',lat:36.3,lng:-119.3,timeZoneId:'America/Los_Angeles'},
+ facts:{listingType:'holiday_lights',title:'Lights',description:'Our Christmas display',christmasType:'christmas_lights',startDate:'2026-11-23',endDate:'2027-01-02',startTime:'17:00',endTime:'22:00',postingFor:'self',ratings_enabled:true},warnings:[]};
+ client.asServiceRole.entities.AIListingDraft={filter:async()=>[draft],updateMany:async()=>({updated:1})};
+ let submitted;
+ client.functions={invoke:async(name,data)=>{assert.equal(name,'manageChristmasListing');submitted=data.payload;return {data:{location:{id:ID}}};}};
+ const call=await endpoint('base44/functions/completeAIListing/entry.ts',client);
+ const r=await call({action:'submit',id:draft.id,revision:0,ratings_enabled:enabled});
+ assert.equal(r.status,200);assert.equal(submitted.ratings_enabled,enabled===true);
+ }
+});
+test('create and edit screens render the visible ratings switch before their save button',async()=>{
+ const {createRequire}=await import('node:module');
+ const require=createRequire(import.meta.url),React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
+ const oldWindow=globalThis.window;
+ globalThis.window={self:null,top:null,location:{search:''}};
+ try {
+ const result=await build({entryPoints:['src/pages/CreateHolidayLights.jsx'],bundle:true,write:false,format:'cjs',platform:'node',mainFields:['module','main'],external:['react','react-dom','react/jsx-runtime'],alias:{'@':process.cwd()+'/src'},plugins:[{name:'ui-isolation',setup(b){
+ b.onResolve({filter:/.*/},a=>{
+ if(a.path.includes('useHolidayLightEditor'))return {path:'editor',namespace:'ui'};
+ if(a.path.includes('trustActions'))return {path:'trust',namespace:'ui'};
+ if(a.path.includes('base44Client'))return {path:'api',namespace:'ui'};
+ if(a.path==='react-router-dom')return {path:'router',namespace:'ui'};
+ if(['HolidayLightsFields','HolidayLightsLocation','HolidayLightsNotFound','HolidayLightsHeader','AdminAssistedChristmasForm'].some(n=>a.path.includes(n)))return {path:'child',namespace:'ui'};
+ });
+ b.onLoad({filter:/.*/,namespace:'ui'},a=>({contents:{
+ editor:'export default ()=>globalThis.__ratingsEditor;',
+ trust:'export const hasVerifiedPrimaryAddress=()=>true;',
+ api:'export const base44={};',
+ router:"import React from 'react';export const Link=({children,to,...p})=>React.createElement('a',{...p,href:to},children);",
+ child:'export default ()=>null;'
+ }[a.path]}));
+ }}]});
+ const module={exports:{}};new Function('require','module','exports',result.outputFiles[0].text)(require,module,module.exports);
+ for(const [editing,enabled] of [[false,false],[true,true],[true,false]]){
+ globalThis.window.location.search=editing?'?id='+ID:'';
+ globalThis.__ratingsEditor={user:owner,form:{ratings_enabled:enabled},setForm:()=>{},record:{data:display},save:{mutate:()=>{},isPending:false}};
+ const html=renderToStaticMarkup(React.createElement(module.exports.default));
+ assert.ok(html.includes('Let visitors rate my display'));
+ assert.ok(html.includes('role="switch"'));
+ assert.ok(html.includes('aria-checked="'+enabled+'"'));
+ assert.ok(html.includes('Ratings '+(enabled?'ON':'OFF')));
+ const submit=editing?'Save display':'Publish Holiday Lights';
+ assert.ok(html.indexOf('Let visitors rate my display')<html.indexOf(submit));
+ assert.ok(html.includes('turning them back on restores them'));
+ }
+ }finally{globalThis.window=oldWindow;delete globalThis.__ratingsEditor;}
+});
