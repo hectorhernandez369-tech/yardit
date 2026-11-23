@@ -110,7 +110,7 @@ Deno.serve(async req => {
       average_rating: average, ratings_count: count, holiday_score: sum,
       christmas_points: points, five_star_votes: fiveStarVotes,
     });
-    return Response.json({ok: true, my_rating: rating, average_rating: average, ratings_count: count,
+    return Response.json({ok: true, ratings_enabled: true, my_rating: rating, average_rating: average, ratings_count: count,
       christmas_points: points, five_star_votes: fiveStarVotes});
   } catch (e) {
     console.error('manageChristmasRating', e);
