@@ -88,7 +88,7 @@ Deno.serve(async req=>{
      viewing_start_time:raw.viewing_start_time,viewing_end_time:raw.viewing_end_time,
      christmas_spot_type:raw.christmas_spot_type,
      christmas_tags:Array.isArray(raw.christmas_tags)?raw.christmas_tags:[],
-     photos:raw.photos,display_active:true,
+     photos:raw.photos,display_active:true,ratings_enabled:false,
      christmas_featured_badge:'none',
      owner_user_id:user.id, // temporary technical owner until homeowner claims
    };
