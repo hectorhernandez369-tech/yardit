@@ -357,6 +357,11 @@
       ],
       "default": "none"
     },
+    "ratings_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Homeowner explicitly opted in to public Christmas display ratings and leaderboard participation"
+    },
     "average_rating": {
       "type": "number",
       "default": 0,
