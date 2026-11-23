@@ -85,8 +85,19 @@ export default function StepThree({
 }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
-  const preSpreeSelected = isPreSpreeSelected(formData);
-  const showPreSpree = allowPreSpree && !isDeveloperMode && formData.listingType === "yard_sale" && (isPreSpreeOfferOpen(new Date(), formData.timeZoneId) || preSpreeSelected);
+  const preSpreeOpen = isPreSpreeOfferOpen(new Date(), formData.timeZoneId);
+  const preSpreeSelected = preSpreeOpen && isPreSpreeSelected(formData);
+  const showPreSpree = allowPreSpree && !isDeveloperMode && formData.listingType === "yard_sale" && preSpreeOpen;
+  useEffect(() => {
+    if (!preSpreeOpen && isPreSpreeSelected(formData)) {
+      setFormData((current) => isPreSpreeSelected(current) ? {
+        ...selectStandardTier(current, "featured"),
+        selectedRangeStartDate: "",
+        selectedRangeEndDate: "",
+      } : current);
+      toast.info("Pre-Spree has ended. Choose new dates and a regular listing tier to continue.");
+    }
+  }, [preSpreeOpen, formData.listing_offer, formData.listingType, formData.tier, setFormData]);
   const selectedTier = preSpreeSelected ? "pre_spree" : tier;
   useEffect(() => {
     if (preSpreeSelected && !hasFixedPreSpreeDates(formData)) {
