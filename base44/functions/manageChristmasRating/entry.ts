@@ -63,6 +63,10 @@ Deno.serve(async req => {
     const rows = await base44.asServiceRole.entities.Location.filter({id: locationId, type: 'holiday_lights'});
     const location = rows?.[0];
     if (!location) return fail('Christmas display not found.', 404);
+    if (location.ratings_enabled !== true) {
+      if (action === 'read') return Response.json({ok: true, ratings_enabled: false, my_rating: null});
+      return fail('The homeowner has turned ratings off for this display.', 403);
+    }
     const service = base44.asServiceRole.entities.LightRating;
     const existing = await service.filter({listing_id: locationId, season_year: year});
     const myEmail = String(user.email).trim().toLowerCase();
