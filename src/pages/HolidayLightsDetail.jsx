@@ -14,7 +14,7 @@ export default function HolidayLightsDetail() {
   const { user } = useAuth();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(timer); }, []);
-  const query = useQuery({ queryKey: ['holidayLights', 'detail', id, user?.id], enabled: !!id, 
+  const query = useQuery({ queryKey: ['holidayLights', 'detail', id, user?.id], enabled: !!id, refetchInterval: 30000, 
     queryFn: async () => (await base44.functions.invoke('getPublicMapData', { holidayLightId: id })).data.location || null,
   });
   if (id && query.isPending) return <p className="p-8 text-center">Loading holiday display…</p>;
