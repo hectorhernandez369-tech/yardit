@@ -158,6 +158,9 @@ Deno.serve(async req=>{
     if(privateFlyerType==='application/pdf')data.christmas_flyer_url=uploaded.file_url;
     else data.photos=[uploaded.file_url,...(data.photos||[])].slice(0,3);
   }
+  // Only this authenticated homeowner approval can opt an assisted display into ratings.
+  data.owner_user_id=user.id;
+  data.ratings_enabled=body.ratings_enabled===true;
   const loc=await base44.asServiceRole.entities.Location.create(data);
   await records.update(row.id,{status:'approved',approved_at:new Date().toISOString(),location_id:loc.id});
   return Response.json({ok:true,status:'approved',location_id:loc.id});
