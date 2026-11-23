@@ -2,6 +2,7 @@ import React, {useEffect,useRef,useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {CheckCircle2, Loader2, RotateCcw} from 'lucide-react';
 import AIListingChatComposer from './AIListingChatComposer';
+import {isPreSpreeOfferOpen} from '@/lib/preSpree';
 
 function suggestedAnswers(facts) {
   if(!facts?.listingType) return [
@@ -14,7 +15,8 @@ function suggestedAnswers(facts) {
   if(facts.listingType==='event'&&!facts.admission) return [['Free admission','admission','Free'],['Paid admission','admission','Paid — price to be confirmed']];
   if(facts.listingType==='yard_sale'&&!facts.tierPreference) return [
     ['Free','tierPreference','free'],['Featured','tierPreference','featured'],
-    ['Premium','tierPreference','premium'],['Pre-Spree','tierPreference','pre_spree']
+    ['Premium','tierPreference','premium'],
+    ...(isPreSpreeOfferOpen(new Date(), facts.timeZoneId) ? [['Pre-Spree','tierPreference','pre_spree']] : [])
   ];
   if(facts.listingType==='holiday_lights'&&!facts.christmasType) return [
     ['Christmas lights','christmasType','christmas_lights'],
