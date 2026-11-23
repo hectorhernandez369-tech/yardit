@@ -79,6 +79,7 @@ Deno.serve(async req => {
    start_date_time:dates[0].toISOString(),end_date_time:dates[1].toISOString(),
    expires_at:dates[1].toISOString(),display_active:submitted.display_active===true,
    photos:submitted.photos.slice(0,3),
+   ratings_enabled: typeof submitted.ratings_enabled === 'boolean' ? submitted.ratings_enabled : existing?.ratings_enabled === true,
    christmas_spot_type:submitted.christmas_spot_type,
    christmas_tags:Array.isArray(submitted.christmas_tags)?submitted.christmas_tags.filter(tag=>TAGS.has(tag)):[],
    christmas_host_name:String(submitted.christmas_host_name||'').slice(0,150),
