@@ -186,6 +186,7 @@ export default async function(req:Request) {
         end_date_time:endIso,latitude:loc.lat,longitude:loc.lng,
         street_address:loc.street,city:loc.city,state:loc.state,zip_code:loc.zip,
         address,photos:[],display_active:true,
+        ratings_enabled:facts.postingFor==='self' && body.ratings_enabled===true,
       };
       if(facts.postingFor==='self') {
         if(!verifiedHome(user,loc))throw new Error('Confirm your verified home address for a self-posted Christmas display.');
