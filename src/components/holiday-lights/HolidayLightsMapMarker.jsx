@@ -30,7 +30,7 @@ export default function HolidayLightsMapMarker({ spot, icon, now, onSelect, mark
     <Popup maxWidth={310} autoPan={false} className="yardit-christmas-popup yardit-halloween-popup">
       <div className="w-[280px] max-w-[calc(100vw-48px)] overflow-hidden rounded-2xl border border-holiday-gold/60 bg-[#123f30] text-holiday-snow shadow-xl">
         <HolidayLightsSummary spot={spot} now={now} compact embedded />
-        <div className="px-2 pb-2"><HolidayLightRating locationId={spot.id} displayActive={spot.display_active} compact /></div>
+        {spot.ratings_enabled===true && <div className="px-2 pb-2"><HolidayLightRating locationId={spot.id} displayActive={spot.display_active} ratingsEnabled={spot.ratings_enabled} compact /></div>}
         <HolidayLightsPopupActions spot={spot} />
       </div>
     </Popup>

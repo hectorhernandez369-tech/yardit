@@ -28,7 +28,7 @@ export default function HolidayLightsSummary({spot,now=new Date(),compact=false,
    {spot.christmas_featured_badge==='must_see' && <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-400 px-2 py-1 text-xs font-bold text-emerald-950"><Star className="h-3 w-3"/>Yardit Must See</div>}
    <div className="mt-3 inline-flex rounded-full border border-amber-300/30 bg-emerald-800/60 px-3 py-1 text-xs font-bold text-amber-100">{state}</div>
    {!compact && <FounderBadge userId={spot.owner_user_id}/>}
-   {!compact && <div className="mt-3"><HolidayLightRating locationId={spot.id} displayActive={spot.display_active}/></div>}
+   {!compact && spot.ratings_enabled===true && <div className="mt-3"><HolidayLightRating locationId={spot.id} displayActive={spot.display_active} ratingsEnabled={spot.ratings_enabled}/></div>}
    {spot.description && <p className={'mt-3 text-sm leading-relaxed text-holiday-snow '+(compact?'line-clamp-2':'whitespace-pre-wrap')}>{spot.description}</p>}
    {!compact && spot.photos?.length>0 && <div className="mt-4 grid gap-2 sm:grid-cols-3">{spot.photos.slice(0,3).map((url,i)=><img key={url} src={url} alt={title+' photo '+(i+1)} className="h-48 w-full rounded-xl border border-white/20 object-cover"/>)}</div>}
    <div className={'rounded-xl border border-white/10 bg-white/5 text-xs text-holiday-snow '+(compact?'mt-2 space-y-1 p-2':'mt-3 space-y-2 p-3')}>

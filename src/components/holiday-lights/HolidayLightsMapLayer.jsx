@@ -14,7 +14,7 @@ const ICON_CACHE=new Map();
 function getIcon(spot,on) {
  const type=CHRISTMAS_SPOT_TYPES.some(x=>x.value===spot.christmas_spot_type)?spot.christmas_spot_type:'christmas_decorations';
  const score=Number(spot.average_rating||0), votes=Number(spot.ratings_count||0);
- const label=votes>0&&score>0?score.toFixed(1):'';
+ const label=spot.ratings_enabled===true&&votes>0&&score>0?score.toFixed(1):'';
  const key=type+(on?'on':'off')+'-'+label;
  if (ICON_CACHE.has(key)) return ICON_CACHE.get(key);
  const size=on?54:45;
@@ -42,12 +42,14 @@ export default function HolidayLightsMapLayer({enabled=true,now,targetId=''}) {
  const query=useInfiniteQuery({queryKey:['holidayLights','map',bounds],enabled:season&&enabled&&!!bounds,initialPageParam:null,
   queryFn:async ({pageParam})=>(await base44.functions.invoke('getPublicMapData',{holidayLights:true,bounds,cursor:pageParam})).data,
   placeholderData:previous=>previous,
+  refetchInterval:30000,
   getNextPageParam:page=>page.has_more?page.next_cursor:undefined,
  });
  // Fetch the linked listing independently from the visible map bounds.
  const targetQuery=useQuery({
   queryKey:['holidayLights','map-focus',targetId],
   enabled:season&&enabled&&!!targetId,
+  refetchInterval:30000,
   queryFn:async()=>{
    const result=await base44.functions.invoke('getPublicMapData',{holidayLightId:targetId});
    return result?.data?.location||null;

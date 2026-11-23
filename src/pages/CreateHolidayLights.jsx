@@ -1,4 +1,5 @@
 import React from 'react';
+import DisplayRatingsSetting from '@/components/holiday-lights/DisplayRatingsSetting';
 import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import HolidayLightsHeader from '@/components/holiday-lights/HolidayLightsHeader';
@@ -26,6 +27,7 @@ export default function CreateHolidayLights() {
     <form className="space-y-6 rounded-2xl border bg-card p-5 text-card-foreground" onSubmit={e => { e.preventDefault(); save.mutate(); }}>
       <HolidayLightsFields form={form} setForm={setForm} />
       <HolidayLightsLocation form={form} />
+      <DisplayRatingsSetting enabled={form.ratings_enabled} disabled={save.isPending} onChange={value=>setForm(previous=>({...previous,ratings_enabled:value}))}/>
       {save.isError && <p role="alert" className="text-sm text-destructive">{save.error.message}</p>}
       <p className="text-xs text-muted-foreground">By posting, you confirm you own this display or have permission to list it.</p>
       <Button type="submit" className="w-full" disabled={save.isPending}>{save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{save.isPending ? 'Saving…' : id ? 'Save display' : 'Publish Holiday Lights'}</Button>

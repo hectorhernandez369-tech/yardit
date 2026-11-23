@@ -38,7 +38,7 @@ export default function LeaderboardPanel({ currentLocation }) {
         type: "holiday_lights",
         display_active: true,
       });
-      return locations.filter(l => (l.ratings_count || 0) >= 5);
+      return locations.filter(l => l.ratings_enabled === true && (l.ratings_count || 0) >= 5);
     },
     initialData: [],
   });

@@ -36,12 +36,12 @@ export default function LeaderboardPage(){
   const {data:locations=[],isLoading,isError}=useQuery({
     queryKey:['holidayLeaderboardLocations',seasonYear],
     queryFn:async()=>(await base44.functions.invoke('getPublicMapData',{holidayLeaderboard:true})).data.items || [],
-    enabled:inSeason
+    enabled:inSeason,refetchInterval:30000
   });
   const results=useMemo(()=>{
     if(searchedZip.length!==5 || (radius>0&&!zipQuery.data))return [];
     return locations
-      .filter(loc=>loc.type==='holiday_lights'&&loc.status==='active'&&loc.display_active===true&&Number(loc.ratings_count||0)>=MIN_RATINGS)
+      .filter(loc=>loc.ratings_enabled===true&&loc.type==='holiday_lights'&&loc.status==='active'&&loc.display_active===true&&Number(loc.ratings_count||0)>=MIN_RATINGS)
       .filter(loc=>type==='all'||loc.christmas_spot_type===type)
       .filter(loc=>{
         if(radius===0)return String(loc.zip_code||'').trim()===searchedZip;

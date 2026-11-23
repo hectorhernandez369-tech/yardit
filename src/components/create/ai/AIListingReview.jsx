@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import DisplayRatingsSetting from '@/components/holiday-lights/DisplayRatingsSetting';
 import {Link} from 'react-router-dom';
 import {Button} from '@/components/ui/button';
 import {checkoutPlatform} from '@/lib/checkoutPlatform';
@@ -14,6 +15,7 @@ function checkoutAmount(facts,flyer) {
 function label(cents) {return '$'+(cents/100).toFixed(2);}
 export default function AIListingReview({draft,busy,onAction,onComplete,onCheckSubmission,onBack}) {
   const [reviewed,setReviewed]=useState(false);
+  const [ratingsEnabled,setRatingsEnabled]=useState(false);
   const [permission,setPermission]=useState(false);
   const [refundAcknowledged,setRefundAcknowledged]=useState(false);
   const [redirectError,setRedirectError]=useState('');
@@ -59,6 +61,7 @@ export default function AIListingReview({draft,busy,onAction,onComplete,onCheckS
       homeowner_permission:isAssisted?permission:false,
       non_refund_acknowledged:needsPayment?refundAcknowledged:false,
       platform:checkoutPlatform(),
+      ratings_enabled:facts.listingType==='holiday_lights'&&!isAssisted&&ratingsEnabled,
     });
     if(!data)return;
     setResult(data);
@@ -110,6 +113,9 @@ export default function AIListingReview({draft,busy,onAction,onComplete,onCheckS
       {facts.listingType==='yard_sale'&&facts.tierPreference==='pre_spree'&&<p className="mt-1">Pre-Spree uses Yardit's official November 20–22, 2026 eligibility checks.</p>}
       {['neighborhood_sale','halloween_spot'].includes(facts.listingType)&&<p className="mt-2 font-semibold">This type requires its existing specialized setup; Ask Yardit will not publish it without those safeguards.</p>}
     </div>
+    {facts.listingType==='holiday_lights'&&(isAssisted
+      ? <p className="rounded-xl border bg-emerald-50 p-4 text-sm text-emerald-950">Ratings start off. The homeowner chooses whether to enable them on their approval screen.</p>
+      : <DisplayRatingsSetting enabled={ratingsEnabled} onChange={setRatingsEnabled} disabled={busy}/>)}
     {!draft.details_confirmed?<label className="flex items-start gap-2 text-sm">
       <input type="checkbox" checked={reviewed} onChange={e=>setReviewed(e.target.checked)} className="mt-1"/>
       I reviewed every detail and confirmed the map location.

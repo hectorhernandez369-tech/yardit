@@ -1,4 +1,5 @@
 import React,{useState} from 'react';
+import DisplayRatingsSetting from '@/components/holiday-lights/DisplayRatingsSetting';
 import {Link,useLocation} from 'react-router-dom';
 import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query';
 import {base44} from '@/api/base44Client';
@@ -13,6 +14,7 @@ export default function AssistedChristmasApproval(){
  const {user}=useAuth();
  const signIn=()=>base44.auth.redirectToLogin(window.location.href);
  const [result,setResult]=useState(null);
+ const [ratingsEnabled,setRatingsEnabled]=useState(false);
  const client=useQueryClient();
  const query=useQuery({
    queryKey:['assistedChristmasApproval',token],
@@ -20,7 +22,7 @@ export default function AssistedChristmasApproval(){
    queryFn:async()=> (await base44.functions.invoke('manageAssistedChristmas',{action:'read',token})).data
  });
  const mutation=useMutation({
-   mutationFn:async action=>(await base44.functions.invoke('manageAssistedChristmas',{action,token})).data,
+   mutationFn:async action=>(await base44.functions.invoke('manageAssistedChristmas',{action,token,...(action==='approve'?{ratings_enabled:ratingsEnabled}:{})})).data,
    onSuccess:data=>{setResult(data);client.invalidateQueries({queryKey:['assistedChristmasApproval',token]});toast.success(data.status==='declined'?'Display declined':data.status==='claimed'?'Display claimed':'Display approved');},
    onError:error=>toast.error(error?.response?.data?.error||error?.message||'Could not process this request.')
  });
@@ -42,6 +44,7 @@ export default function AssistedChristmasApproval(){
          ? <Button className="w-full bg-[#123f30] text-white" onClick={signIn}>Sign In to Review This Display</Button>
          : <>
            <p className="text-xs text-gray-600">Signed in as {user.email}. The listing's homeowner email must match this account.</p>
+           <DisplayRatingsSetting enabled={ratingsEnabled} onChange={setRatingsEnabled} disabled={mutation.isPending}/>
            <Button disabled={mutation.isPending} className="w-full bg-[#123f30] text-white" onClick={()=>mutation.mutate('approve')}>Approve My Christmas Display</Button>
            <Button disabled={mutation.isPending} variant="outline" className="w-full" onClick={()=>mutation.mutate('decline')}>Decline Listing</Button>
          </>}

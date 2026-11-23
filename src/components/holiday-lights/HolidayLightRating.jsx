@@ -23,25 +23,29 @@ function getFreshPosition() {
   });
 }
 
-export default function HolidayLightRating({locationId, displayActive=true, compact=false, onSaved=()=>{}}) {
+export default function HolidayLightRating({locationId, displayActive=true, ratingsEnabled=false, compact=false, onSaved=()=>{}}) {
   const { user, isAuthenticated } = useAuth();
   const [hover, setHover] = useState(0);
   const [locationMessage, setLocationMessage] = useState('');
   const client = useQueryClient();
   const ratingQuery = useQuery({
     queryKey: ['christmasVote', locationId, user?.id],
-    enabled: !!locationId && !!user?.id,
+    enabled: ratingsEnabled === true && !!locationId && !!user?.id,
+    refetchInterval: 30000,
     queryFn: async () => (await base44.functions.invoke('manageChristmasRating', {action:'read', location_id:locationId})).data,
     retry: false,
   });
   const mutation = useMutation({
     mutationFn: async (value = 0) => {
+      if (ratingsEnabled !== true || ratingQuery.data?.ratings_enabled === false) throw new Error('Ratings are turned off for this display.');
       const exempt = String(user?.email || '').trim().toLowerCase() === PREVIEW_EMAIL;
       setLocationMessage(exempt ? 'Saving rating…' : 'Checking your location…');
       const geo = exempt ? null : await getFreshPosition();
       setLocationMessage('Saving rating…');
-      return (await base44.functions.invoke('manageChristmasRating',
+      const data = (await base44.functions.invoke('manageChristmasRating',
         {action:'rate', location_id:locationId, rating:value, ...(geo ? {geo} : {})})).data;
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
     onSuccess: data => {
       client.setQueryData(['christmasVote', locationId, user?.id], data);
@@ -57,6 +61,7 @@ export default function HolidayLightRating({locationId, displayActive=true, comp
       toast.error(err?.response?.data?.error || err?.message || 'Could not save your rating.');
     },
   });
+  if (ratingsEnabled !== true || ratingQuery.data?.ratings_enabled === false) return null;
   const saved = Number(ratingQuery.data?.my_rating || 0);
   const selected = hover || saved;
   return <div className={'rounded-xl border border-amber-300/35 bg-[#123f30] text-white '+(compact?'px-2 py-2':'p-3')}>

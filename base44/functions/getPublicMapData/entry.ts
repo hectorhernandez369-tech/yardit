@@ -170,7 +170,15 @@ export default async function(req) {
     // Public Christmas launch: server filters live seasonal records; changes to
     // homeowners' displays remain protected by manageChristmasListing.
     if (body.holidayLights === true || body.holidayLeaderboard === true || Object.prototype.hasOwnProperty.call(body, 'holidayLightId')) {
-      const fields = ['id', 'owner_user_id', 'type', 'title', 'display_title', 'description', 'address', 'street_address', 'city', 'state', 'zip_code', 'latitude', 'longitude', 'start_date_time', 'end_date_time', 'viewing_start_time', 'viewing_end_time', 'display_active', 'status', 'photos', 'christmas_spot_type', 'christmas_tags', 'christmas_host_name', 'christmas_admission', 'christmas_parking_notes', 'christmas_activities', 'christmas_suggested_age', 'christmas_featured_badge', 'christmas_flyer_url', 'average_rating', 'ratings_count', 'holiday_score', 'christmas_points', 'five_star_votes'];
+      const fields = ['id', 'owner_user_id', 'type', 'title', 'display_title', 'description', 'address', 'street_address', 'city', 'state', 'zip_code', 'latitude', 'longitude', 'start_date_time', 'end_date_time', 'viewing_start_time', 'viewing_end_time', 'display_active', 'status', 'photos', 'christmas_spot_type', 'christmas_tags', 'christmas_host_name', 'christmas_admission', 'christmas_parking_notes', 'christmas_activities', 'christmas_suggested_age', 'christmas_featured_badge', 'christmas_flyer_url', 'ratings_enabled', 'average_rating', 'ratings_count', 'holiday_score', 'christmas_points', 'five_star_votes'];
+      const publicLight = (spot) => {
+        const result = pick(spot, fields);
+        result.ratings_enabled = spot.ratings_enabled === true;
+        if (!result.ratings_enabled) {
+          for (const field of ['average_rating','ratings_count','holiday_score','christmas_points','five_star_votes']) delete result[field];
+        }
+        return result;
+      };
       const isPublicLight = (spot) => {
         if (!spot || spot.status !== 'active' || !isValidCoordinate(spot.latitude) || !isValidCoordinate(spot.longitude) || !canSeeAdDemo(spot, currentUser)) return false;
         const md = localYmd(now, spot).slice(5);
@@ -180,7 +188,7 @@ export default async function(req) {
         if (typeof body.holidayLightId !== 'string' || !/^[a-f0-9]{24}$/i.test(body.holidayLightId)) return Response.json({ location: null });
         const [spot] = await base44.asServiceRole.entities.Location.filter({ id: body.holidayLightId, type: 'holiday_lights' }, '-created_date', 1);
         const isOwner = currentUser?.id && spot?.owner_user_id === currentUser.id;
-        return Response.json({ location: spot && (isPublicLight(spot) || isOwner || currentUser?.role === 'admin') ? pick(spot, fields) : null });
+        return Response.json({ location: spot && (isPublicLight(spot) || isOwner || currentUser?.role === 'admin') ? publicLight(spot) : null });
       }
       const query = { type: 'holiday_lights', status: 'active', $or: [{ end_date_time: { $gte: now.toISOString() } }, { end_date_time: { $exists: false } }] };
       const bounds = body.bounds;
@@ -194,11 +202,11 @@ export default async function(req) {
       if (body.holidayLeaderboard === true) {
         // Server-filtered public scores: never expose contact details or owner IDs.
         const leaderboardFields = ['id', 'display_title', 'title', 'zip_code', 'latitude', 'longitude',
-          'christmas_spot_type', 'average_rating', 'ratings_count', 'christmas_points', 'five_star_votes',
+          'christmas_spot_type', 'ratings_enabled', 'average_rating', 'ratings_count', 'christmas_points', 'five_star_votes',
           'status', 'display_active', 'type'];
-        return Response.json({items: visible.map(spot => pick(spot, leaderboardFields))});
+        return Response.json({items: visible.filter(spot => spot.ratings_enabled === true).map(spot => pick(spot, leaderboardFields))});
       }
-      return Response.json({ items: visible.map(spot => pick(spot, fields)), next_cursor: null, has_more: false });
+      return Response.json({ items: visible.map(publicLight), next_cursor: null, has_more: false });
     }
 
     // Resolve a stable public pin, never a historical check-in's coordinates.
