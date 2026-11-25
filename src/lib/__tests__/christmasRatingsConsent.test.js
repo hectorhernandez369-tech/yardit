@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
+import process from 'node:process';
 import {readFileSync} from 'node:fs';
 import {build} from 'esbuild';
 

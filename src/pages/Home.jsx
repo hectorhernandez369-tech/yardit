@@ -9,6 +9,7 @@ import YarditWelcomeOverlay from "@/components/home/YarditWelcomeOverlay";
 import { useAppMode } from "../components/shared/DemoMode";
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle, CircleMarker } from "react-leaflet";
+import MapboxGlBasemap from '@/components/map/MapboxGlBasemap';
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Card, CardContent } from "@/components/ui/card";
@@ -472,7 +473,7 @@ function listingMatchesQuery(listing, query, isFuzzy) {
   return values.some((value) => fuzzyMatchString(q, value));
 }
 
-export default function HomePage() {
+export default function HomePage({ mapboxPreview = false }) {
   useEffect(() => {
     document.title = "Yardit | Find Yard Sales & Community Events";
   }, []);
@@ -805,13 +806,12 @@ export default function HomePage() {
   const { isDemoMode: demoOn } = useAppMode();
   const isPublicHomeMode = !user?.id;
 
-  const { data: costProtectionSettings = [] } = useQuery({
+  const { data: costProtectionSettings = [], isFetched: costSettingsFetched, isError: costSettingsFailed } = useQuery({
     queryKey: ["homeCostProtectionSettings"],
     queryFn: async () => {
       const response = await base44.functions.invoke("getPublicAppSettings", {});
       return response?.data?.settings || [];
     },
-    initialData: [],
     staleTime: 30000,
     refetchOnWindowFocus: true,
   });
@@ -1639,11 +1639,10 @@ export default function HomePage() {
     <div className="yardit-home-shell h-[100dvh] sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
       {/* Sticky Top Bar */}
       <div className="relative bg-white border-b border-slate-200 z-[1200] flex-shrink-0 flex flex-col w-full">
-        {canUseMapboxTest && (
+        {(canUseMapboxTest || mapboxPreview) && (
           <div className="px-3 pt-2 pb-0 flex justify-center">
             <div className="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200">
-              <Button size="sm" className="h-7 px-4 bg-[#2C4F4E] hover:bg-[#2C4F4E] text-white">Main</Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/MapboxTest")} className="h-7 px-4 text-slate-600">Mapbox</Button>
+              {[['Main', '/', !mapboxPreview], ['Mapbox', '/MapboxTest', mapboxPreview]].map(([label, path, active]) => <Button key={label} size="sm" variant={active ? 'default' : 'ghost'} aria-pressed={active} onClick={() => !active && navigate(path + location.search)} className={active ? 'h-7 px-4 bg-[#2C4F4E] hover:bg-[#2C4F4E] text-white' : 'h-7 px-4 text-slate-600'}>{label}</Button>)}
             </div>
           </div>
         )}
@@ -1863,6 +1862,7 @@ export default function HomePage() {
             scrollWheelZoom={true}
             className="w-full h-full"
             style={{ width: "100%", height: "100%" }}
+            zoomAnimation={!mapboxPreview}
             zoomControl={false}>
             
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => {mapRef.current = map;}} />
@@ -1881,7 +1881,9 @@ export default function HomePage() {
               <HalloweenPopupViewport />
               {requestedVendorPinId && <VendorPinLinkFocus key={requestedVendorPinId} target={sharedVendorPin} markerRefs={vendorMarkerRefs} currentZoom={currentZoom} markerAvailable={liveVendorPins.some(({ checkIn }) => checkIn.id === sharedVendorPin?.checkIn.id)} />}
               <HuntMapLayers />
-              {!emergencyCostLock && mapboxCostEnabled && (
+              {mapboxPreview && !emergencyCostLock && mapboxCostEnabled && costSettingsFetched && !costSettingsFailed && <MapboxGlBasemap />}
+              {mapboxPreview && costSettingsFailed && <p role="alert" className="absolute top-12 left-2 z-[1100] rounded bg-card p-2">Map paused: cost protection settings could not be loaded.</p>}
+              {!mapboxPreview && !emergencyCostLock && mapboxCostEnabled && (
                 <TileLayer
                   attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA"
