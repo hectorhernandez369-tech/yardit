@@ -17,6 +17,7 @@ import { isPreSpreeOfferOpen } from "@/lib/preSpree";
 import { isPreSpreeSelected, selectPreSpreeOffer } from "@/lib/preSpreeSelection";
 import { buildPreSpreePinSvg } from "@/lib/preSpreePin";
 import { isHalloweenSeasonActive } from "@/lib/halloweenSpots";
+import { SEASONAL_COMMUNITY_CARE_CATEGORIES, getDefaultEventIconForCategory, getCommunityCareIconUrl } from "@/lib/eventListingConfig";
 import { useAuth } from "@/lib/AuthContext";
 import AIListingEntry from '@/components/create/ai/AIListingEntry';
 
@@ -125,6 +126,19 @@ export default function StepOne({ formData, setFormData, onAIActiveChange }) {
       neighborhood_join_status: "none",
     }));
   };
+  const chooseSeasonalCare = (category) => {
+    // Shortcuts select an existing event category. No new listing type or backend.
+    setFormData(prev => ({
+      ...prev, listingType: "event", tier: "event", event_tier: "event",
+      category, event_category: category,
+      event_icon: getDefaultEventIconForCategory(category),
+      event_name: category, title: category,
+      event_add_ons: prev.event_add_ons || {},
+      location_source: "pin",
+      addressText: "", address_text: "", display_address: "",
+      lat: null, lng: null, city: "", state: "", zip: "",
+    }));
+  };
   const descriptionLimit = getResidentialDescriptionLimit(listingType);
   const [expandedLocked, setExpandedLocked] = useState(null);
   const [aiActive,setAIActive] = useState(false);
@@ -191,6 +205,26 @@ export default function StepOne({ formData, setFormData, onAIActiveChange }) {
           <p className="mt-2 text-xs text-white/75">Selecting this promo sets your yard sale to November 20–22. Dates stay locked and payment is skipped when you publish. Normal Featured remains available for other weekends.</p>
         </section>
       )}
+
+      {/* Seasonal community care shortcuts reuse the existing Event creation flow. */}
+      {!formData.assisted_post && <section aria-label="Seasonal community care" className="rounded-2xl border-2 border-[#225b4e] bg-[#eff8f4] p-4 shadow-sm">
+        <div className="mb-3">
+          <h2 className="text-lg font-extrabold text-[#174a3a]">Seasonal</h2>
+          <p className="text-xs text-[#365e52]">Help your neighbors find local holiday and winter services. Choose a type, then tap its location on the map.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {[
+            {category: "Toy Donation Drop-Off", label: "Toy Donations"},
+            {category: "Free Community Meals", label: "Community Meals"},
+            {category: "Warming Center", label: "Warming Centers"},
+          ].map(item => <button type="button" key={item.category}
+            onClick={() => chooseSeasonalCare(item.category)}
+            className="flex min-h-20 items-center gap-3 rounded-xl border-2 border-[#b7d5c6] bg-white p-3 text-left shadow-sm transition hover:border-[#1c6654] hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1c6654] sm:flex-col sm:justify-center sm:text-center">
+            <img src={getCommunityCareIconUrl(item.category)} alt="" aria-hidden="true" className="h-12 w-12 shrink-0 object-contain" />
+            <span className="text-sm font-extrabold text-[#173d32]">{item.label}</span>
+          </button>)}
+        </div>
+      </section>}
 
       {/* Listing type selector */}
       <div>

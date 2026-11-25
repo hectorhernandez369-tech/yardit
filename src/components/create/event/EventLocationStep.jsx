@@ -10,6 +10,7 @@ import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 import { MapPin, Navigation, Loader2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import { buildResolvedListingLocation } from "@/lib/listingLocation";
+import { SEASONAL_COMMUNITY_CARE_CATEGORIES } from "@/lib/eventListingConfig";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -171,7 +172,9 @@ function EventMapModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) {
 }
 
 export default function EventLocationStep({ formData, setFormData }) {
-  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const isCommunityCare = !!SEASONAL_COMMUNITY_CARE_CATEGORIES[formData.event_category];
+  // For seasonal shortcuts, map pin placement is the primary location flow.
+  const [isMapModalOpen, setIsMapModalOpen] = useState(isCommunityCare && !(typeof formData.lat === "number" && typeof formData.lng === "number"));
   const [addressQuery, setAddressQuery] = useState(formData.address_text || formData.addressText || "");
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -303,8 +306,12 @@ export default function EventLocationStep({ formData, setFormData }) {
 
   return (
     <div className="space-y-6">
-      {/* Address search */}
-      <div className="space-y-2">
+      {isCommunityCare && <div className="rounded-xl border border-[#b7d5c6] bg-[#eff8f4] p-4 text-sm text-[#174a3a]">
+        <strong>Place the service on the map</strong>
+        <p className="mt-1 text-xs">Tap the location of the toy drop-off, meal service, or warming center, then confirm the pin. Home address verification is not required.</p>
+      </div>}
+      {/* Search remains available for ordinary events. */}
+      {!isCommunityCare && <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-700">Search for Event Address</label>
         <div className="relative">
           <Input
@@ -331,6 +338,7 @@ export default function EventLocationStep({ formData, setFormData }) {
           </div>
         )}
       </div>
+      }
 
       {/* Map picker button */}
       <Button
@@ -339,7 +347,7 @@ export default function EventLocationStep({ formData, setFormData }) {
         className="w-full py-6 text-base bg-[#006168] hover:bg-[#004d52] text-white flex gap-3 rounded-xl font-semibold shadow-sm"
       >
         <MapIcon className="w-5 h-5" />
-        Drop a pin on the map
+        {isCommunityCare ? "Place service pin on map" : "Drop a pin on the map"}
       </Button>
 
       {/* Confirmed location */}
