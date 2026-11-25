@@ -1,4 +1,4 @@
-export const AI_EMAILS = ['hectorhernandez369@gmail.com', 'luisamedellin7@gmail.com'];
+export const AI_EMAILS = ['luisamedellin7@gmail.com'];
 export const FACT_FIELDS = ['listingType','title','description','category','startDate','endDate','startTime','endTime','address','city','state','zip','postingFor','homeownerName','homeownerEmail','tierPreference','admission','christmasType'];
 export const LISTING_TYPES = ['yard_sale','neighborhood_sale','event','holiday_lights','halloween_spot'];
 export const fail = (error, status = 400) => Response.json({error}, {status});
