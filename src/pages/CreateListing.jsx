@@ -48,7 +48,7 @@ import {
   hasDateConflict,
   findConflictingReservedListingForAddress,
 } from "@/lib/residentialDateConflict";
-import { getResidentialEventPriceBreakdown } from "@/lib/eventListingConfig";
+import { getResidentialEventPriceBreakdown, SEASONAL_COMMUNITY_CARE_CATEGORIES } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
 import { normalizeResidentialEventSingleDay } from "@/lib/residentialEventSchedule";
 import { getResidentialDescriptionLimitError } from "@/lib/residentialDescriptionLimits";
@@ -1060,8 +1060,14 @@ export default function CreateListingPage() {
         return;
       }
       if (formData.listingType === "event") {
-        if (!isLocationReadyForSubmission(formData)) {
-          toast.error("Please choose a valid event location");
+        // Seasonal care uses the existing Event flow but requires a map pin,
+        // not the poster's home address or a geocoded street address.
+        const isCommunityCare = !!SEASONAL_COMMUNITY_CARE_CATEGORIES[formData.event_category];
+        const carePinReady = formData.location_source === "pin" &&
+          typeof formData.lat === "number" && Number.isFinite(formData.lat) &&
+          typeof formData.lng === "number" && Number.isFinite(formData.lng);
+        if (!(isCommunityCare ? carePinReady : isLocationReadyForSubmission(formData))) {
+          toast.error(isCommunityCare ? "Tap the map to confirm the service location." : "Please choose a valid event location");
           return;
         }
         setFormData((prev) => {

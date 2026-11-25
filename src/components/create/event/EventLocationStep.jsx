@@ -276,7 +276,7 @@ export default function EventLocationStep({ formData, setFormData }) {
       console.log("[LOCATION DEBUG] Map pin dropped at:", lat, lng);
       console.log("[LOCATION DEBUG] Reverse geocode FAILED");
       
-      const fallbackAddress = formData.display_address?.trim() ? formData.display_address : "";
+      const fallbackAddress = formData.display_address?.trim() ? formData.display_address : (isCommunityCare ? "Service location — see map pin" : "");
       
       console.log("[LOCATION DEBUG] location_source: pin");
       console.log("[LOCATION DEBUG] Final display_address:", fallbackAddress);
