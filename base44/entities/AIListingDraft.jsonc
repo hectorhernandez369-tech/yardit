@@ -93,11 +93,6 @@
           "$or": [
             {
               "user_condition": {
-                "email": "hectorhernandez369@gmail.com"
-              }
-            },
-            {
-              "user_condition": {
                 "email": "luisamedellin7@gmail.com"
               }
             }
