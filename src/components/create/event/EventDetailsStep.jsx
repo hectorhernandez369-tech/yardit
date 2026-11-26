@@ -74,6 +74,7 @@ export default function EventDetailsStep({
             event_category: value,
             category: value,
             event_icon: getDefaultEventIconForCategory(value),
+            ...(SEASONAL_COMMUNITY_CARE_CATEGORIES[value] ? { event_add_ons: {} } : {}),
           }))}
         >
           <SelectTrigger className="bg-white border-slate-200 rounded-xl h-11 text-sm">

@@ -133,7 +133,7 @@ export default function StepOne({ formData, setFormData, onAIActiveChange }) {
       category, event_category: category,
       event_icon: getDefaultEventIconForCategory(category),
       event_name: category, title: category,
-      event_add_ons: prev.event_add_ons || {},
+      event_add_ons: {},
       location_source: "pin",
       addressText: "", address_text: "", display_address: "",
       lat: null, lng: null, city: "", state: "", zip: "",
