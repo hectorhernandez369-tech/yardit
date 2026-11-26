@@ -13,6 +13,36 @@ const DESCRIPTION_LIMITS = {
 };
 
 const CONFLICT_MESSAGE = 'There’s already a yard sale planned at this address for those dates.';
+const SEASONAL_CARE_CATEGORIES = new Set(['Toy Donation Drop-Off', 'Free Community Meals', 'Warming Center']);
+const CARE_ICON = {
+  'Toy Donation Drop-Off': 'gift',
+  'Free Community Meals': 'food',
+  'Warming Center': 'heart',
+};
+function validateSeasonalCare(data, user) {
+  if (data.listingType !== 'event' || !SEASONAL_CARE_CATEGORIES.has(data.event_category)) {
+    return 'Only the three Community Care categories qualify for free publishing.';
+  }
+  if (data.ownerUserId && data.ownerUserId !== user.id) return 'Only your own free Community Care listings can be published.';
+  if (data.location_source !== 'pin' || typeof data.lat !== 'number' || typeof data.lng !== 'number' ||
+      !Number.isFinite(data.lat) || !Number.isFinite(data.lng) || Math.abs(data.lat) > 90 || Math.abs(data.lng) > 180) {
+    return 'Confirm a location by tapping the map before publishing.';
+  }
+  if (!String(data.event_name || data.title || '').trim()) return 'Add a listing name.';
+  const ymd = String(data.event_start_date || '').trim();
+  const start = String(data.event_start_time || '').trim();
+  const end = String(data.event_end_time || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(start) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(end) || start >= end) {
+    return 'Select one service day with valid start and end hours.';
+  }
+  const date = new Date(ymd + 'T12:00:00Z');
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0,10) !== ymd) return 'Choose a valid service date.';
+  if (ymd < new Date().toISOString().slice(0,10)) return 'The service date cannot be in the past.';
+  if (data.event_add_ons && Object.values(data.event_add_ons).some(Boolean)) return 'Community Care listings cannot include paid add-ons.';
+  return null;
+}
+
 const RESERVED_STATUSES = new Set(['active', 'under_review', 'pending_payment', 'scheduled', 'activated_locked', 'coming_soon', 'payment_pending', 'payment_pending_adjustment']);
 const EXCLUDED_STATUSES = new Set(['expired', 'completed', 'closed', 'cancelled', 'canceled', 'hidden', 'suspended', 'deleted', 'removed']);
 
@@ -185,6 +215,52 @@ export default async function(req) {
       return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
     }
     if (!demoAuthorization.canUseDemoMode) data = sanitizeDemoFields(data);
+
+    // Free Community Care is a server-validated, category-specific publishing path.
+    // Ordinary Event checkouts are never granted this entitlement.
+    if (action === 'seasonal_care_create') {
+      const error = validateSeasonalCare(data, user);
+      if (error) return Response.json({ error }, { status: 400 });
+      const clean = {
+        ownerUserId: user.id,
+        listingType: 'event',
+        tier: 'event',
+        event_tier: 'event',
+        category: data.event_category,
+        event_category: data.event_category,
+        event_name: String(data.event_name || data.title).trim().slice(0,120),
+        title: String(data.event_name || data.title).trim().slice(0,120),
+        event_description: String(data.event_description || data.description || '').slice(0,1000),
+        description: String(data.event_description || data.description || '').slice(0,1000),
+        event_icon: CARE_ICON[data.event_category],
+        lat: data.lat, lng: data.lng,
+        location_source: 'pin',
+        addressText: String(data.addressText || data.address_text || '').slice(0,250),
+        address_text: String(data.addressText || data.address_text || '').slice(0,250),
+        display_address: String(data.display_address || data.addressText || '').slice(0,250),
+        city: String(data.city || '').slice(0,100),
+        state: String(data.state || '').slice(0,50),
+        zip: String(data.zip || '').slice(0,12),
+        timeZoneId: String(data.timeZoneId || tzLookup(data.lat, data.lng)),
+        event_start_date: data.event_start_date,
+        event_end_date: data.event_start_date,
+        event_start_time: data.event_start_time,
+        event_end_time: data.event_end_time,
+        start_datetime: data.start_datetime,
+        end_datetime: data.end_datetime,
+        startDateTime: data.startDateTime,
+        endDateTime: data.endDateTime,
+        selectedRangeStartDate: data.event_start_date,
+        selectedRangeEndDate: data.event_start_date,
+        event_add_ons: {},
+        pricePaid: 0,
+        payment_status: 'free',
+        payment_intent_status: 'none',
+        status: 'active',
+      };
+      const listing = await base44.asServiceRole.entities.Listing.create(clean);
+      return Response.json({ ok: true, listing });
+    }
 
     // Campaign entitlement is assigned only by the validated server action.
     delete data.pre_spree_campaign;
