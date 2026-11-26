@@ -385,9 +385,10 @@ export default function CreateListingPage() {
   });
   // Neighborhood Sale discovery is shown during residential tier selection.
   const isEventFlow = formData.listingType === "event";
+  const isSeasonalCareFlow = isEventFlow && !!SEASONAL_COMMUNITY_CARE_CATEGORIES[formData.event_category];
   const isHalloweenFlow = formData.listingType === "halloween_spot";
   const paymentStepNumber = isEventFlow ? 5 : 4;
-  const entryStepNumber = isEventFlow ? 4 : 3;
+  const entryStepNumber = isSeasonalCareFlow ? 3 : isEventFlow ? 4 : 3;
   // Compute reserved dates for residential listings only (drives calendar blocking)
   const addressRef = user ? { lat: user.primary_latitude, lng: user.primary_longitude } : null;
   const reservedDates = React.useMemo(
@@ -740,6 +741,8 @@ export default function CreateListingPage() {
         const response = await base44.functions.invoke("saveResidentialListing", { action: "developer_create", data: listingData });
         return response.data.listing;
       }
+      const seasonalCareCreate = data.seasonal_care_requested === true;
+      delete data.seasonal_care_requested;
       const preSpreeCreate = data.pre_spree_requested === true;
       delete data.pre_spree_requested;
       delete data.listing_offer;
@@ -759,7 +762,7 @@ export default function CreateListingPage() {
       for (let i = 0; i < 5; i++) rand5 += chars[Math.floor(Math.random() * chars.length)];
       const listingNumber = `${stateCode}${zipLast4}-${rand5}`;
       const response = await base44.functions.invoke("saveResidentialListing", {
-        action: preSpreeCreate ? "pre_spree_create" : founderCreate ? "founder_create" : "create",
+        action: seasonalCareCreate ? "seasonal_care_create" : preSpreeCreate ? "pre_spree_create" : founderCreate ? "founder_create" : "create",
         data: {
           ...data,
           title: data.title,
@@ -1426,6 +1429,16 @@ export default function CreateListingPage() {
       payload.payment_intent_status = sourceFormData.payment_intent_status || "hold_requested";
     }
     payload.pre_spree_requested = actionStr === "pre_spree";
+    if (actionStr === "seasonal_care") {
+      payload.seasonal_care_requested = true;
+      payload.tier = "event";
+      payload.event_tier = "event";
+      payload.event_add_ons = {};
+      payload.pricePaid = 0;
+      payload.payment_status = "free";
+      payload.payment_intent_status = "none";
+      payload.status = "active";
+    }
     if (actionStr === "founder_vip") {
       payload.founder_vip_requested = true;
       payload.pricePaid = 0;
@@ -1774,6 +1787,22 @@ export default function CreateListingPage() {
     } catch (error) { setPaymentError(error.message); toast.error(error.message); }
   };
   const handleSubmit = async ({ userInitiated = false } = {}) => {
+    if (isSeasonalCareFlow && !isAssistedPost && !isAdminCreate) {
+      const safeEventData = normalizeResidentialEventSingleDay(formData);
+      const scheduleCheck = getEventScheduleValidation(safeEventData);
+      if (!safeEventData.event_name?.trim() || !safeEventData.event_category ||
+          safeEventData.location_source !== "pin" ||
+          !Number.isFinite(safeEventData.lat) || !Number.isFinite(safeEventData.lng)) {
+        toast.error("Complete the service details and confirm its map pin before publishing.");
+        return;
+      }
+      if (!scheduleCheck.hasRequiredFields || scheduleCheck.errors.length) {
+        toast.error(scheduleCheck.errors[0] || "Confirm the service date and operating hours.");
+        return;
+      }
+      executeSubmit("seasonal_care", safeEventData);
+      return;
+    }
     if (isDeveloperMode) {
       if (formData.listingType === "halloween_spot") handleDeveloperPublish();
       else { setPaymentError(""); setStep(paymentStepNumber); }
@@ -2241,8 +2270,11 @@ export default function CreateListingPage() {
   const residentialStepLabels = ["Sale Details", "Your Location", "Tier & Schedule", isAdminCreate ? "Assign User" : "Payment"];
   const eventStepLabels = ["Event Info", "Location", "Date & Time", "Add-Ons", isAdminCreate ? "Assign User" : "Payment"];
   const halloweenStepLabels = ["Halloween Spot", "Location", "Publish"];
-  const stepLabels = isEventFlow ? (isAssistedPost ? [...eventStepLabels.slice(0, 3), "Create Assisted Event"] : eventStepLabels) : isHalloweenFlow ? halloweenStepLabels : residentialStepLabels;
-  const totalSteps = isEventFlow ? (isAssistedPost ? 4 : 5) : isHalloweenFlow ? 3 : 4;
+  const stepLabels = isSeasonalCareFlow && !isAssistedPost && !isAdminCreate
+    ? ["Service Details", "Map Location", "Schedule & Publish"]
+    : isEventFlow ? (isAssistedPost ? [...eventStepLabels.slice(0, 3), "Create Assisted Event"] : eventStepLabels)
+    : isHalloweenFlow ? halloweenStepLabels : residentialStepLabels;
+  const totalSteps = isSeasonalCareFlow && !isAssistedPost && !isAdminCreate ? 3 : isEventFlow ? (isAssistedPost ? 4 : 5) : isHalloweenFlow ? 3 : 4;
   const stepMeta = {
     yard_sale:      { 1: "Tell buyers what you're selling", 2: "Confirm your sale address",      3: "Pick your visibility & schedule", 4: "Complete your listing" },
     neighborhood_sale: { 1: "Set up your event",            2: "Choose the sale area",            3: "Dates & details",                 4: "Payment setup" },
@@ -2465,7 +2497,7 @@ export default function CreateListingPage() {
             {!assistedCreated && !(step===1 && aiChatActive) && !(step===1 && !formData.listingType) && (step !== paymentStepNumber || isAdminCreate) && <ListingCreationActions
               step={step} setStep={setStep} paymentStepNumber={paymentStepNumber} entryStepNumber={entryStepNumber}
               isAdminCreate={isAdminCreate} isAssistedPost={isAssistedPost} isDeveloperMode={isDeveloperMode}
-              listingType={formData.listingType} tier={formData.tier} regularAddressIncomplete={regularAddressIncomplete}
+              listingType={formData.listingType} tier={formData.tier} isSeasonalCare={isSeasonalCareFlow && !isAssistedPost && !isAdminCreate} regularAddressIncomplete={regularAddressIncomplete}
               preSpreeSelected={canPublishPreSpree(formData)}
               userHasVerifiedPrimaryAddress={userHasVerifiedPrimaryAddress} isStartingPayment={isStartingPayment}
               isCreating={createListingMutation.isPending} selectedUserForAdmin={selectedUserForAdmin}

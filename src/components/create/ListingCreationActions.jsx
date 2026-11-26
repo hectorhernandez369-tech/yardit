@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export default function ListingCreationActions({ step, setStep, paymentStepNumber, entryStepNumber, isAdminCreate, isAssistedPost, isDeveloperMode, listingType, tier, preSpreeSelected = false, regularAddressIncomplete, userHasVerifiedPrimaryAddress, isStartingPayment, isCreating, selectedUserForAdmin, onNext, onSubmit, onAdminCreate }) {
+export default function ListingCreationActions({ step, setStep, paymentStepNumber, entryStepNumber, isAdminCreate, isAssistedPost, isDeveloperMode, listingType, tier, isSeasonalCare = false, preSpreeSelected = false, regularAddressIncomplete, userHasVerifiedPrimaryAddress, isStartingPayment, isCreating, selectedUserForAdmin, onNext, onSubmit, onAdminCreate }) {
   const continuing = isAdminCreate ? step < paymentStepNumber : step < entryStepNumber;
   const nextDisabled = !isDeveloperMode && step === 2 && listingType !== "neighborhood_sale" && listingType !== "event" && (isAssistedPost ? regularAddressIncomplete : regularAddressIncomplete && !userHasVerifiedPrimaryAddress);
   const publishLabel = isStartingPayment ? (listingType === "neighborhood_sale" ? "Saving Payment Method..." : "Starting Payment...")
@@ -10,6 +10,7 @@ export default function ListingCreationActions({ step, setStep, paymentStepNumbe
     : isAdminCreate && step === paymentStepNumber ? "Create Listing (Admin)"
     : isAdminCreate && step === entryStepNumber ? "Continue to Assign User"
     : isAssistedPost ? (listingType === "halloween_spot" ? "Create Assisted Halloween Spot 🎃" : listingType === "event" ? "Create Assisted Event" : "Create Assisted Yard Sale")
+    : isSeasonalCare ? "Publish Free Community Listing"
     : isDeveloperMode ? (listingType === "halloween_spot" ? "Publish without payment" : "Review listing →")
     : listingType === "event" ? "Continue to Payment →"
     : listingType === "halloween_spot" ? "Publish Halloween Spot 🎃"
