@@ -127,5 +127,5 @@ export const sortLeagueGames = (games = []) => [...games].sort((a, b) => {
   return String(a.division || a.age_group || "").localeCompare(String(b.division || b.age_group || ""));
 });
 
-export const formatGameTime = (value) => value ? new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "TBD";
+export const formatGameTime = (value) => value ? new Date(value).toLocaleTimeString('en-US', { hour: "numeric", minute: "2-digit", hour12: true }) : "TBD";
 export const formatGameDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDateString([], { month: "numeric", day: "numeric", year: "numeric" }) : "TBD";

@@ -1,8 +1,10 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import ClockInput from '@/components/ui/ClockInput'
 
 const Input = React.forwardRef(({ className, type, ...props }, ref) => {
+  if (type === 'time' || type === 'datetime-local') return <ClockInput {...props} forwardedRef={ref} type={type} className={className} />;
   return (
     (<input
       type={type}
