@@ -1,4 +1,5 @@
 import React from "react";
+import CommunityCareHours from '@/components/create/event/CommunityCareHours';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -7,6 +8,10 @@ export default function DeveloperScheduleFields({ formData, setFormData }) {
   const halloween = formData.listingType === "halloween_spot";
   const fields = event ? ["event_start_date", "event_end_date", "event_start_time", "event_end_time"] : halloween ? ["halloween_start_date", "halloween_end_date", "halloween_start_time", "halloween_end_time"] : ["selectedRangeStartDate", "selectedRangeEndDate", "openTime", "closeTime"];
   const labels = ["Start date", "End date", "Opens at", "Closes at"];
+  const inputs = fields.map((field, index) => <div key={field} className="space-y-1.5">
+    <Label htmlFor={`developer-${field}`}>{labels[index]}</Label>
+    <Input id={`developer-${field}`} type={index < 2 ? 'date' : 'time'} value={formData[field] || ''} onChange={e => {const value = e.target.value; setFormData(prev => ({ ...prev, [field]: value }));}} />
+  </div>);
   return (
     <section className="space-y-4 rounded-xl border bg-card p-4 text-card-foreground">
       <div>
@@ -14,10 +19,8 @@ export default function DeveloperScheduleFields({ formData, setFormData }) {
         <p className="mt-1 text-xs text-muted-foreground">Choose any dates and hours. Weekend, advance-booking, and tier-duration restrictions are bypassed.</p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {fields.map((field, index) => <div key={field} className="space-y-1.5">
-          <Label htmlFor={`developer-${field}`}>{labels[index]}</Label>
-          <Input id={`developer-${field}`} type={index < 2 ? "date" : "time"} value={formData[field] || ""} onChange={(event) => setFormData((prev) => ({ ...prev, [field]: event.target.value }))} />
-        </div>)}
+        {inputs.slice(0, 2)}
+        <CommunityCareHours formData={formData} setFormData={setFormData}>{inputs.slice(2)}</CommunityCareHours>
       </div>
       {formData.listingType === "yard_sale" && formData.tier === "premium" && <div className="space-y-1.5">
         <Label htmlFor="developer-early-days">Early visibility days</Label>

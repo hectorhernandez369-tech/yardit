@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import CommunityCareHours from '@/components/create/event/CommunityCareHours';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { getEventScheduleValidation, getNormalizedEventSchedule, shiftDate } from "@/lib/eventSchedule";
@@ -63,6 +64,7 @@ export default function EventScheduleStep({ formData, setFormData }) {
           />
         </div>
 
+        <CommunityCareHours formData={formData} setFormData={setFormData}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="event_start_time" className="text-xs font-semibold text-slate-600">Start Time *</Label>
@@ -85,6 +87,7 @@ export default function EventScheduleStep({ formData, setFormData }) {
             />
           </div>
         </div>
+        </CommunityCareHours>
       </div>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
